@@ -1,0 +1,499 @@
+# MTG Card Swapper - Master Project Planning Document
+
+## PROJECT VISION & GOALS
+
+**Application:** Magic: The Gathering (MTG) Card Swapping Web App
+
+**Core Purpose:** Enable MTG players to discover, negotiate, and exchange bulk cards with friends and acquaintances through in-person 
+and mail-based swaps (no monetary transactions).
+
+**Target Users:** MTG collectors and players looking to optimize their collections through non-monetary card exchanges.
+
+**MVP Timeline:** Solo development, 20+ hours/week → Phase 1: 9-11 weeks (185-225 dev hours) + Phase 1.5: 2-3 weeks (40-50 hours)
+
+**Launch Model:** Closed beta with friends (50-100 users, 4-8 weeks), then public Phase 1.5+ post-stabilization
+
+---
+
+## FINALIZED TECH STACK
+
+### Frontend
+- **Framework:** React + TypeScript + Vite
+- **State Management:** React Query/TanStack Query (API state)
+- **Styling:** TailwindCSS (responsive mobile-first)
+- **International:** i18next (EN+FR Phase 1, FR/ES/DE/IT/NL Phase 1.5)
+- **Hosting:** Cloudflare Pages (auto-deploy from main branch)
+
+### Backend
+- **Framework:** Django + Python 3.10+
+- **REST API:** Django REST Framework (DRF)
+- **Real-time:** Polling 2-5s (not WebSocket) for simplicity
+- **Database:** PostgreSQL (self-managed on Render)
+- **Admin Panel:** Django built-in admin for moderation
+- **Hosting:** Render (managed PostgreSQL + Python WSGI support)
+
+### Database
+- **Type:** PostgreSQL (managed on Render)
+- **Schema:** 8 core tables (see mtg_database_schema_finalized.txt)
+- **Reference:** Full schema + ER diagram in separate planning document
+
+### Deployment
+- **Backend:** Docker container on Render
+- **Frontend:** Cloudflare Pages
+- **Repository:** Public GitHub (building in public)
+- **Environment:** docker-compose for local dev (optional), or Python venv + local PostgreSQL
+
+---
+
+## PHASE 1 SCOPE: MVP (9-11 weeks, 185-225 hours)
+
+### Core User Model (Invite-Only Beta)
+- ✅ Invite-only sign-up (you send invite links to friends)
+- ✅ Basic profile: username, optional city/region/country (all optional, privacy-protected)
+- ✅ All cards visible to friend-group (no per-card privacy toggles Phase 1)
+- ✅ Public reputation system (average rating + total swaps)
+
+### Card Management (Discovery & Inventory)
+- ✅ **Manual entry:** Add cards 1-by-1 via Scryfall search autocomplete
+- ✅ **Bulk upload:** CSV import (name, set, quantity, condition)
+- ✅ **Image scanning:** Phone camera with AI vision (ML API) to identify cards
+- ✅ **Card attributes:** Card name, set, condition (Unused/Played/Damaged), foil/non-foil, language, quantity
+- ✅ **Card browse:** Search by name/set/color/type → see who has it → view user's full library
+- ✅ **Scryfall integration:** Async API calls for card autocomplete & metadata
+
+### Swap Workflow (Negotiation Engine)
+- ✅ **Discovery:** Search card name → see all users who have it → browse their library
+- ✅ **Basket creation:** Select cards from another user's library → propose swap
+- ✅ **Offer lifecycle:** pending → accepted → completed (or declined/cancelled/expired)
+- ✅ **Counteroffer support:** Target proposes different cards → initiator responds → loop (max 4 counteroffers)
+- ✅ **7-day expiration:** Renewed by 7 days each counteroffer (prevents infinite negotiation)
+- ✅ **Ownership validation:** Can only propose cards you own, request cards from target user
+
+### Post-Acceptance Coordination (SwapDetails)
+- ✅ **Mode decision:** Agree on in-person OR mail (decided post-acceptance, not upfront)
+- ✅ **In-person meetup:** Propose location + datetime, two-step confirmation (both must agree)
+- ✅ **Messaging hub:** Real-time chat (polling 2-5s) tied to offer → negotiate details
+- ✅ **No mail phase 1:** In-person only for MVP (addresses safe to add later)
+
+### Reputation & Ratings
+- ✅ **Post-swap rating:** 1-5 stars + optional comment (max 500 chars)
+- ✅ **Reputation calculation:** Average rating displayed on profile
+- ✅ **Total swaps tracker:** Count of completed swaps per user
+- ✅ **Rating visibility:** Public ratings history per user
+
+### Internationalization (Phase 1)
+- ✅ **Supported languages:** English (EN) + French (FR)
+- ✅ **Scope:** UI strings + email templates (invites, password reset, notifications)
+- ✅ **API errors:** English only Phase 1 (context visible in offer/message threads, less confusion)
+- ✅ **Architecture:** i18next (frontend) + Django i18n (backend emails), extensible to Phase 1.5
+
+### User Interface (Mobile-First)
+- ✅ **Authentication:** Sign up via invite link, login
+- ✅ **My Collection:** List cards, add/edit/delete, mark unavailable, bulk upload interface
+- ✅ **Search & Browse:** Find cards by name → list users who have it → browse their library
+- ✅ **Offer System:** Create offer from user's library → submit to target → track status
+- ✅ **Offers Inbox:** View sent/received offers, filter by status (pending/accepted/completed)
+- ✅ **Offer Detail:** See card details, messaging thread, counteroffer history
+- ✅ **Messaging:** Real-time chat (polling) on each offer → negotiate swap mode + meetup details
+- ✅ **User Profiles:** View any user's cards, reputation, ratings history
+- ✅ **Rating UI:** Rate swap after completion, see rating confirmation
+
+### Key Privacy Features
+- ✅ **Address privacy:** Addresses ONLY stored in SwapDetails table (not user profile)
+- ✅ **Address deletion:** Immediate deletion after swap marked complete (GDPR compliant)
+- ✅ **No location exposure:** In-person meetup details negotiated in messages, not exposed to other users
+- ✅ **Trust model:** Invite-only ensures initial friend-group only
+
+---
+
+## PHASE 1.5 SCOPE: FULL INTERNATIONALIZATION (2-3 weeks, 40-50 hours)
+
+### Expanded Language Support
+- ✅ **New languages:** Add French (FR), Spanish (ES), German (DE), Italian (IT), Dutch (NL) full support
+- ✅ **Full translation:** UI + email templates + API error messages in all 6 languages
+- ✅ **User preference:** Users set preferred language in profile
+- ✅ **Language fallback:** English default if language not supported
+
+### No New Features
+- ⏳ Mail swaps deferred to Phase 2
+- ⏳ Location-based search deferred to Phase 2
+- ⏳ Admin UI deferred to Phase 2+
+
+---
+
+## DEFERRED TO PHASE 2+ (NOT in MVP)
+
+### Features Intentionally Deferred
+- ❌ **Mail-based swaps:** Address handling, shipping integration, tracking. Deferred for simplicity Phase 1.
+- ❌ **Location-based search:** "Find cards near me." Deferred to Phase 2 expansion.
+- ❌ **Per-card privacy:** Each card marked public/friends-only. Deferred, all cards public Phase 1.
+- ❌ **Friend system:** Formal friends/followers. Deferred, invite-only means all users trusted Phase 1.
+- ❌ **Wishlists:** Users create wish lists, matched against other libraries. Deferred Phase 2.
+- ❌ **Swap events:** Community meetup events for group swaps. Deferred Phase 2.
+- ❌ **Admin UI dashboard:** Custom admin frontend. Using Django admin Phase 1.
+- ❌ **Bot detection:** Automated fraud detection. Manual moderation Phase 1.
+- ❌ **Advanced search:** Filter by rarity, color, type, artist, etc. Basic name/set/color only Phase 1.
+
+---
+
+## CORE WORKFLOW & USER JOURNEY
+
+### Example: Alice Swaps with Bob
+
+**1. Discovery (Alice finds Black Lotus)**
+- Alice searches: "Black Lotus"
+- System returns: "3 users have 'Black Lotus'" → [Bob, Carol, Dave]
+- Alice clicks Bob → sees Bob's full card library (100+ cards)
+- No location data shown yet
+
+**2. Offer Creation (Alice proposes swap)**
+- Alice browses Bob's library, selects cards to offer
+- Alice adds to basket: [Llanowar Elves (x2), Forest (x1)]
+- Alice selects cards she wants from Bob: [Black Lotus (x1)]
+- Alice submits offer: "I give [Llanowar Elves x2, Forest x1] for [Black Lotus x1]"
+- System creates offer, expires in 7 days
+- Bob receives notification
+
+**3. Counteroffer Negotiation (Bob responds)**
+- Bob sees Alice's offer
+- Instead of accepting, Bob counteroffers: "I'd rather have [Llanowar Elves x1 + Time Walk x1] instead"
+- System updates offer → new 7-day timer starts
+- Alice receives notification
+- Alice accepts Bob's counteroffer (offer status = accepted)
+
+**4. Post-Acceptance Coordination (Decide Mode)**
+- Swap details unlocked
+- Messaging thread opened
+- Alice & Bob message: "How should we do this? Meet up or mail?"
+- Alice: "I'm in Portland, can we meet Saturday 2pm?"
+- Bob: "Perfect! Let's meet at Starbucks on 5th & Pike"
+- Bob: "I confirm Saturday 2pm"
+- Alice: "Confirmed!"
+- System notes mode = "in_person", location confirmed
+
+**5. Swap Completion & Rating**
+- Sunday: Alice & Bob meet, exchange cards face-to-face
+- Alice marks swap complete on the app
+- Bob also confirms completion
+- System deletes any addresses (not applicable for in-person, but follows protocol)
+- Both rate each other: Alice gives Bob 5 stars "Great cards, perfect condition!"
+- Bob gives Alice 5 stars "Quick, reliable trader!"
+- Reputations updated on both profiles
+
+---
+
+## IMPLEMENTATION TIMELINE & EFFORT BREAKDOWN
+
+### Phase 1: MVP (185-225 dev hours)
+
+| Component | Estimated Hours | Notes |
+|-----------|-----------------|-------|
+| Django setup + DRF scaffolding | 12 | Project structure, apps organization |
+| Invite-only auth (DRF JWT + custom invites) | 16 | Signup via invite, login, token refresh |
+| Card CRUD + Scryfall integration | 25 | Add/edit/delete cards, async Scryfall API |
+| CSV bulk upload parser | 10 | Parse CSV, validate, batch insert |
+| Image recognition/phone scanning | 20 | ML vision API integration (Google or TensorFlow) |
+| Card search & browse (user library) | 18 | Full-text search, user library browsing |
+| Offer system + counteroffer logic | 35 | Create/update offers, max 4 counteroffers, 7-day renewal |
+| Messaging & polling (2-5s refresh) | 18 | Chat tied to offers, polling for new messages |
+| SwapDetails (post-acceptance coordination) | 15 | In-person meetup planning, location confirmation |
+| Rating system | 10 | Create/view ratings, reputation calculation |
+| Internationalization (i18next UI + Django emails) | 9 | EN+FR for UI strings + email templates |
+| React + TypeScript + Vite setup | 18 | Frontend scaffolding, component structure |
+| UI/UX & responsive design (TailwindCSS) | 28 | Mobile-first pages, accessibility |
+| Testing (unit + E2E) + bug fixes | 21 | Focused testing (auth + offers), general polish |
+| **TOTAL** | **185-225** | 9-11 weeks @ 20+ hrs/week |
+
+### Phase 1.5: Full Internationalization (40-50 dev hours)
+
+| Component | Estimated Hours | Notes |
+|-----------|-----------------|-------|
+| Expand language support (FR/ES/DE/IT/NL) | 30 | Translate UI + email templates + API errors |
+| Test multilingual flows | 10 | Verify all languages render/work correctly |
+| User language preference setting | 5 | Frontend language toggle, backend per-user setting |
+| **TOTAL** | **40-50** | 2-3 weeks @ 20+ hrs/week |
+
+---
+
+## FINALIZED DECISIONS & RATIONALE
+
+### ✅ Why React + TypeScript + Vite?
+- React: Large ecosystem, component-driven, easy state management
+- TypeScript: Type safety, better IDE support, fewer runtime errors
+- Vite: Fast, modern dev experience (HMR), superior to Create React App
+- Justification: Aligns with learning goals, widely-adopted, good for solo dev
+
+### ✅ Why Django + Python?
+- Django: Batteries-included framework (ORM, auth, routing, admin, migrations)
+- Python: Modern language, async/await support, good for learning
+- DRF: Mature REST framework, widely adopted, excellent documentation
+- Justification: Primary learning goal (Python/Django ecosystem), Django admin useful for moderation
+
+### ✅ Why PostgreSQL (Self-Managed)?
+- Relational model perfect for card matching queries (offers, ratings)
+- Managed PostgreSQL on Render: Automatic backups, scaling, no ops overhead
+- Justification: Learning database fundamentals + managed service takes ops burden off
+
+### ✅ Why Polling (Not WebSocket via Channels)?
+- Simpler architecture: Frontend polls every 2-5s for new messages
+- No Channels complexity: Avoids WebSocket scaling, Redis, connection management
+- Acceptable UX: 2-5s delay not noticeable for negotiation (not time-critical)
+- Justification: MVP scope, trade-off between simplicity and real-time (can upgrade Phase 2)
+
+### ✅ Why Invite-Only Phase 1?
+- Smaller user base: Easier to moderate, test, iterate
+- Quality over scale: Friend-group ensures higher engagement, trust
+- Privacy-first: Closed beta = less abuse, cleaner data
+- Justification: De-risk MVP, build with friends, scale post-stabilization
+
+### ✅ Why Counteroffer Max 4 Rounds?
+- Prevent infinite loops: After 4 counteroffers, offer auto-expires, forces decision
+- Natural negotiation: 4 rounds usually sufficient for "I want this" ↔ "I'll give that instead"
+- Clear boundary: Prevents analysis paralysis, encourages users to settle or move on
+- Justification: Balance flexibility + user experience (not too restrictive)
+
+### ✅ Why Full Addresses Deleted Immediately Post-Swap?
+- Privacy-first: No permanent address storage (GDPR compliant)
+- Trust: Users know data won't persist after swap completion
+- Simplicity: No need for address backup/archive logic
+- Justification: Aligns with privacy-sensitive design, reduces liability
+
+### ✅ Why Internationalization in Phase 1 + 1.5?
+- Phase 1 (EN+FR): UI + emails only, API errors in English (context visible in messages)
+- Phase 1.5: Full multilingual (API errors + UI + emails in 6 languages)
+- Modular approach: i18n built from day 1 (i18next + Django i18n), low cost to expand
+- Justification: Balances launch speed (Phase 1) + quality (Phase 1.5), extensible architecture
+
+### ✅ Why Card Conditions Simplified to 3 Values?
+- Original plan: 6-level grading (Gem Mint, Near Mint, Light Play, Moderate Play, Heavy Play, Damaged)
+- Simplified: Unused / Played / Damaged (easier for casual users, sufficient for MVP)
+- Justification: Reduces decision paralysis, covers 90% of use cases, can expand Phase 2
+
+### ✅ Why CSV Bulk Upload + Image Scanning?
+- Manual entry only = tedious for large collections
+- Bulk upload: Natural for users importing existing collection (Scryfall export)
+- Image scanning: Modern UX, draws new users (can scan cards with phone camera)
+- Combined: Users choose method that fits them (entry preference)
+- Justification: Removes friction from high-volume card entry (essential for realistic MVP)
+
+### ✅ Why Cloudflare Pages (Not Netlify/Vercel)?
+- You already have Cloudflare domain infrastructure
+- Zero-cost frontier for pet projects
+- Native integration with Workers, KV, Analytics
+- Justification: Leverage existing infrastructure, no new vendor lock-in
+
+### ✅ Why Render (Not Railway)?
+- You already use Render for PostgreSQL + backend
+- Familiar infrastructure, connection strings, environment setup
+- Managed PostgreSQL solid, Python support excellent
+- Justification: Infrastructure familiarity, reduce cognitive overhead
+
+---
+
+## SPECIFIC DESIGN DECISIONS LOCKED IN
+
+### User Model
+- ✅ Invite-only signup (no public registration Phase 1)
+- ✅ Optional location fields: city + region/state + country (all optional, privacy-protected)
+- ✅ No formal friends system (all users see all cards in Phase 1)
+- ✅ Username editable (users can change post-signup)
+- ✅ Avatar URL stored (external URL, not file upload)
+
+### Card Model
+- ✅ Cards denormalized: card_name, set_code stored on card row (fast search, no API calls per query)
+- ✅ Condition: 3-value enum (Unused, Played, Damaged)
+- ✅ Language field: Track card language (English, French, Japanese, etc.)
+- ✅ Quantity: INT field (multiple copies of same card = 1 row with quantity, not separate rows)
+- ✅ is_available boolean: Mark cards swappable or kept
+- ✅ All cards public to friend-group (no per-card privacy toggles)
+
+### Offer Model
+- ✅ Status values: pending → accepted → completed (also: declined, cancelled, expired)
+- ✅ Counteroffer handled via offer_items table (old items deleted, new items inserted)
+- ✅ Max counteroffer rounds: 4 (then auto-expires)
+- ✅ Expiration: 7 days, renewed by 7 days on each counteroffer
+- ✅ No quantity_in_offer field: Each card copy in offer = separate row (simplifies item tracking)
+
+### Swap Details Model
+- ✅ Created when offer accepted (unlocks messaging)
+- ✅ Swap mode: decided post-acceptance via messaging negotiation (not upfront)
+- ✅ In-person mode: proposed_location + proposed_datetime + two-step confirmation
+- ✅ Mail mode: shipping addresses stored ONLY here, deleted immediately post-completion
+- ✅ Cascade delete: If offer deleted, swap_details deleted too
+
+### Messaging Model
+- ✅ Real-time mechanism: Polling 2-5s (not WebSocket Channels)
+- ✅ Messages visible only to offer participants (privacy)
+- ✅ System messages: Automated events ("Offer accepted", "Swap completed")
+- ✅ Read_at tracking: Deferred to Phase 2 (Phase 1: no read receipts)
+
+### Offer Items Model
+- ✅ Join table: Links offer ↔ card with item_type (offered vs requested)
+- ✅ No quantity_in_offer: Each copy tracked as separate row (simplifies logic)
+- ✅ UNIQUE constraint: (offer_id, card_id, item_type) prevents duplicates
+
+### Ratings Model
+- ✅ Tied to offer_id (why you rated them - for context)
+- ✅ One rating per user per swap (UNIQUE constraint: rater_user_id, offer_id)
+- ✅ Feeds users.reputation_avg (calculated on-read Phase 1)
+- ✅ Audit_log table deferred to Phase 1.5
+
+---
+
+## DATABASE SCHEMA REFERENCE
+
+**See mtg_database_schema_finalized.txt for:**
+- Full SQL CREATE TABLE statements
+- All indexes and foreign key constraints
+- Complete ER diagram
+- Query patterns and design rationale
+
+**8 Core Tables:**
+1. **users** — Authentication, profile, reputation
+2. **invite_codes** — Invite-only access control
+3. **cards** — User card inventory
+4. **offers** — Swap negotiations
+5. **offer_items** — Line items in each offer
+6. **swap_details** — Post-acceptance coordination + address privacy
+7. **messages** — Tied to offers, polling-based chat
+8. **ratings** — Post-swap reviews + reputation
+
+---
+
+## API ROUTES REFERENCE
+
+**See mtg_api_routes_plan.txt for:**
+- All ~36 endpoints organized by feature
+- Request/response examples for each route
+- Validation rules and error codes
+- Authentication & permission requirements
+- Design patterns (ownership checks, nested resources, polling)
+
+**8 Endpoint Groups:**
+1. **Auth (5 routes)** — Register, login, refresh, logout, me
+2. **Users (4 routes)** — Profile, ratings, stats
+3. **Cards (6 routes)** — CRUD + search
+4. **Offers (8 routes)** — Create, accept, decline, counteroffer, negotiate
+5. **Offer Items (2 routes)** — Add/remove items
+6. **Swap Details (5 routes)** — Coordination, mode selection, meetup confirmation
+7. **Messages (3 routes)** — Send, get all, polling for new messages
+8. **Ratings (3 routes)** — Create, view by user, view by offer
+
+---
+
+## BEFORE STARTING DEVELOPMENT
+
+### ✅ Prerequisites to Verify
+1. ✅ Python 3.10+ installed locally = (Python 3.14.3)
+2. ✅ Node 18+ installed locally = (v22.20.0)
+3. ✅ Render account (already have, confirm PostgreSQL managed option) = Yes, free tier. 
+4. ✅ Cloudflare domain access (already have) = Yes, paid domain.
+5. ✅ GitHub account (will create new public repo) = Yes, no repo yet.
+
+### ⏳ Decisions Still Needed
+None — all critical decisions finalized. Ready to initialize.
+
+### 📋 Pre-Development Tasks
+1. Create public GitHub repo (mtgSwapper or similar)
+2. Push initial project scaffolding (Django + React projects)
+3. Set up docker-compose.yml for local PostgreSQL (optional, or use local PostgreSQL)
+4. Create .env template file (no secrets committed)
+5. Initialize Render PostgreSQL + get connection string
+
+### 🚀 First Development Sprints (Priority Order)
+1. **Sprint 1 (Week 1-2):** Django scaffold + DRF auth (invite-only signup, JWT login)
+2. **Sprint 2 (Week 2-3):** Card CRUD + Scryfall integration + bulk upload + image scanning
+3. **Sprint 3 (Week 3-4):** Card search + user library browse + React frontend setup
+4. **Sprint 4 (Week 4-5):** Offer creation + counteroffer logic + offer list UI
+5. **Sprint 5 (Week 6-7):** Messaging + polling + swap coordination (in-person)
+6. **Sprint 6 (Week 7-9):** Rating system + reputation calculations + profile UI
+7. **Sprint 7 (Week 9-11):** Internationalization (EN+FR), polish, bug fixes, testing
+
+---
+
+## GLOSSARY & KEY TERMS
+
+| Term | Definition |
+|------|-----------|
+| **Offer** | A proposed swap from User A to User B (cards offered + cards requested) |
+| **Counteroffer** | User B proposes different cards instead of accepting User A's offer (max 4 rounds) |
+| **Swap** | Accepted offer (both A and B agreed), ready for coordination (in-person or mail) |
+| **SwapDetails** | Post-acceptance record storing mode (in-person/mail), addresses, meeting details |
+| **Polling** | Frontend checks server every 2-5s for new messages (alternative to WebSocket) |
+| **In-Person** | Both users meet physically to exchange cards face-to-face |
+| **Mail** | Users ship cards to each other (Phase 2, not Phase 1) |
+| **Reputation** | Average star rating calculated from user's past swaps (1-5 stars) |
+| **Invite Code** | Unique token sent to friends to grant signup access (invite-only beta) |
+| **Scryfall API** | Third-party API providing MTG card data (names, sets, images, attributes) |
+
+---
+
+## DOCUMENT STRUCTURE & REFERENCES
+
+### This Master Document
+- Executive summary, scope, tech stack, workflow, timeline, decisions, prerequisites
+
+### Specialized Planning Documents (Separate Files)
+
+1. **mtg_database_schema_finalized.txt**
+   - Complete SQL schema for 8 tables
+   - All constraints, indexes, foreign keys
+   - ER diagram, query patterns, privacy enforcement
+
+2. **mtg_api_routes_plan.txt**
+   - All ~36 endpoints detailed
+   - Request/response examples
+   - Validation rules, error codes, auth requirements
+   - Design patterns (ownership, pagination, polling)
+
+3. **mtg_database_macro_overview.txt**
+   - High-level architecture via user journey
+   - Why each table exists, how they relate
+   - Sample queries and design rationale
+
+### Archive Documents (Reference Only)
+- mtg_card_swap_app_planning.txt — Original scope (superceded by expanded plan)
+- mtg_expanded_planning.txt — Detailed planning with hours (source for this master doc)
+- mtg_questions_to_clarify.txt — Decision tracking (all resolved, finalized above)
+
+---
+
+## WHAT'S NOT INCLUDED IN THIS MASTER PLAN
+
+### Deferred to Phase 2+
+- Mail-based swaps (address shipping coordination)
+- Location-based search ("cards near me")
+- Event organization (group swaps)
+- Wishlist matching
+- Advanced search filters
+
+### Out of Scope (May Never Implement)
+- Monetization/ads (free forever for now)
+- Mobile app (web-responsive is MVP)
+- Blockchain/NFT integration
+- Scryfall image hosting (cards shown via Scryfall URLs)
+- Marketplace (no pricing, only swaps)
+
+### Implementation Details (To Capture During Development)
+- Component library structure (React)
+- Django app modularization (apps folder)
+- CI/CD pipeline configuration
+- Error handling & edge cases
+- Specific UI component designs
+- Performance optimization (caching, pagination, query optimization)
+
+---
+
+## SIGN-OFF
+
+**Status:** ✅ Phase 1 Planning Complete - Ready for Development
+
+**Planning Date:** April 8, 2026
+
+**Tech Stack Locked:** React + TypeScript + Vite (frontend), Django + Python (backend), PostgreSQL (database), Render (hosting)
+
+**Scope Locked:** 8 core tables, ~36 API endpoints, invite-only beta, in-person swaps Phase 1, mail Phase 2
+
+**Timeline:** 185-225 hours (9-11 weeks @ 20+ hrs/week) for Phase 1 MVP
+
+**Next Action:** Initialize GitHub repo → scaffold Django + React projects → start Sprint 1 (auth system)
