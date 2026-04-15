@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt',
+    'corsheaders',
     'cards',
     'users',
     'swaps',
@@ -51,6 +53,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -149,7 +152,43 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'users.authentication.CookieJWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
 }
+
+
+# JWT Configuration
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1), 
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7), 
+    'ROTATE_REFRESH_TOKENS': True,  
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+}
+
+
+# CORS Configuration (allow frontend to make requests)
+CORS_ALLOWED_ORIGINS = os.getenv(
+    'CORS_ALLOWED_ORIGINS',
+    'http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173'
+).split(',')
+
+CORS_ALLOW_CREDENTIALS = True  # Allow cookies to be sent
+
+
+# Cookie Settings for httpOnly JWT tokens
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 
 # Custom User Model
