@@ -29,10 +29,13 @@ class AuthViewSet(viewsets.ViewSet):
     
     def get_permissions(self):
         """
-        Allow anyone to signup/login (public endpoints).
+        Allow anyone to signup/login/logout (public endpoints).
         Require authentication for other endpoints.
+        
+        Why logout is public: Users should always be able to logout,
+        even if their token is expired/invalid.
         """
-        if self.action in ['signup', 'login']:
+        if self.action in ['signup', 'login', 'logout']:
             return [AllowAny()]
         return [IsAuthenticated()]
     
@@ -137,11 +140,14 @@ class AuthViewSet(viewsets.ViewSet):
         
         return Response(serializer.errors, status=status.HTTP_401_UNAUTHORIZED)
     
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny()])
     def logout(self, request):
         """
         Logout by clearing cookies.
         Since JWT is stateless, we just clear the client-side cookies.
+        
+        Why AllowAny? Logout should work even if token is expired/invalid.
+        You should always be able to log out.
         
         POST /api/auth/logout/
         """

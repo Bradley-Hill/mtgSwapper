@@ -122,5 +122,19 @@ class InviteCode(models.Model):
             models.Index(fields=['status']),
         ]
     
+    def save(self, *args, **kwargs):
+        """Auto-generate code and set expires_at if not already provided."""
+        import secrets
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        if not self.code:
+            self.code = secrets.token_urlsafe(20)
+        
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(days=30)
+        
+        super().save(*args, **kwargs)
+    
     def __str__(self):
         return f"Invite for {self.invitee_email} (status: {self.status})"

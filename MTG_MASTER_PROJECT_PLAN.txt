@@ -400,14 +400,24 @@ None — all critical decisions finalized. Ready to initialize.
 4. Create .env template file (no secrets committed)
 5. Initialize Render PostgreSQL + get connection string
 
-### 🚀 First Development Sprints (Priority Order)
-1. **Sprint 1 (Week 1-2):** Django scaffold + DRF auth (invite-only signup, JWT login)
-2. **Sprint 2 (Week 2-3):** Card CRUD + Scryfall integration + bulk upload + image scanning
-3. **Sprint 3 (Week 3-4):** Card search + user library browse + React frontend setup
-4. **Sprint 4 (Week 4-5):** Offer creation + counteroffer logic + offer list UI
-5. **Sprint 5 (Week 6-7):** Messaging + polling + swap coordination (in-person)
-6. **Sprint 6 (Week 7-9):** Rating system + reputation calculations + profile UI
-7. **Sprint 7 (Week 9-11):** Internationalization (EN+FR), polish, bug fixes, testing
+### 🚀 Development Sprints (Priority Order)
+
+#### ✅ Sprint 1 (Week 1-2): Django scaffold + DRF auth — COMPLETE
+- ✅ Django project scaffolding (4 apps: users, cards, swaps, ratings)
+- ✅ Invite-only signup with JWT tokens + httpOnly cookies
+- ✅ Login/logout/refresh/me endpoints
+- ✅ Custom CookieJWTAuthentication class
+- ✅ 18 unit tests (all passing)
+- ✅ PostgreSQL integration (Render)
+- **Status:** Ready for Sprint 2
+
+#### Upcoming:
+1. **Sprint 2 (Week 2-3):** Card CRUD + Scryfall integration + bulk upload + image scanning
+2. **Sprint 3 (Week 3-4):** Card search + user library browse + React frontend setup
+3. **Sprint 4 (Week 4-5):** Offer creation + counteroffer logic + offer list UI
+4. **Sprint 5 (Week 6-7):** Messaging + polling + swap coordination (in-person)
+5. **Sprint 6 (Week 7-9):** Rating system + reputation calculations + profile UI
+6. **Sprint 7 (Week 9-11):** Internationalization (EN+FR), polish, bug fixes, testing
 
 ---
 
@@ -461,6 +471,10 @@ None — all critical decisions finalized. Ready to initialize.
 ## WHAT'S NOT INCLUDED IN THIS MASTER PLAN
 
 ### Deferred to Phase 2+
+- **Refresh Token Blacklist (SECURITY)** — Currently using stateless JWT with short-lived 
+access tokens (15 min). Phase 2 must implement refresh token blacklist on logout to prevent 
+stolen refresh tokens from generating new access tokens for 7 days. Critical for location data 
+security.
 - Mail-based swaps (address shipping coordination)
 - Location-based search ("cards near me")
 - Event organization (group swaps)
@@ -487,13 +501,23 @@ None — all critical decisions finalized. Ready to initialize.
 ## SIGN-OFF
 
 **Status:** ✅ Phase 1 Planning Complete - Ready for Development
+**Status:** ✅ Sprint 1 Complete - Ready for Sprint 2
 
-**Planning Date:** April 8, 2026
+**Planning Date:** April 8, 2026  
+**Sprint 1 Completion Date:** April 15, 2026
 
 **Tech Stack Locked:** React + TypeScript + Vite (frontend), Django + Python (backend), PostgreSQL (database), Render (hosting)
 
 **Scope Locked:** 8 core tables, ~36 API endpoints, invite-only beta, in-person swaps Phase 1, mail Phase 2
 
-**Timeline:** 185-225 hours (9-11 weeks @ 20+ hrs/week) for Phase 1 MVP
+**Sprint 1 Deliverables:**
+- ✅ Django scaffold + DRF auth system complete
+- ✅ JWT tokens with httpOnly cookies (secure)
+- ✅ 18 unit tests (all passing)
+- ✅ PostgreSQL integration working
+- ✅ Custom authentication class (CookieJWTAuthentication)
 
-**Next Action:** Initialize GitHub repo → scaffold Django + React projects → start Sprint 1 (auth system)
+**Timeline:** 185-225 hours (9-11 weeks @ 20+ hrs/week) for Phase 1 MVP  
+**Remaining:** Sprint 2-7 (estimated 180+ hours)
+
+**Next Action:** Start Sprint 2 (Card CRUD + Scryfall integration)
