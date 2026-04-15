@@ -6,31 +6,35 @@ class CookieJWTAuthentication(JWTAuthentication):
     """
     Custom JWT authentication that reads tokens from httpOnly cookies.
     
+    Extends JWTAuthentication to check cookies in addition to Authorization header.
+    
     Why?
-    - HttpOnly cookies are not accessible to JavaScript
-    - Browser automatically sends cookies with each request
-    - More secure than storing tokens in localStorage
+    - httpOnly cookies are not accessible to JavaScript (XSS protection)
+    - Browser automatically sends cookies with each request 
+    - More secure than localStorage for token storage
     
     How?
-    - First checks Authorization header (for API tools like Postman)
-    - Falls back to 'access_token' cookie (for browser-based clients)
+    - Extracts access_token from cookies if present
+    - Injects it into Authorization header for parent JWTAuthentication to validate
+    - Also supports traditional Authorization: Bearer header for API clients
     """
     
-    def get_raw_token(self, request):
+    def authenticate(self, request):
         """
-        Extract token from either:
-        1. Authorization header (for testing/postman)
-        2. access_token cookie (for browser requests)
+        Override authenticate() to check cookies first, then fall back to Authorization header.
+        
+        Flow:
+        1. Check for access_token in request.COOKIES
+        2. If found, inject into Authorization header
+        3. Call parent JWTAuthentication.authenticate() to validate token
+        4. Return (user, token_data) or raise AuthenticationFailed
         """
-        # Try Authorization header first
-        auth_header = request.META.get('HTTP_AUTHORIZATION', '').split()
+        # First, check if token is in cookies
+        access_token = request.COOKIES.get('access_token')
         
-        if auth_header and auth_header[0].lower() == 'bearer':
-            return auth_header[1].encode()
+        # If found in cookies, inject into Authorization header for parent to find
+        if access_token:
+            request.META['HTTP_AUTHORIZATION'] = f'Bearer {access_token}'
         
-        # Fall back to cookie
-        raw_token = request.COOKIES.get('access_token')
-        if raw_token:
-            return raw_token.encode()
-        
-        return None
+        # Call parent's authenticate() - handles both injected header and explicit Authorization header
+        return super().authenticate(request)
