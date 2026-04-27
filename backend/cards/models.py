@@ -41,7 +41,7 @@ class Card(models.Model):
         default='played'
     )
     is_foil = models.BooleanField(default=False)
-    language = models.CharField(max_length=50, default='English')
+    language = models.CharField(max_length=50, default='French')
     quantity = models.IntegerField(default=1)  # Multiple copies in one row
     
     # Status
