@@ -2,6 +2,9 @@
 Views for Card management (CRUD + Scryfall integration).
 """
 
+import re
+import time
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -14,8 +17,40 @@ from .serializers import (
     CardCreateFromScryfallSerializer,
     CardAutocompleteSerializer,
     CardListSerializer,
+    DecklistImportSerializer,
 )
 from .scryfall_service import ScryfallService
+
+
+# Matches: "4 Black Lotus" or "4 Black Lotus (VMA)" or "4 Black Lotus (VMA) 123"
+# Group 1 → quantity, Group 2 → card name (everything up to optional set code in parens)
+_DECKLIST_LINE_RE = re.compile(r'^(\d+)\s+([^(]+?)(?:\s*\(.*)?$')
+
+
+def _parse_decklist(text):
+    """
+    Parse a Moxfield / MTG Arena style decklist into (quantity, card_name) pairs.
+
+    Handles:
+    - "4 Black Lotus"          → (4, "Black Lotus")
+    - "4 Black Lotus (VMA)"    → (4, "Black Lotus")  — set code stripped
+    - "4 Black Lotus (VMA) 1"  → (4, "Black Lotus")  — collector number stripped
+    - Blank lines              → skipped
+    - Comment lines (//)       → skipped
+    - Section headers (Deck, Sideboard, etc.) → skipped (no leading digit)
+    """
+    entries = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith('//'):
+            continue
+        match = _DECKLIST_LINE_RE.match(line)
+        if match:
+            quantity = int(match.group(1))
+            card_name = match.group(2).strip()
+            if card_name:
+                entries.append((quantity, card_name))
+    return entries
 
 
 class CardViewSet(viewsets.ModelViewSet):
@@ -29,8 +64,9 @@ class CardViewSet(viewsets.ModelViewSet):
     - PUT    /api/cards/{id}/               → Update card
     - PATCH  /api/cards/{id}/               → Partial update
     - DELETE /api/cards/{id}/               → Delete card
-    - POST   /api/cards/autocomplete/       → Get card name suggestions
-    - POST   /api/cards/add-from-scryfall/  → Create card from Scryfall search
+    - POST   /api/cards/autocomplete/         → Get card name suggestions
+    - POST   /api/cards/add_from_scryfall/    → Create card from Scryfall search
+    - POST   /api/cards/bulk_import/          → Import a full decklist at once
     """
     
     permission_classes = [IsAuthenticated]
@@ -54,7 +90,9 @@ class CardViewSet(viewsets.ModelViewSet):
             return CardCreateFromScryfallSerializer
         elif self.action == 'autocomplete':
             return CardAutocompleteSerializer
-        
+        elif self.action == 'bulk_import':
+            return DecklistImportSerializer
+
         return CardSerializer
     
     def perform_create(self, serializer):
@@ -96,7 +134,7 @@ class CardViewSet(viewsets.ModelViewSet):
         Accepts a card name and optional attributes,
         looks up the card on Scryfall, and adds it to the user's collection.
         
-        POST /api/cards/add-from-scryfall/
+        POST /api/cards/add_from_scryfall/
         {
             "card_name": "Black Lotus",
             "set_code": "LEA",
@@ -155,6 +193,91 @@ class CardViewSet(viewsets.ModelViewSet):
             'results': serializer.data
         }, status=status.HTTP_200_OK)
     
+    @action(detail=False, methods=['post'])
+    def bulk_import(self, request):
+        """
+        Import a collection from a plain-text decklist.
+
+        Accepts the Moxfield / MTG Arena export format — one card per line:
+            4 Black Lotus
+            3 Lightning Bolt
+            1 Sol Ring (NEO)   ← set code in parens is stripped before search
+
+        All cards are given the same condition/language/is_foil from the request.
+        Bad rows are skipped; successfully imported cards are saved.
+
+        POST /api/cards/bulk_import/
+        {
+            "decklist": "4 Black Lotus\n3 Lightning Bolt",
+            "condition": "played",
+            "language": "French",
+            "is_foil": false
+        }
+
+        Response:
+        {
+            "imported": 2,
+            "failed": 0,
+            "results": [
+                {"card_name": "Black Lotus", "quantity": 4, "status": "ok"},
+                {"card_name": "Lightning Bolt", "quantity": 3, "status": "ok"}
+            ]
+        }
+        """
+        serializer = DecklistImportSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        entries = _parse_decklist(data['decklist'])
+        if not entries:
+            return Response(
+                {'error': 'No valid lines found. Expected format: "4 Card Name"'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        results = []
+        imported_count = 0
+        failed_count = 0
+
+        for quantity, card_name in entries:
+            # Respect Scryfall's rate limit (max 10 req/s)
+            time.sleep(0.1)
+
+            scryfall_card = ScryfallService.search(card_name)
+
+            if not scryfall_card:
+                failed_count += 1
+                results.append({
+                    'card_name': card_name,
+                    'quantity': quantity,
+                    'status': 'error',
+                    'reason': f"'{card_name}' not found on Scryfall.",
+                })
+                continue
+
+            metadata = ScryfallService.extract_card_metadata(scryfall_card)
+            Card.objects.create(
+                user=request.user,
+                quantity=quantity,
+                condition=data['condition'],
+                language=data['language'],
+                is_foil=data['is_foil'],
+                **metadata,
+            )
+            imported_count += 1
+            results.append({
+                'card_name': metadata['card_name'],
+                'quantity': quantity,
+                'status': 'ok',
+            })
+
+        response_status = status.HTTP_200_OK if imported_count > 0 else status.HTTP_400_BAD_REQUEST
+        return Response({
+            'imported': imported_count,
+            'failed': failed_count,
+            'results': results,
+        }, status=response_status)
+
     @action(detail=False, methods=['get'])
     def available(self, request):
         """

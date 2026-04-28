@@ -128,6 +128,34 @@ class CardAutocompleteSerializer(serializers.Serializer):
         return value
 
 
+class DecklistImportSerializer(serializers.Serializer):
+    """
+    Serializer for bulk importing cards from a plain-text decklist.
+
+    Accepts the standard Moxfield / MTG Arena export format:
+        4 Black Lotus
+        3 Lightning Bolt
+        1 Sol Ring (NEO)   ← set code in parentheses is also accepted
+
+    The decklist field is the only required field. All card attribute fields
+    (condition, language, is_foil) are applied uniformly to every imported card.
+    """
+
+    decklist = serializers.CharField()
+    condition = serializers.ChoiceField(
+        choices=['unused', 'played', 'damaged'],
+        default='played',
+    )
+    language = serializers.CharField(max_length=50, default='French')
+    is_foil = serializers.BooleanField(default=False)
+
+    def validate_decklist(self, value):
+        """Reject completely empty submissions."""
+        if not value.strip():
+            raise serializers.ValidationError("Decklist cannot be empty.")
+        return value
+
+
 class CardListSerializer(serializers.ModelSerializer):
     """
     Lightweight serializer for card listings.

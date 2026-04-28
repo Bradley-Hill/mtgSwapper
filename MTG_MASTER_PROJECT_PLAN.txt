@@ -56,7 +56,7 @@ and mail-based swaps (no monetary transactions).
 ### Card Management (Discovery & Inventory)
 - ✅ **Manual entry:** Add cards 1-by-1 via Scryfall search autocomplete
 - ✅ **Bulk upload:** CSV import (name, set, quantity, condition)
-- ✅ **Image scanning:** Phone camera with AI vision (ML API) to identify cards
+- ⏳ **Image scanning:** Deferred to Sprint 8 (Tesseract OCR backend — see Sprint 8)
 - ✅ **Card attributes:** Card name, set, condition (Unused/Played/Damaged), foil/non-foil, language, quantity
 - ✅ **Card browse:** Search by name/set/color/type → see who has it → view user's full library
 - ✅ **Scryfall integration:** Async API calls for card autocomplete & metadata
@@ -191,8 +191,8 @@ and mail-based swaps (no monetary transactions).
 | Django setup + DRF scaffolding | 12 | Project structure, apps organization |
 | Invite-only auth (DRF JWT + custom invites) | 16 | Signup via invite, login, token refresh |
 | Card CRUD + Scryfall integration | 25 | Add/edit/delete cards, async Scryfall API |
-| CSV bulk upload parser | 10 | Parse CSV, validate, batch insert |
-| Image recognition/phone scanning | 20 | ML vision API integration (Google or TensorFlow) |
+| CSV/decklist bulk upload parser | 10 | Parse Moxfield/Arena plain-text format, batch insert |
+| Image recognition/phone scanning | 20 | Tesseract OCR backend + React camera UI (Sprint 8) |
 | Card search & browse (user library) | 18 | Full-text search, user library browsing |
 | Offer system + counteroffer logic | 35 | Create/update offers, max 4 counteroffers, 7-day renewal |
 | Messaging & polling (2-5s refresh) | 18 | Chat tied to offers, polling for new messages |
@@ -269,12 +269,15 @@ and mail-based swaps (no monetary transactions).
 - Simplified: Unused / Played / Damaged (easier for casual users, sufficient for MVP)
 - Justification: Reduces decision paralysis, covers 90% of use cases, can expand Phase 2
 
-### ✅ Why CSV Bulk Upload + Image Scanning?
+### ✅ Why CSV/Decklist Bulk Upload + Image Scanning?
 - Manual entry only = tedious for large collections
-- Bulk upload: Natural for users importing existing collection (Scryfall export)
+- Bulk upload: Natural for users importing existing collection (Moxfield/Arena export format)
 - Image scanning: Modern UX, draws new users (can scan cards with phone camera)
 - Combined: Users choose method that fits them (entry preference)
 - Justification: Removes friction from high-volume card entry (essential for realistic MVP)
+- Image scanning deferred to Sprint 8: Bulk import covers the immediate need. Camera UI requires
+  React frontend to exist first. Tesseract (server-side Python) chosen over Google Cloud Vision
+  to avoid paid API dependency — free, no usage limits, sufficient accuracy for MTG card fonts.
 
 ### ✅ Why Cloudflare Pages (Not Netlify/Vercel)?
 - You already have Cloudflare domain infrastructure
@@ -408,16 +411,109 @@ None — all critical decisions finalized. Ready to initialize.
 - ✅ Login/logout/refresh/me endpoints
 - ✅ Custom CookieJWTAuthentication class
 - ✅ 18 unit tests (all passing)
-- ✅ PostgreSQL integration (Render)
-- **Status:** Ready for Sprint 2
+- ✅ PostgreSQL integration (Neon PostgreSQL, free tier)
+- **Status:** Complete
+
+#### ✅ Sprint 2 (Week 2-3): Card CRUD + Scryfall integration + bulk import — COMPLETE
+- ✅ Full Card CRUD endpoints (create, list, retrieve, update, delete)
+- ✅ Scryfall autocomplete endpoint (POST /api/cards/autocomplete/)
+- ✅ Add single card from Scryfall (POST /api/cards/add_from_scryfall/)
+- ✅ Bulk import from Moxfield/Arena plain-text decklist (POST /api/cards/bulk_import/)
+  - Handles: "4 Black Lotus", "4 Black Lotus (VMA)", blank lines, section headers
+  - Partial import: skips bad rows, reports failures with reasons
+  - Respects Scryfall rate limit (100ms between requests)
+- ✅ Collection search endpoint (GET /api/cards/search/?q=)
+- ✅ Available cards filter (GET /api/cards/available/)
+- ✅ 31 unit tests (all passing)
+- ✅ Health check endpoint (GET /api/health/) for Render keep-warm cron job
+- **Status:** Complete — image scanning deferred to Sprint 8
 
 #### Upcoming:
-1. **Sprint 2 (Week 2-3):** Card CRUD + Scryfall integration + bulk upload + image scanning
-2. **Sprint 3 (Week 3-4):** Card search + user library browse + React frontend setup
-3. **Sprint 4 (Week 4-5):** Offer creation + counteroffer logic + offer list UI
-4. **Sprint 5 (Week 6-7):** Messaging + polling + swap coordination (in-person)
-5. **Sprint 6 (Week 7-9):** Rating system + reputation calculations + profile UI
-6. **Sprint 7 (Week 9-11):** Internationalization (EN+FR), polish, bug fixes, testing
+1. **Sprint 3 (Week 3-4):** React frontend setup + My Collection UI
+2. **Sprint 4 (Week 4-5):** Card search + browse other users' collections
+3. **Sprint 5 (Week 5-6):** Offer creation + counteroffer logic + offer list UI
+4. **Sprint 6 (Week 6-8):** Messaging + polling + swap coordination (in-person)
+5. **Sprint 7 (Week 8-9):** Rating system + reputation calculations + profile UI
+6. **Sprint 8 (Week 9-10):** Image scanning (Tesseract OCR backend + React camera UI)
+7. **Sprint 9 (Week 10-11):** Internationalization (EN+FR), polish, bug fixes, deployment
+
+---
+
+### Sprint 8 Detail: Image Scanning (Tesseract OCR)
+
+#### Why Tesseract (not TensorFlow, not Google Cloud Vision)
+- **TensorFlow rejected:** General-purpose ML framework, not a card scanner. Would require
+  collecting thousands of labelled card images, training a model, serving predictions.
+  Months of ML engineering for a convenience feature.
+- **Google Cloud Vision rejected:** Excellent accuracy but introduces a paid API dependency.
+  1000 free units/month is not enough for active users. Wrong for a free community app.
+- **Tesseract chosen:** Open-source OCR library. Free forever, no usage limits. Python wrapper
+  (`pytesseract`) is a one-liner. MTG card names use a clear, consistent font — well-suited
+  to OCR. Upgrade path to Google Cloud Vision exists post-revenue.
+
+#### How it works
+```
+Phone camera (React, browser MediaDevices API)
+    ↓
+Capture image → POST /api/cards/scan/ (multipart/form-data)
+    ↓
+Backend: crop to top third of image (card name region)
+    ↓
+Tesseract: extract text from cropped region
+    ↓
+ScryfallService.search(extracted_text)  ← fuzzy match handles OCR imperfections
+    ↓
+Return: { card_name, set_name, language, scryfall_id, confidence }
+    ↓
+Frontend: add to staging list (user reviews before importing)
+    ↓
+User edits/removes misidentified cards
+    ↓
+POST /api/cards/bulk_import/  ← reuses existing endpoint
+```
+
+#### Language detection
+Scryfall's multilingual search handles this automatically:
+- French card scanned → OCR reads "Lotus Noir"
+- Scryfall: GET /cards/search?q=!"Lotus Noir"+lang:fr → returns Black Lotus, lang: fr
+- Stored as card_name: "Black Lotus", language: "French"
+No extra logic needed — Scryfall does the work.
+
+#### New endpoint
+- **POST /api/cards/scan/**
+  - Input: multipart/form-data with `image` field (JPEG/PNG)
+  - Processing: PIL crop top 20% of image → pytesseract.image_to_string() → Scryfall fuzzy search
+  - Output: `{ card_name, set_name, card_type, mana_cost, scryfall_id, confidence, raw_ocr_text }`
+  - Errors: 400 if no text detected, 404 if Scryfall finds nothing
+  - Auth: IsAuthenticated (same as all card endpoints)
+  - No card is created — caller decides whether to add to staging list
+
+#### New Python dependencies (Sprint 8)
+- `pytesseract` — Python wrapper for Tesseract
+- `Pillow` — Image preprocessing (crop, contrast boost, grayscale)
+- System dependency: `tesseract-ocr` (apt package, added to Render build command)
+
+#### React components needed (Sprint 8)
+- `CameraCapture` — accesses device camera via `MediaDevices.getUserMedia()`
+- `ScanStagingList` — list of scanned cards, editable before bulk import
+- `ScanCardItem` — single row in staging list with edit/remove controls
+
+#### Known limitations
+- OCR accuracy degrades with: bad lighting, card held at angle, worn/damaged card text
+- Preprocessing (contrast boost, deskew) mitigates this but doesn't eliminate it
+- Staging list is the safety net — users review before committing
+- Cards with non-Latin scripts (Japanese, Korean, Russian) will not OCR correctly via Tesseract;
+  those users should use bulk import instead
+
+#### Sprint 8 tasks
+1. Install pytesseract + Pillow, add tesseract-ocr to Render build
+2. Implement image preprocessing helper (crop, grayscale, contrast)
+3. Implement POST /api/cards/scan/ endpoint
+4. Unit tests for scan endpoint (mock pytesseract + Scryfall)
+5. React CameraCapture component
+6. React ScanStagingList + ScanCardItem components
+7. Wire staging list → existing bulk_import endpoint
+8. Manual QA: scan real cards in varying lighting conditions
 
 ---
 
@@ -501,12 +597,14 @@ security.
 ## SIGN-OFF
 
 **Status:** ✅ Phase 1 Planning Complete - Ready for Development
-**Status:** ✅ Sprint 1 Complete - Ready for Sprint 2
+**Status:** ✅ Sprint 1 Complete
+**Status:** ✅ Sprint 2 Complete - Ready for Sprint 3
 
 **Planning Date:** April 8, 2026  
 **Sprint 1 Completion Date:** April 15, 2026
+**Sprint 2 Completion Date:** April 28, 2026
 
-**Tech Stack Locked:** React + TypeScript + Vite (frontend), Django + Python (backend), PostgreSQL (database), Render (hosting)
+**Tech Stack Locked:** React + TypeScript + Vite (frontend), Django + Python (backend), Neon PostgreSQL (database), Render (backend hosting), Cloudflare Pages (frontend hosting)
 
 **Scope Locked:** 8 core tables, ~36 API endpoints, invite-only beta, in-person swaps Phase 1, mail Phase 2
 
@@ -514,10 +612,18 @@ security.
 - ✅ Django scaffold + DRF auth system complete
 - ✅ JWT tokens with httpOnly cookies (secure)
 - ✅ 18 unit tests (all passing)
-- ✅ PostgreSQL integration working
+- ✅ PostgreSQL integration working (Neon, free tier)
 - ✅ Custom authentication class (CookieJWTAuthentication)
 
-**Timeline:** 185-225 hours (9-11 weeks @ 20+ hrs/week) for Phase 1 MVP  
-**Remaining:** Sprint 2-7 (estimated 180+ hours)
+**Sprint 2 Deliverables:**
+- ✅ Full Card CRUD + Scryfall integration
+- ✅ Bulk import (Moxfield/Arena plain-text decklist format)
+- ✅ Collection search + available filter
+- ✅ Health check endpoint (keep Render warm)
+- ✅ 31 unit tests (all passing)
+- ✅ Image scanning deferred to Sprint 8 (Tesseract OCR, documented above)
 
-**Next Action:** Start Sprint 2 (Card CRUD + Scryfall integration)
+**Timeline:** 185-225 hours (9-11 weeks @ 20+ hrs/week) for Phase 1 MVP  
+**Remaining:** Sprints 3-9
+
+**Next Action:** Start Sprint 3 (React frontend setup + My Collection UI)
