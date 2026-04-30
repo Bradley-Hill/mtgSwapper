@@ -1,0 +1,194 @@
+@use '../styles/variables' as *;
+
+// ── Shell ─────────────────────────────────────────────────────────────────────
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: $bg-surface;
+  border-bottom: 1px solid $border-default;
+}
+
+.inner {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 $space-4;
+  height: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+// ── Logo / brand ──────────────────────────────────────────────────────────────
+.brand {
+  font-size: $text-base;
+  font-weight: 700;
+  color: $color-plant;
+  text-decoration: none;
+  flex-shrink: 0;
+
+  &:hover {
+    color: $accent-hover;
+  }
+}
+
+// ── Desktop link list ─────────────────────────────────────────────────────────
+.links {
+  display: flex;
+  align-items: center;
+  gap: $space-1;
+  list-style: none;
+
+  // Hidden below 768px; hamburger menu takes over
+  @media (max-width: 767px) {
+    display: none;
+  }
+}
+
+.link {
+  color: $text-muted;
+  text-decoration: none;
+  font-size: $text-sm;
+  padding: $space-2 $space-3;
+  border-radius: $radius-md;
+  transition: color 0.15s, background 0.15s;
+
+  &:hover {
+    color: $text-primary;
+    background: $bg-hover;
+  }
+
+  // React Router applies this class when the route matches
+  &.active {
+    color: $color-plant;
+    font-weight: 500;
+  }
+}
+
+// ── User section (username + logout) — desktop only ───────────────────────────
+.userSection {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+
+  @media (max-width: 767px) {
+    display: none;
+  }
+}
+
+.username {
+  font-size: $text-sm;
+  color: $text-secondary;
+}
+
+.logoutBtn {
+  font-size: $text-sm;
+  color: $text-faint;
+  padding: $space-1 $space-2;
+  border-radius: $radius-md;
+  transition: color 0.15s, background 0.15s;
+
+  &:hover {
+    color: $error-text;
+    background: $error-bg;
+  }
+}
+
+// ── Hamburger button — mobile only ────────────────────────────────────────────
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  color: $text-muted;
+
+  @media (max-width: 767px) {
+    display: flex;
+  }
+
+  &:hover {
+    color: $text-primary;
+  }
+
+  // The three bars
+  span {
+    display: block;
+    width: 1.25rem;
+    height: 2px;
+    background: currentColor;
+    border-radius: 2px;
+    transition: transform 0.2s, opacity 0.2s;
+  }
+
+  // Animate into an X when open
+  &.open {
+    span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    span:nth-child(2) { opacity: 0; }
+    span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  }
+}
+
+// ── Mobile dropdown panel ─────────────────────────────────────────────────────
+.mobileMenu {
+  display: none;
+  flex-direction: column;
+  background: $bg-surface;
+  border-top: 1px solid $border-subtle;
+  padding: $space-2 $space-4 $space-4;
+
+  @media (max-width: 767px) {
+    display: flex;
+  }
+}
+
+.mobileLink {
+  color: $text-muted;
+  text-decoration: none;
+  font-size: $text-base;
+  padding: $space-3 0;
+  border-bottom: 1px solid $border-subtle;
+  transition: color 0.15s;
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+
+  &:hover {
+    color: $text-primary;
+  }
+
+  &.active {
+    color: $color-plant;
+    font-weight: 500;
+  }
+}
+
+.mobileUser {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: $space-3;
+  margin-top: $space-1;
+  border-top: 1px solid $border-default;
+}
+
+.mobileUsername {
+  font-size: $text-sm;
+  color: $text-secondary;
+}
+
+.mobileLogoutBtn {
+  font-size: $text-sm;
+  color: $error-text;
+  padding: $space-1 $space-2;
+  border-radius: $radius-md;
+  transition: background 0.15s;
+
+  &:hover {
+    background: $error-bg;
+  }
+}

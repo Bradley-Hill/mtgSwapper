@@ -19,8 +19,9 @@ and mail-based swaps (no monetary transactions).
 
 ### Frontend
 - **Framework:** React + TypeScript + Vite
-- **State Management:** React Query/TanStack Query (API state)
-- **Styling:** TailwindCSS (responsive mobile-first)
+- **Routing:** React Router DOM v7 (BrowserRouter, nested routes, Outlet-based layouts)
+- **State Management:** React Query/TanStack Query v5 (API state)
+- **Styling:** SCSS with CSS Modules (one .module.scss per component, shared tokens in _variables.scss)
 - **International:** i18next (EN+FR Phase 1, FR/ES/DE/IT/NL Phase 1.5)
 - **Hosting:** Cloudflare Pages (auto-deploy from main branch)
 
@@ -222,6 +223,20 @@ and mail-based swaps (no monetary transactions).
 - TypeScript: Type safety, better IDE support, fewer runtime errors
 - Vite: Fast, modern dev experience (HMR), superior to Create React App
 - Justification: Aligns with learning goals, widely-adopted, good for solo dev
+
+### ✅ Why React Router DOM v7 (not TanStack Router)?
+- Already installed and wired from Sprint 3 — no migration cost
+- v7 has full nested route + Outlet support (Layout pattern works cleanly)
+- Mature, battle-tested, huge community
+- TanStack Router: excellent but adds complexity (file-based routes, type-safe params) not needed for MVP
+- Justification: Simpler mental model, already in use, sufficient for Phase 1 route structure
+
+### ✅ Why SCSS with CSS Modules (not TailwindCSS)?
+- Tailwind removed during Sprint 3: utility classes obscure intent, hard to read, resist learning real CSS
+- CSS Modules: zero class-name collisions, styles scoped to component, standard browser CSS
+- SCSS: variables, nesting, partials — adds just enough power without a framework
+- Shared design tokens in src/styles/_variables.scss (brand palette, spacing, radius, typography)
+- Justification: Real CSS skills over framework dependency; codebase easier to reason about long-term
 
 ### ✅ Why Django + Python?
 - Django: Batteries-included framework (ORM, auth, routing, admin, migrations)
@@ -604,7 +619,7 @@ security.
 **Sprint 1 Completion Date:** April 15, 2026
 **Sprint 2 Completion Date:** April 28, 2026
 
-**Tech Stack Locked:** React + TypeScript + Vite (frontend), Django + Python (backend), Neon PostgreSQL (database), Render (backend hosting), Cloudflare Pages (frontend hosting)
+**Tech Stack Locked:** React + TypeScript + Vite + React Router DOM v7 + SCSS CSS Modules (frontend), Django + Python (backend), Neon PostgreSQL (database), Render (backend hosting), Cloudflare Pages (frontend hosting)
 
 **Scope Locked:** 8 core tables, ~36 API endpoints, invite-only beta, in-person swaps Phase 1, mail Phase 2
 
