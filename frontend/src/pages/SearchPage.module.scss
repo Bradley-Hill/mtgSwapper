@@ -1,0 +1,170 @@
+@use '../styles/variables' as *;
+
+.page {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.heading {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: $text-primary;
+  margin: 0 0 0.25rem;
+}
+
+.sub {
+  color: $text-muted;
+  font-size: 0.875rem;
+  margin: 0 0 1.5rem;
+}
+
+// ── Search bar ────────────────────────────────────────────────────────────────
+.searchBar {
+  position: relative;
+  max-width: 32rem;
+  margin-bottom: 1.5rem;
+}
+
+.input {
+  width: 100%;
+  padding: 0.625rem 2.5rem 0.625rem 0.875rem;
+  background: $bg-input;
+  border: 1px solid $border-default;
+  border-radius: 0.5rem;
+  color: $text-primary;
+  font-size: 1rem;
+  outline: none;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: $text-faint;
+  }
+
+  &:focus {
+    border-color: $accent;
+    box-shadow: 0 0 0 2px rgba($accent-ring, 0.3);
+  }
+}
+
+// Small spinner inside the search bar when a fetch is in flight
+.spinner {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid $border-default;
+  border-top-color: $accent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: translateY(-50%) rotate(360deg); }
+}
+
+// ── State messages ────────────────────────────────────────────────────────────
+.error {
+  color: $error-text;
+  font-size: 0.875rem;
+}
+
+.empty {
+  color: $text-muted;
+  font-size: 0.875rem;
+}
+
+.count {
+  color: $text-muted;
+  font-size: 0.8125rem;
+  margin-bottom: 0.75rem;
+}
+
+// ── Results table ─────────────────────────────────────────────────────────────
+.tableWrapper {
+  overflow-x: auto;
+  border: 1px solid $border-default;
+  border-radius: 0.5rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  color: $text-secondary;
+
+  th {
+    text-align: left;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: $text-muted;
+    background: $bg-surface;
+    border-bottom: 1px solid $border-default;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 0.625rem 0.875rem;
+    border-bottom: 1px solid $border-subtle;
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  tbody tr:hover td {
+    background: $bg-hover;
+  }
+}
+
+.cardName {
+  color: $text-primary;
+  font-weight: 500;
+}
+
+.mono {
+  font-family: monospace;
+  font-size: 0.8125rem;
+  color: $text-muted;
+}
+
+// Condition badges — reusing the same colours as CollectionPage
+.badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+
+  &.unused {
+    background: rgba($color-leaf, 0.15);
+    color: $color-leaf;
+  }
+
+  &.played {
+    background: rgba(#f59e0b, 0.15);
+    color: #f59e0b;
+  }
+
+  &.damaged {
+    background: rgba($error-text, 0.15);
+    color: $error-text;
+  }
+}
+
+.ownerLink {
+  color: $accent-link;
+  text-decoration: none;
+
+  &:hover {
+    color: $accent-link-hover;
+    text-decoration: underline;
+  }
+}

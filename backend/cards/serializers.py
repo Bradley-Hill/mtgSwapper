@@ -110,6 +110,36 @@ class CardCreateFromScryfallSerializer(serializers.Serializer):
         return card
 
 
+class CardGlobalSearchSerializer(serializers.ModelSerializer):
+    """
+    Read-only serializer for cross-user card search results.
+
+    Why add owner fields here rather than nesting a UserSerializer?
+    Nesting a full UserSerializer would fetch the entire user object per row.
+    Using SerializerMethodField (or source= shorthand) lets us pull only the
+    two fields we need (id, username) directly from the FK — no extra query
+    per row because the queryset uses select_related('user').
+    """
+
+    owner_id = serializers.CharField(source='user.id', read_only=True)
+    owner_username = serializers.CharField(source='user.username', read_only=True)
+
+    class Meta:
+        model = Card
+        fields = [
+            'id',
+            'card_name',
+            'set_code',
+            'set_name',
+            'condition',
+            'is_foil',
+            'language',
+            'quantity',
+            'owner_id',
+            'owner_username',
+        ]
+
+
 class CardAutocompleteSerializer(serializers.Serializer):
     """
     Serializer for card name autocomplete.

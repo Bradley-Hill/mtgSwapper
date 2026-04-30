@@ -1,0 +1,212 @@
+@use '../styles/variables' as *;
+
+.page {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+// ── Profile header ────────────────────────────────────────────────────────────
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  background: $bg-surface;
+  border: 1px solid $border-default;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+
+  @media (max-width: 480px) {
+    flex-wrap: wrap;
+  }
+}
+
+// Letter avatar — no image dependency, always renders
+.avatar {
+  flex-shrink: 0;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: $color-dark;
+  color: $text-primary;
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.username {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: $text-primary;
+  margin: 0 0 0.25rem;
+}
+
+.location {
+  font-size: 0.875rem;
+  color: $text-muted;
+  margin: 0 0 0.125rem;
+}
+
+.since {
+  font-size: 0.8125rem;
+  color: $text-faint;
+  margin: 0;
+}
+
+.stats {
+  display: flex;
+  gap: 1.5rem;
+  flex-shrink: 0;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: $color-plant;
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $text-muted;
+}
+
+// ── Section heading ───────────────────────────────────────────────────────────
+.sectionTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: $text-primary;
+  margin: 0 0 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cardCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.25rem;
+  padding: 0 0.375rem;
+  background: $bg-input;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  color: $text-muted;
+}
+
+// ── Cards table (same pattern as SearchPage) ──────────────────────────────────
+.tableWrapper {
+  overflow-x: auto;
+  border: 1px solid $border-default;
+  border-radius: 0.5rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  color: $text-secondary;
+
+  th {
+    text-align: left;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: $text-muted;
+    background: $bg-surface;
+    border-bottom: 1px solid $border-default;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 0.625rem 0.875rem;
+    border-bottom: 1px solid $border-subtle;
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  tbody tr:hover td {
+    background: $bg-hover;
+  }
+}
+
+.cardName {
+  color: $text-primary;
+  font-weight: 500;
+}
+
+.mono {
+  font-family: monospace;
+  font-size: 0.8125rem;
+  color: $text-muted;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+
+  &.unused {
+    background: rgba($color-leaf, 0.15);
+    color: $color-leaf;
+  }
+
+  &.played {
+    background: rgba(#f59e0b, 0.15);
+    color: #f59e0b;
+  }
+
+  &.damaged {
+    background: rgba($error-text, 0.15);
+    color: $error-text;
+  }
+}
+
+// ── State helpers ─────────────────────────────────────────────────────────────
+.muted {
+  color: $text-muted;
+  font-size: 0.875rem;
+}
+
+.error {
+  color: $error-text;
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+.backLink {
+  color: $accent-link;
+  font-size: 0.875rem;
+  text-decoration: none;
+
+  &:hover {
+    color: $accent-link-hover;
+    text-decoration: underline;
+  }
+}

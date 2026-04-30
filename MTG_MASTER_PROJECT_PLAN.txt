@@ -444,8 +444,8 @@ None — all critical decisions finalized. Ready to initialize.
 - **Status:** Complete — image scanning deferred to Sprint 8
 
 #### Upcoming:
-1. **Sprint 3 (Week 3-4):** React frontend setup + My Collection UI
-2. **Sprint 4 (Week 4-5):** Card search + browse other users' collections
+1. **Sprint 3 (Week 3-4):** React frontend setup + My Collection UI — ✅ Complete
+2. **Sprint 4 (Week 4-5):** Card search + browse other users' collections — 🔄 In Progress
 3. **Sprint 5 (Week 5-6):** Offer creation + counteroffer logic + offer list UI
 4. **Sprint 6 (Week 6-8):** Messaging + polling + swap coordination (in-person)
 5. **Sprint 7 (Week 8-9):** Rating system + reputation calculations + profile UI
@@ -614,10 +614,13 @@ security.
 **Status:** ✅ Phase 1 Planning Complete - Ready for Development
 **Status:** ✅ Sprint 1 Complete
 **Status:** ✅ Sprint 2 Complete - Ready for Sprint 3
+**Status:** ✅ Sprint 3 Complete - Ready for Sprint 4
+**Status:** 🔄 Sprint 4 In Progress
 
 **Planning Date:** April 8, 2026  
 **Sprint 1 Completion Date:** April 15, 2026
 **Sprint 2 Completion Date:** April 28, 2026
+**Sprint 3 Completion Date:** April 30, 2026
 
 **Tech Stack Locked:** React + TypeScript + Vite + React Router DOM v7 + SCSS CSS Modules (frontend), Django + Python (backend), Neon PostgreSQL (database), Render (backend hosting), Cloudflare Pages (frontend hosting)
 
@@ -638,7 +641,27 @@ security.
 - ✅ 31 unit tests (all passing)
 - ✅ Image scanning deferred to Sprint 8 (Tesseract OCR, documented above)
 
-**Timeline:** 185-225 hours (9-11 weeks @ 20+ hrs/week) for Phase 1 MVP  
-**Remaining:** Sprints 3-9
+**Sprint 3 Deliverables:**
+- ✅ Full React + TypeScript + Vite frontend scaffold
+- ✅ React Router DOM v7 routing (BrowserRouter, protected routes, Layout outlet)
+- ✅ SCSS CSS Modules with shared design token partial (_variables.scss)
+- ✅ TailwindCSS fully removed
+- ✅ My Collection page (list, add, bulk import, edit, delete)
+- ✅ AddCardModal, BulkImportModal, EditCardModal components
+- ✅ JWT httpOnly cookie auth with refresh guard (apiFetch + useAuth)
+- ✅ TanStack Query v5 for server state
+- ✅ NavBar with hamburger mobile menu
+- ✅ Brand colour palette (plant/teal/leaf system)
 
-**Next Action:** Start Sprint 3 (React frontend setup + My Collection UI)
+**Sprint 4 Deliverables (in progress):**
+- ✅ GET /api/cards/global_search/?q= — cross-user card search endpoint
+- ✅ GET /api/users/{id}/ — public user profile endpoint
+- ✅ GET /api/users/{id}/cards/ — user's available cards endpoint
+- ✅ SearchPage (/search) — search all users' available cards with debounce
+- ✅ UserProfilePage (/users/:id) — profile header + available cards table
+- ⬜ Tests for new endpoints
+
+**Timeline:** 185-225 hours (9-11 weeks @ 20+ hrs/week) for Phase 1 MVP  
+**Remaining:** Sprints 4 (tests) → 5-9
+
+**Next Action:** Write tests for Sprint 4 endpoints, then begin Sprint 5 (Offers)

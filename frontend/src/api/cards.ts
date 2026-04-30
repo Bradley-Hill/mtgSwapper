@@ -5,6 +5,7 @@ import type {
   UpdateCardPayload,
   BulkImportResponse,
   BulkImportPayload,
+  GlobalSearchResponse,
 } from '@/types';
 
 export async function listCards(): Promise<Card[]> {
@@ -47,4 +48,9 @@ export async function bulkImport(payload: BulkImportPayload): Promise<BulkImport
     body: JSON.stringify(payload),
   });
   return (await res.json()) as BulkImportResponse;
+}
+
+export async function globalSearch(query: string): Promise<GlobalSearchResponse> {
+  const res = await apiFetch(`/api/cards/global_search/?q=${encodeURIComponent(query)}`);
+  return (await res.json()) as GlobalSearchResponse;
 }

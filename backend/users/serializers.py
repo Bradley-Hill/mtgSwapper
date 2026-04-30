@@ -65,6 +65,28 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at']
 
 
+class UserPublicProfileSerializer(serializers.ModelSerializer):
+    """
+    Read-only serializer for public user profiles.
+
+    Intentionally excludes sensitive fields (email, password, is_admin, etc.).
+    Only exposes data another user should be able to see on a profile page.
+    """
+
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'username',
+            'city',
+            'country',
+            'reputation_avg',
+            'total_swaps_completed',
+            'created_at',
+        ]
+        read_only_fields = fields
+
+
 class SignupSerializer(serializers.Serializer):
     """Serializer for user registration with invite code."""
     

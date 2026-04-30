@@ -8,10 +8,13 @@ from django.utils import timezone
 from django.conf import settings
 
 from .models import User, InviteCode
+from cards.models import Card
+from cards.serializers import CardSerializer
 from .serializers import (
     SignupSerializer,
     LoginSerializer,
     UserSerializer,
+    UserPublicProfileSerializer,
     InviteCodeSerializer,
     CreateInviteCodeSerializer,
 )
@@ -289,3 +292,43 @@ class InviteCodeViewSet(viewsets.ModelViewSet):
                 {'error': 'Invalid invite code'},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+
+class UserViewSet(viewsets.GenericViewSet):
+    """
+    Public read-only endpoints for viewing other users' profiles and available cards.
+
+    Why GenericViewSet (not ModelViewSet)?
+    - ModelViewSet would expose list/create/update/destroy automatically.
+    - We ONLY want retrieve (single user) + a custom cards action.
+    - GenericViewSet gives us the queryset/serializer machinery without any
+      default routes — we must explicitly define each action we want.
+    """
+
+    queryset = User.objects.all()
+    serializer_class = UserPublicProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    def retrieve(self, request, pk=None):
+        """
+        GET /api/users/{id}/
+        Returns the public profile of a single user.
+        """
+        user = self.get_object()  # handles 404 automatically
+        serializer = self.get_serializer(user)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='cards')
+    def cards(self, request, pk=None):
+        """
+        GET /api/users/{id}/cards/
+        Returns all cards that user has marked as available for swapping.
+
+        Why only is_available=True?
+        - Cards marked unavailable are private to the owner.
+        - A browsing user only cares about what they could trade for.
+        """
+        user = self.get_object()
+        qs = Card.objects.filter(user=user, is_available=True)
+        serializer = CardSerializer(qs, many=True)
+        return Response(serializer.data)

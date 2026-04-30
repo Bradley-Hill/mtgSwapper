@@ -37,3 +37,23 @@ export interface BulkImportPayload {
   language: string;
   is_foil: boolean;
 }
+
+// Returned by GET /api/cards/global_search/?q=
+// Subset of Card fields + owner info for linking to their profile page.
+export interface GlobalSearchResult {
+  id: string;
+  card_name: string;
+  set_code: string;
+  set_name: string | null;
+  condition: CardCondition;
+  is_foil: boolean;
+  language: string;
+  quantity: number;
+  owner_id: string;
+  owner_username: string;
+}
+
+export interface GlobalSearchResponse {
+  count: number;
+  results: GlobalSearchResult[];
+}

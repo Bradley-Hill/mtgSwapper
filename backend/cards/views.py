@@ -16,6 +16,7 @@ from .serializers import (
     CardSerializer,
     CardCreateFromScryfallSerializer,
     CardAutocompleteSerializer,
+    CardGlobalSearchSerializer,
     CardListSerializer,
     DecklistImportSerializer,
 )
@@ -187,12 +188,45 @@ class CardViewSet(viewsets.ModelViewSet):
         ).order_by('card_name')
         
         serializer = CardListSerializer(cards, many=True)
-        
+
         return Response({
             'count': cards.count(),
             'results': serializer.data
         }, status=status.HTTP_200_OK)
-    
+
+    @action(detail=False, methods=['get'], url_path='global_search')
+    def global_search(self, request):
+        """
+        Search cards across ALL users' collections.
+
+        GET /api/cards/global_search/?q=lightning
+
+        Only returns cards where is_available=True — unavailable cards are
+        private to their owner and should not appear in search results.
+        select_related('user') avoids N+1 queries: one JOIN fetches owner
+        username alongside every card row.
+        """
+        query = request.query_params.get('q', '').strip()
+
+        if len(query) < 2:
+            return Response(
+                {'error': 'Query must be at least 2 characters.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        cards = (
+            Card.objects
+            .select_related('user')
+            .filter(card_name__icontains=query, is_available=True)
+            .order_by('card_name', 'user__username')
+        )
+
+        serializer = CardGlobalSearchSerializer(cards, many=True)
+        return Response({
+            'count': cards.count(),
+            'results': serializer.data,
+        }, status=status.HTTP_200_OK)
+
     @action(detail=False, methods=['post'])
     def bulk_import(self, request):
         """
