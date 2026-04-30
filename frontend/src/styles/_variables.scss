@@ -6,58 +6,70 @@
 //   @use '../styles/variables' as *;
 // The `as *` means you write $accent, not variables.$accent.
 //
-// All colour values are derived from the original Tailwind gray/indigo palette
-// so the visual design is unchanged after the migration.
+// Palette (brand):
+//   $color-leaf:    #54cc5f  — success green
+//   $color-plant:   #13ad7f  — primary / CTA (teal-green)
+//   $color-teal:    #077d7f  — accent / hover
+//   $color-dark:    #095f71  — deep UI
+//   $color-darkest: #081c2b  — page background anchor
 // =============================================================================
 
+// ── Brand palette ─────────────────────────────────────────────────────────────
+$color-leaf:    #54cc5f;
+$color-plant:   #13ad7f;
+$color-teal:    #077d7f;
+$color-dark:    #095f71;
+$color-darkest: #081c2b;
+
 // ── Backgrounds ───────────────────────────────────────────────────────────────
-$bg-page:    #030712;  // gray-950 — full page background
-$bg-surface: #111827;  // gray-900 — modals, panels, cards
-$bg-input:   #1f2937;  // gray-800 — inputs, selects, textareas, skeleton rows
-$bg-hover:   #374151;  // gray-700 — row hover, button hover
+// Stepped up from $color-darkest so surfaces feel layered.
+$bg-page:    #081c2b;  // $color-darkest — full page background
+$bg-surface: #0d2537;  // modals, panels, cards
+$bg-input:   #112f44;  // inputs, selects, textareas, skeleton rows
+$bg-hover:   #1a3e56;  // row hover, button hover backgrounds
 
 // ── Text ──────────────────────────────────────────────────────────────────────
 $text-primary:   #ffffff;
-$text-secondary: #d1d5db;  // gray-300
-$text-muted:     #9ca3af;  // gray-400 — labels, table headers
-$text-faint:     #6b7280;  // gray-500 — footer links, quantity, hints
-$text-dimmer:    #4b5563;  // gray-600 — very subtle hint text
+$text-secondary: #d1d5db;
+$text-muted:     #9ca3af;  // labels, table headers
+$text-faint:     #6b7280;  // footer links, quantity, hints
+$text-dimmer:    #4b5563;  // very subtle hint text
 
 // ── Borders ───────────────────────────────────────────────────────────────────
-$border-subtle:  #1f2937;  // gray-800 — table dividers (same as input bg)
-$border-default: #374151;  // gray-700 — modal/dropdown borders
+$border-subtle:  #112f44;  // table dividers (same as input bg)
+$border-default: #1a3e56;  // modal/dropdown borders
 
-// ── Accent (indigo) ───────────────────────────────────────────────────────────
-$accent:              #4f46e5;  // indigo-600 — primary CTA buttons
-$accent-hover:        #6366f1;  // indigo-500 — button hover + focus ring
-$accent-ring:         #6366f1;  // indigo-500 — focus-visible box-shadow colour
-$accent-link:         #818cf8;  // indigo-400 — text links
-$accent-link-hover:   #a5b4fc;  // indigo-300 — text link hover
-$accent-disabled-bg:  #312e81;  // indigo-900 — disabled button background
-$accent-disabled-text:#818cf8;  // indigo-400 — disabled button text
+// ── Accent (plant / teal) ─────────────────────────────────────────────────────
+$accent:               $color-plant;   // #13ad7f — primary CTA buttons
+$accent-hover:         $color-teal;    // #077d7f — button hover
+$accent-ring:          $color-plant;   // #13ad7f — focus-visible box-shadow
+$accent-link:          #34d9a5;        // lighter teal for text links on dark bg
+$accent-link-hover:    #5de8bc;        // even lighter on hover
+$accent-disabled-bg:   #063d30;        // very dark green — disabled button bg
+$accent-disabled-text: #34d9a5;        // muted teal — disabled button label
 
 // ── Error / destructive ───────────────────────────────────────────────────────
-$error-text:   #f87171;  // red-400
-$error-bg:     #450a0a;  // red-950
-$error-border: #991b1b;  // red-800
+$error-text:   #f87171;
+$error-bg:     #450a0a;
+$error-border: #991b1b;
 
 // ── Success ───────────────────────────────────────────────────────────────────
-$success-text:   #86efac;  // green-300 — large count number
-$success-label:  #22c55e;  // green-500 — small label beneath count
-$success-bg:     #052e16;  // green-950 — banner background
-$success-border: #166534;  // green-800 — banner border
+$success-text:   #86efac;        // large count number
+$success-label:  $color-leaf;    // #54cc5f — small label beneath count
+$success-bg:     #052e16;        // banner background
+$success-border: #166534;        // banner border
 
 // ── Semantic spot colours ─────────────────────────────────────────────────────
-$foil-color:     #facc15;  // yellow-400 — ✦ foil indicator
-$avail-dot:      #4ade80;  // green-400 — available-for-swap dot
+$foil-color: #facc15;        // yellow — ✦ foil indicator
+$avail-dot:  $color-leaf;    // #54cc5f — available-for-swap dot
 
 // ── Condition badge colours ───────────────────────────────────────────────────
-$cond-unused-bg:    #14532d;  // green-900
-$cond-unused-text:  #86efac;  // green-300
-$cond-played-bg:    #713f12;  // yellow-900
-$cond-played-text:  #fde047;  // yellow-300
-$cond-damaged-bg:   #7f1d1d;  // red-900
-$cond-damaged-text: #fca5a5;  // red-300
+$cond-unused-bg:    #0a3d1e;        // dark leaf-green
+$cond-unused-text:  $color-leaf;    // #54cc5f
+$cond-played-bg:    #713f12;        // amber-900
+$cond-played-text:  #fde047;        // amber-300
+$cond-damaged-bg:   #7f1d1d;        // red-900
+$cond-damaged-text: #fca5a5;        // red-300
 
 // ── Spacing ───────────────────────────────────────────────────────────────────
 // 1 unit = 4px (same scale as Tailwind)
