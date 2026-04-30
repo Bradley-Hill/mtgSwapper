@@ -1,0 +1,85 @@
+// =============================================================================
+// Design Tokens
+// =============================================================================
+// This file is a SCSS partial (underscore prefix = never compiled to its own
+// CSS file). Every component module imports it via:
+//   @use '../styles/variables' as *;
+// The `as *` means you write $accent, not variables.$accent.
+//
+// All colour values are derived from the original Tailwind gray/indigo palette
+// so the visual design is unchanged after the migration.
+// =============================================================================
+
+// ── Backgrounds ───────────────────────────────────────────────────────────────
+$bg-page:    #030712;  // gray-950 — full page background
+$bg-surface: #111827;  // gray-900 — modals, panels, cards
+$bg-input:   #1f2937;  // gray-800 — inputs, selects, textareas, skeleton rows
+$bg-hover:   #374151;  // gray-700 — row hover, button hover
+
+// ── Text ──────────────────────────────────────────────────────────────────────
+$text-primary:   #ffffff;
+$text-secondary: #d1d5db;  // gray-300
+$text-muted:     #9ca3af;  // gray-400 — labels, table headers
+$text-faint:     #6b7280;  // gray-500 — footer links, quantity, hints
+$text-dimmer:    #4b5563;  // gray-600 — very subtle hint text
+
+// ── Borders ───────────────────────────────────────────────────────────────────
+$border-subtle:  #1f2937;  // gray-800 — table dividers (same as input bg)
+$border-default: #374151;  // gray-700 — modal/dropdown borders
+
+// ── Accent (indigo) ───────────────────────────────────────────────────────────
+$accent:              #4f46e5;  // indigo-600 — primary CTA buttons
+$accent-hover:        #6366f1;  // indigo-500 — button hover + focus ring
+$accent-ring:         #6366f1;  // indigo-500 — focus-visible box-shadow colour
+$accent-link:         #818cf8;  // indigo-400 — text links
+$accent-link-hover:   #a5b4fc;  // indigo-300 — text link hover
+$accent-disabled-bg:  #312e81;  // indigo-900 — disabled button background
+$accent-disabled-text:#818cf8;  // indigo-400 — disabled button text
+
+// ── Error / destructive ───────────────────────────────────────────────────────
+$error-text:   #f87171;  // red-400
+$error-bg:     #450a0a;  // red-950
+$error-border: #991b1b;  // red-800
+
+// ── Success ───────────────────────────────────────────────────────────────────
+$success-text:   #86efac;  // green-300 — large count number
+$success-label:  #22c55e;  // green-500 — small label beneath count
+$success-bg:     #052e16;  // green-950 — banner background
+$success-border: #166534;  // green-800 — banner border
+
+// ── Semantic spot colours ─────────────────────────────────────────────────────
+$foil-color:     #facc15;  // yellow-400 — ✦ foil indicator
+$avail-dot:      #4ade80;  // green-400 — available-for-swap dot
+
+// ── Condition badge colours ───────────────────────────────────────────────────
+$cond-unused-bg:    #14532d;  // green-900
+$cond-unused-text:  #86efac;  // green-300
+$cond-played-bg:    #713f12;  // yellow-900
+$cond-played-text:  #fde047;  // yellow-300
+$cond-damaged-bg:   #7f1d1d;  // red-900
+$cond-damaged-text: #fca5a5;  // red-300
+
+// ── Spacing ───────────────────────────────────────────────────────────────────
+// 1 unit = 4px (same scale as Tailwind)
+$space-1: 0.25rem;   //  4px
+$space-2: 0.5rem;    //  8px
+$space-3: 0.75rem;   // 12px
+$space-4: 1rem;      // 16px
+$space-5: 1.25rem;   // 20px
+$space-6: 1.5rem;    // 24px
+$space-8: 2rem;      // 32px
+
+// ── Border radius ─────────────────────────────────────────────────────────────
+$radius-sm:   0.25rem;   //  4px — rounded
+$radius-md:   0.5rem;    //  8px — rounded-lg
+$radius-lg:   0.75rem;   // 12px — rounded-xl
+$radius-xl:   1rem;      // 16px — rounded-2xl
+$radius-full: 9999px;    //        rounded-full (pills, dots)
+
+// ── Typography ────────────────────────────────────────────────────────────────
+$text-xs:   0.75rem;    // 12px
+$text-sm:   0.875rem;   // 14px
+$text-base: 1rem;       // 16px
+$text-lg:   1.125rem;   // 18px
+$text-xl:   1.25rem;    // 20px
+$text-2xl:  1.5rem;     // 24px

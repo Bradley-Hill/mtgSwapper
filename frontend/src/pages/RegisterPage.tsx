@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '@/context';
 import { ApiError } from '@/api/client';
+import styles from './RegisterPage.module.scss';
 
 export function RegisterPage() {
   const { user, isLoading, signup } = useAuth();
@@ -57,29 +58,25 @@ export function RegisterPage() {
   if (isLoading) return null;
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-950 px-4">
-      <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-white text-center mb-8">
-          MTG Swapper
-        </h1>
+    <main className={styles.page}>
+      <div className={styles.container}>
+        <h1 className={styles.appTitle}>MTG Swapper</h1>
 
         <form
           onSubmit={(e) => { void handleSubmit(e); }}
-          className="bg-gray-900 rounded-2xl p-6 space-y-5"
+          className={styles.form}
           noValidate
         >
-          <h2 className="text-lg font-semibold text-white">Create account</h2>
+          <h2 className={styles.formTitle}>Create account</h2>
 
           {error && (
-            <p role="alert" className="text-sm text-red-400 bg-red-950 border border-red-800 rounded-lg px-3 py-2">
+            <p role="alert" className={styles.errorAlert}>
               {error}
             </p>
           )}
 
-          <div className="space-y-1">
-            <label htmlFor="username" className="block text-sm text-gray-400">
-              Username
-            </label>
+          <div className={styles.field}>
+            <label htmlFor="username" className={styles.label}>Username</label>
             <input
               id="username"
               type="text"
@@ -88,14 +85,12 @@ export function RegisterPage() {
               minLength={3}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+              className={styles.input}
             />
           </div>
 
-          <div className="space-y-1">
-            <label htmlFor="email" className="block text-sm text-gray-400">
-              Email
-            </label>
+          <div className={styles.field}>
+            <label htmlFor="email" className={styles.label}>Email</label>
             <input
               id="email"
               type="email"
@@ -103,14 +98,12 @@ export function RegisterPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+              className={styles.input}
             />
           </div>
 
-          <div className="space-y-1">
-            <label htmlFor="password" className="block text-sm text-gray-400">
-              Password
-            </label>
+          <div className={styles.field}>
+            <label htmlFor="password" className={styles.label}>Password</label>
             <input
               id="password"
               type="password"
@@ -119,15 +112,13 @@ export function RegisterPage() {
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+              className={styles.input}
             />
-            <p className="text-xs text-gray-500">At least 8 characters</p>
+            <p className={styles.fieldHint}>At least 8 characters</p>
           </div>
 
-          <div className="space-y-1">
-            <label htmlFor="invite-code" className="block text-sm text-gray-400">
-              Invite code
-            </label>
+          <div className={styles.field}>
+            <label htmlFor="invite-code" className={styles.label}>Invite code</label>
             <input
               id="invite-code"
               type="text"
@@ -135,24 +126,22 @@ export function RegisterPage() {
               required
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value)}
-              className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+              className={styles.input}
             />
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-900 disabled:text-indigo-400 text-white font-medium rounded-lg py-2 text-sm transition-colors"
+            className={styles.submitBtn}
           >
             {isSubmitting ? 'Creating account…' : 'Create account'}
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-500 mt-4">
+        <p className={styles.footer}>
           Already have an account?{' '}
-          <Link to="/login" className="text-indigo-400 hover:text-indigo-300">
-            Sign in
-          </Link>
+          <Link to="/login">Sign in</Link>
         </p>
       </div>
     </main>

@@ -1,0 +1,123 @@
+@use '../styles/variables' as *;
+
+// RegisterPage layout is identical to LoginPage — separate module file so
+// each component's styles are independently scoped and changeable.
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $bg-page;
+  padding: 0 $space-4;
+}
+
+.container {
+  width: 100%;
+  max-width: 24rem;
+}
+
+.appTitle {
+  font-size: $text-2xl;
+  font-weight: 700;
+  color: $text-primary;
+  text-align: center;
+  margin-bottom: $space-8;
+}
+
+.form {
+  background: $bg-surface;
+  border-radius: $radius-xl;
+  padding: $space-6;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.formTitle {
+  font-size: $text-lg;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.errorAlert {
+  font-size: $text-sm;
+  color: $error-text;
+  background: $error-bg;
+  border: 1px solid $error-border;
+  border-radius: $radius-md;
+  padding: $space-2 $space-3;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+}
+
+.label {
+  display: block;
+  font-size: $text-sm;
+  color: $text-muted;
+}
+
+.input {
+  width: 100%;
+  background: $bg-input;
+  color: $text-primary;
+  border: none;
+  border-radius: $radius-md;
+  padding: $space-2 $space-3;
+  font-size: $text-sm;
+  outline: none;
+
+  &::placeholder {
+    color: $text-faint;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 2px $accent-ring;
+  }
+}
+
+.fieldHint {
+  font-size: $text-xs;
+  color: $text-faint;
+  margin-top: $space-1;
+}
+
+.submitBtn {
+  width: 100%;
+  background: $accent;
+  color: $text-primary;
+  font-weight: 500;
+  border-radius: $radius-md;
+  padding: $space-2;
+  font-size: $text-sm;
+  transition: background 0.15s;
+
+  &:hover:not(:disabled) {
+    background: $accent-hover;
+  }
+
+  &:disabled {
+    background: $accent-disabled-bg;
+    color: $accent-disabled-text;
+    cursor: not-allowed;
+  }
+}
+
+.footer {
+  text-align: center;
+  font-size: $text-sm;
+  color: $text-faint;
+  margin-top: $space-4;
+
+  a {
+    color: $accent-link;
+
+    &:hover {
+      color: $accent-link-hover;
+    }
+  }
+}

@@ -1,0 +1,63 @@
+@use './styles/variables' as *;
+
+// =============================================================================
+// Global reset + base styles
+// =============================================================================
+// Everything here applies to the whole document.
+// Component-specific styles live in *.module.scss files next to their TSX.
+// =============================================================================
+
+// ── Box model reset ───────────────────────────────────────────────────────────
+// `border-box` means padding/border are included in the element's total width,
+// not added on top. Without this, layout maths gets confusing.
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+// ── Document base ─────────────────────────────────────────────────────────────
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: $bg-page;
+  color: $text-primary;
+  // Smooth font rendering on macOS/iOS. Makes light text on dark bg look crisper.
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+// ── Remove default button styles ──────────────────────────────────────────────
+// Our components add back exactly the styles they need.
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  padding: 0;
+}
+
+// ── Form element font inheritance ─────────────────────────────────────────────
+// By default, inputs/selects/textareas don't inherit the document font.
+// This is a browser quirk that trips up almost every developer once.
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+// ── Link base ─────────────────────────────────────────────────────────────────
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+// ── List reset ────────────────────────────────────────────────────────────────
+ul,
+ol {
+  list-style: none;
+}

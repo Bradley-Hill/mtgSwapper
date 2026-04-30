@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useUpdateCard } from "@/hooks";
 import type { CardCondition, EditCardModalProps } from "@/types";
+import styles from "./EditCardModal.module.scss";
 
 export function EditCardModal({ card, onClose }: EditCardModalProps) {
   // Pre-fill all form fields from the existing card data.
@@ -47,56 +48,46 @@ export function EditCardModal({ card, onClose }: EditCardModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+      className={styles.backdrop}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-sm bg-gray-900 rounded-2xl p-6 space-y-5">
-        {/* ── Header ─────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between">
+      <div className={styles.panel}>
+        <div className={styles.header}>
           <div>
-            <h2 className="text-lg font-semibold text-white">
-              {card.card_name}
-            </h2>
-            {card.set_name && (
-              <p className="text-sm text-gray-500">{card.set_name}</p>
-            )}
+            <h2 className={styles.cardTitle}>{card.card_name}</h2>
+            {card.set_name && <p className={styles.cardSet}>{card.set_name}</p>}
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-gray-400 hover:text-white text-2xl leading-none"
+            className={styles.closeBtn}
           >
             ×
           </button>
         </div>
 
-        {/* ── Form ───────────────────────────────────────────────────── */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label
-                htmlFor="edit-condition"
-                className="block text-sm text-gray-400"
-              >
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.grid2}>
+            <div className={styles.field}>
+              <label htmlFor="edit-condition" className={styles.label}>
                 Condition
               </label>
               <select
                 id="edit-condition"
                 value={condition}
                 onChange={(e) => setCondition(e.target.value as CardCondition)}
-                className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                className={styles.select}
               >
                 <option value="unused">Unused / NM</option>
                 <option value="played">Played</option>
                 <option value="damaged">Damaged</option>
               </select>
             </div>
-
-            <div className="space-y-1">
-              <label htmlFor="edit-qty" className="block text-sm text-gray-400">
+            <div className={styles.field}>
+              <label htmlFor="edit-qty" className={styles.label}>
                 Quantity
               </label>
               <input
@@ -106,23 +97,20 @@ export function EditCardModal({ card, onClose }: EditCardModalProps) {
                 required
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
-                className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                className={styles.input}
               />
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label
-              htmlFor="edit-language"
-              className="block text-sm text-gray-400"
-            >
+          <div className={styles.field}>
+            <label htmlFor="edit-language" className={styles.label}>
               Language
             </label>
             <select
               id="edit-language"
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+              className={styles.select}
             >
               <option>English</option>
               <option>French</option>
@@ -138,30 +126,30 @@ export function EditCardModal({ card, onClose }: EditCardModalProps) {
             </select>
           </div>
 
-          <div className="flex items-center gap-6">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
+          <div className={styles.checkboxRow}>
+            <label className={styles.checkboxLabel}>
               <input
                 type="checkbox"
                 checked={isFoil}
                 onChange={(e) => setIsFoil(e.target.checked)}
-                className="w-4 h-4 accent-indigo-500"
+                className={styles.checkbox}
               />
-              <span className="text-sm text-gray-300">Foil</span>
+              <span className={styles.checkboxText}>Foil</span>
             </label>
-            <label className="flex items-center gap-2 cursor-pointer select-none">
+            <label className={styles.checkboxLabel}>
               <input
                 type="checkbox"
                 checked={isAvailable}
                 onChange={(e) => setIsAvailable(e.target.checked)}
-                className="w-4 h-4 accent-indigo-500"
+                className={styles.checkbox}
               />
-              <span className="text-sm text-gray-300">Available for swap</span>
+              <span className={styles.checkboxText}>Available for swap</span>
             </label>
           </div>
 
-          <div className="space-y-1">
-            <label htmlFor="edit-notes" className="block text-sm text-gray-400">
-              Notes <span className="text-gray-600">(optional)</span>
+          <div className={styles.field}>
+            <label htmlFor="edit-notes" className={styles.label}>
+              Notes <span className={styles.labelHint}>(optional)</span>
             </label>
             <textarea
               id="edit-notes"
@@ -169,12 +157,12 @@ export function EditCardModal({ card, onClose }: EditCardModalProps) {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. signed, water damage on corner…"
-              className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              className={styles.textarea}
             />
           </div>
 
           {updateCard.isError && (
-            <p role="alert" className="text-red-400 text-sm">
+            <p role="alert" className={styles.errorAlert}>
               {updateCard.error instanceof Error
                 ? updateCard.error.message
                 : "Failed to save changes."}
@@ -184,7 +172,7 @@ export function EditCardModal({ card, onClose }: EditCardModalProps) {
           <button
             type="submit"
             disabled={updateCard.isPending}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium rounded-lg py-2 text-sm transition-colors"
+            className={styles.submitBtn}
           >
             {updateCard.isPending ? "Saving…" : "Save changes"}
           </button>

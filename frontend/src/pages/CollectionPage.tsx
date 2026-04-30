@@ -2,17 +2,12 @@ import { useState } from 'react';
 import { useCards, useDeleteCard } from '@/hooks';
 import { AddCardModal, BulkImportModal, EditCardModal } from '@/components';
 import type { Card } from '@/types';
+import styles from './CollectionPage.module.scss';
 
 const CONDITION_LABEL: Record<string, string> = {
   unused: 'NM',
   played: 'Played',
   damaged: 'Damaged',
-};
-
-const CONDITION_COLOUR: Record<string, string> = {
-  unused: 'bg-green-900 text-green-300',
-  played: 'bg-yellow-900 text-yellow-300',
-  damaged: 'bg-red-900 text-red-300',
 };
 
 export function CollectionPage() {
@@ -21,56 +16,45 @@ export function CollectionPage() {
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="border-b border-gray-800 px-4 py-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
           <div>
-            <h1 className="text-xl font-bold">My Collection</h1>
+            <h1 className={styles.headerTitle}>My Collection</h1>
             {cards && cards.length > 0 && (
-              <p className="text-sm text-gray-400">
+              <p className={styles.headerSubtitle}>
                 {cards.length} card{cards.length !== 1 ? 's' : ''}
               </p>
             )}
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-            >
+          <div className={styles.headerActions}>
+            <button onClick={() => setIsAddModalOpen(true)} className={styles.btnPrimary}>
               + Add card
             </button>
-            <button
-              onClick={() => setIsBulkModalOpen(true)}
-              className="bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-            >
+            <button onClick={() => setIsBulkModalOpen(true)} className={styles.btnSecondary}>
               Bulk import
             </button>
           </div>
         </div>
       </header>
 
-      {/* ── Main ───────────────────────────────────────────────────────── */}
-      <main className="max-w-4xl mx-auto px-4 py-6">
+      <main className={styles.main}>
         {/* Loading — pulse skeleton rows */}
         {isLoading && (
-          <div className="space-y-3">
+          <div className={styles.skeletonList}>
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-14 bg-gray-800 rounded-xl animate-pulse" />
+              <div key={i} className={styles.skeletonRow} />
             ))}
           </div>
         )}
 
         {/* Error */}
         {isError && (
-          <div className="text-center py-20">
-            <p className="text-red-400 mb-4">
+          <div className={styles.errorState}>
+            <p className={styles.errorText}>
               {error instanceof Error ? error.message : 'Failed to load collection.'}
             </p>
-            <button
-              onClick={() => void refetch()}
-              className="text-sm text-indigo-400 hover:text-indigo-300"
-            >
+            <button onClick={() => void refetch()} className={styles.retryBtn}>
               Try again
             </button>
           </div>
@@ -78,16 +62,13 @@ export function CollectionPage() {
 
         {/* Empty state */}
         {!isLoading && !isError && cards?.length === 0 && (
-          <div className="text-center py-20">
-            <p className="text-5xl mb-4">🃏</p>
-            <h2 className="text-lg font-semibold text-white mb-2">No cards yet</h2>
-            <p className="text-gray-400 text-sm mb-6">
+          <div className={styles.emptyState}>
+            <p className={styles.emptyEmoji}>🃏</p>
+            <h2 className={styles.emptyTitle}>No cards yet</h2>
+            <p className={styles.emptySubtitle}>
               Add your first card to start building your collection.
             </p>
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-6 py-2 rounded-lg transition-colors"
-            >
+            <button onClick={() => setIsAddModalOpen(true)} className={styles.btnPrimary}>
               Add your first card
             </button>
           </div>
@@ -95,17 +76,17 @@ export function CollectionPage() {
 
         {/* Populated — scrollable table */}
         {!isLoading && !isError && cards && cards.length > 0 && (
-          <div className="overflow-x-auto rounded-xl border border-gray-800">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-800 text-gray-400 text-left">
-                  <th className="px-4 py-3 font-medium">Card</th>
-                  <th className="px-4 py-3 font-medium">Set</th>
-                  <th className="px-4 py-3 font-medium">Condition</th>
-                  <th className="px-4 py-3 font-medium text-center">Qty</th>
-                  <th className="px-4 py-3 font-medium">Language</th>
-                  <th className="px-4 py-3 font-medium text-center">Available</th>
-                  <th className="px-4 py-3" />
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <thead className={styles.tableHead}>
+                <tr>
+                  <th>Card</th>
+                  <th>Set</th>
+                  <th>Condition</th>
+                  <th className={styles.colCenter}>Qty</th>
+                  <th>Language</th>
+                  <th className={styles.colCenter}>Available</th>
+                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -118,7 +99,6 @@ export function CollectionPage() {
         )}
       </main>
 
-      {/* Add card modal — conditionally mounted so state resets on close */}
       {isAddModalOpen && (
         <AddCardModal onClose={() => setIsAddModalOpen(false)} />
       )}
@@ -133,75 +113,58 @@ export function CollectionPage() {
 
 function CardRow({ card }: { card: Card }) {
   const [isEditOpen, setIsEditOpen] = useState(false);
-  // Inline delete confirmation — clicking Delete shows "Sure? / Cancel" in-row
-  // instead of launching a modal. Keeps the interaction lightweight for a
-  // destructive action that's easy to undo at the DB level but jarring in the UI.
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const deleteCard = useDeleteCard();
 
   return (
     <>
-      <tr className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-        <td className="px-4 py-3">
-          <span className="font-medium text-white">{card.card_name}</span>
+      <tr className={styles.tableRow}>
+        <td className={styles.cell}>
+          <span className={styles.cardName}>{card.card_name}</span>
           {card.is_foil && (
-            <span className="ml-2 text-xs text-yellow-400" title="Foil">
-              ✦
-            </span>
+            <span className={styles.foilBadge} title="Foil">✦</span>
           )}
         </td>
-        <td className="px-4 py-3 text-gray-400">
-          {card.set_name ?? card.set_code}
-        </td>
-        <td className="px-4 py-3">
-          <span
-            className={`text-xs font-medium px-2 py-0.5 rounded-full ${CONDITION_COLOUR[card.condition]}`}
-          >
+        <td className={styles.cell}>{card.set_name ?? card.set_code}</td>
+        <td className={styles.cell}>
+          {/* Two classes: base badge style + condition-specific colour */}
+          <span className={`${styles.badge} ${styles[card.condition]}`}>
             {CONDITION_LABEL[card.condition]}
           </span>
         </td>
-        <td className="px-4 py-3 text-center text-gray-300">{card.quantity}</td>
-        <td className="px-4 py-3 text-gray-400">{card.language}</td>
-        <td className="px-4 py-3 text-center">
+        <td className={`${styles.cell} ${styles.cellCenter}`}>{card.quantity}</td>
+        <td className={styles.cell}>{card.language}</td>
+        <td className={`${styles.cell} ${styles.cellCenter}`}>
           <span
-            className={`inline-block w-2 h-2 rounded-full ${
-              card.is_available ? 'bg-green-400' : 'bg-gray-600'
-            }`}
+            className={`${styles.availDot} ${card.is_available ? styles.available : ''}`}
             title={card.is_available ? 'Available for swap' : 'Not available'}
           />
         </td>
-        <td className="px-4 py-3 text-right">
-          <div className="flex gap-2 justify-end">
+        <td className={styles.cell}>
+          <div className={styles.actions}>
             {isConfirmingDelete ? (
-              // Inline confirmation — replaces Edit/Delete while pending
               <>
                 <button
                   onClick={() => deleteCard.mutate(card.id)}
                   disabled={deleteCard.isPending}
-                  className="text-xs text-red-400 hover:text-red-300 font-medium disabled:opacity-50"
+                  className={styles.actionConfirm}
                 >
                   {deleteCard.isPending ? 'Deleting…' : 'Sure?'}
                 </button>
                 <button
                   onClick={() => setIsConfirmingDelete(false)}
                   disabled={deleteCard.isPending}
-                  className="text-xs text-gray-400 hover:text-gray-300 disabled:opacity-50"
+                  className={styles.actionCancel}
                 >
                   Cancel
                 </button>
               </>
             ) : (
               <>
-                <button
-                  onClick={() => setIsEditOpen(true)}
-                  className="text-xs text-gray-400 hover:text-white transition-colors"
-                >
+                <button onClick={() => setIsEditOpen(true)} className={styles.actionEdit}>
                   Edit
                 </button>
-                <button
-                  onClick={() => setIsConfirmingDelete(true)}
-                  className="text-xs text-red-400 hover:text-red-300 transition-colors"
-                >
+                <button onClick={() => setIsConfirmingDelete(true)} className={styles.actionDelete}>
                   Delete
                 </button>
               </>

@@ -1,0 +1,180 @@
+@use '../styles/variables' as *;
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 0 $space-4;
+}
+
+.panel {
+  width: 100%;
+  max-width: 24rem;
+  background: $bg-surface;
+  border-radius: $radius-xl;
+  padding: $space-6;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cardTitle {
+  font-size: $text-lg;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.cardSet {
+  font-size: $text-sm;
+  color: $text-faint;
+  margin-top: 2px;
+}
+
+.closeBtn {
+  font-size: 1.5rem;
+  line-height: 1;
+  color: $text-muted;
+  padding: 0;
+
+  &:hover {
+    color: $text-primary;
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-3;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+}
+
+.label {
+  display: block;
+  font-size: $text-sm;
+  color: $text-muted;
+}
+
+.labelHint {
+  color: $text-dimmer;
+}
+
+.select {
+  width: 100%;
+  background: $bg-input;
+  color: $text-primary;
+  border: none;
+  border-radius: $radius-md;
+  padding: $space-2 $space-3;
+  font-size: $text-sm;
+  outline: none;
+
+  &:focus {
+    box-shadow: 0 0 0 2px $accent-ring;
+  }
+}
+
+.input {
+  width: 100%;
+  background: $bg-input;
+  color: $text-primary;
+  border: none;
+  border-radius: $radius-md;
+  padding: $space-2 $space-3;
+  font-size: $text-sm;
+  outline: none;
+
+  &:focus {
+    box-shadow: 0 0 0 2px $accent-ring;
+  }
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox {
+  width: 1rem;
+  height: 1rem;
+  accent-color: $accent;
+}
+
+.checkboxText {
+  font-size: $text-sm;
+  color: $text-secondary;
+}
+
+.textarea {
+  width: 100%;
+  background: $bg-input;
+  color: $text-primary;
+  border: none;
+  border-radius: $radius-md;
+  padding: $space-2 $space-3;
+  font-size: $text-sm;
+  outline: none;
+  resize: none;
+
+  &::placeholder {
+    color: $text-faint;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 2px $accent-ring;
+  }
+}
+
+.errorAlert {
+  font-size: $text-sm;
+  color: $error-text;
+}
+
+.submitBtn {
+  width: 100%;
+  background: $accent;
+  color: $text-primary;
+  font-weight: 500;
+  border-radius: $radius-md;
+  padding: $space-2;
+  font-size: $text-sm;
+  transition: background 0.15s;
+
+  &:hover:not(:disabled) {
+    background: $accent-hover;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

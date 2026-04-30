@@ -1,0 +1,204 @@
+@use '../styles/variables' as *;
+
+// Shared modal backdrop + panel — same pattern for all three modals.
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 0 $space-4;
+}
+
+.panel {
+  width: 100%;
+  max-width: 28rem;
+  background: $bg-surface;
+  border-radius: $radius-xl;
+  padding: $space-6;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: $text-lg;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.closeBtn {
+  font-size: 1.5rem;
+  line-height: 1;
+  color: $text-muted;
+  padding: 0;
+
+  &:hover {
+    color: $text-primary;
+  }
+}
+
+// ── Form ──────────────────────────────────────────────────────────────────────
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.errorAlert {
+  font-size: $text-sm;
+  color: $error-text;
+  background: $error-bg;
+  border: 1px solid $error-border;
+  border-radius: $radius-md;
+  padding: $space-2 $space-3;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+  position: relative;
+}
+
+.label {
+  display: block;
+  font-size: $text-sm;
+  color: $text-muted;
+}
+
+.labelHint {
+  color: $text-dimmer;
+}
+
+.input {
+  width: 100%;
+  background: $bg-input;
+  color: $text-primary;
+  border: none;
+  border-radius: $radius-md;
+  padding: $space-2 $space-3;
+  font-size: $text-sm;
+  outline: none;
+
+  &::placeholder {
+    color: $text-faint;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 2px $accent-ring;
+  }
+
+  &.uppercase {
+    text-transform: uppercase;
+  }
+}
+
+.select {
+  width: 100%;
+  background: $bg-input;
+  color: $text-primary;
+  border: none;
+  border-radius: $radius-md;
+  padding: $space-2 $space-3;
+  font-size: $text-sm;
+  outline: none;
+
+  &:focus {
+    box-shadow: 0 0 0 2px $accent-ring;
+  }
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-3;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox {
+  width: 1rem;
+  height: 1rem;
+  accent-color: $accent;
+}
+
+.checkboxText {
+  font-size: $text-sm;
+  color: $text-secondary;
+}
+
+.searchingHint {
+  position: absolute;
+  right: $space-3;
+  top: 2.1rem;
+  font-size: $text-xs;
+  color: $text-faint;
+}
+
+// ── Autocomplete dropdown ─────────────────────────────────────────────────────
+
+.suggestions {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: $bg-input;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  overflow: hidden;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+  list-style: none;
+}
+
+.suggestion {
+  padding: $space-2 $space-3;
+  font-size: $text-sm;
+  color: $text-primary;
+  cursor: pointer;
+
+  &:hover,
+  &[aria-selected='true'] {
+    background: $accent;
+  }
+}
+
+// ── Submit button ─────────────────────────────────────────────────────────────
+
+.submitBtn {
+  width: 100%;
+  background: $accent;
+  color: $text-primary;
+  font-weight: 500;
+  border-radius: $radius-md;
+  padding: $space-2;
+  font-size: $text-sm;
+  transition: background 0.15s;
+
+  &:hover:not(:disabled) {
+    background: $accent-hover;
+  }
+
+  &:disabled {
+    background: $accent-disabled-bg;
+    color: $accent-disabled-text;
+    cursor: not-allowed;
+  }
+}

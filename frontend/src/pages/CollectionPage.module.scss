@@ -1,0 +1,289 @@
+@use '../styles/variables' as *;
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+// ── Page shell ────────────────────────────────────────────────────────────────
+
+.page {
+  min-height: 100vh;
+  background: $bg-page;
+  color: $text-primary;
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+
+.header {
+  border-bottom: 1px solid $border-subtle;
+  padding: $space-4;
+}
+
+.headerInner {
+  max-width: 56rem;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.headerTitle {
+  font-size: $text-xl;
+  font-weight: 700;
+}
+
+.headerSubtitle {
+  font-size: $text-sm;
+  color: $text-muted;
+  margin-top: 2px;
+}
+
+.headerActions {
+  display: flex;
+  gap: $space-2;
+}
+
+.btnPrimary {
+  background: $accent;
+  color: $text-primary;
+  font-size: $text-sm;
+  font-weight: 500;
+  padding: $space-2 $space-4;
+  border-radius: $radius-md;
+  transition: background 0.15s;
+
+  &:hover {
+    background: $accent-hover;
+  }
+}
+
+.btnSecondary {
+  background: $bg-input;
+  color: #e5e7eb;
+  font-size: $text-sm;
+  font-weight: 500;
+  padding: $space-2 $space-4;
+  border-radius: $radius-md;
+  transition: background 0.15s;
+
+  &:hover {
+    background: $bg-hover;
+  }
+}
+
+// ── Main content area ─────────────────────────────────────────────────────────
+
+.main {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: $space-6 $space-4;
+}
+
+// ── Loading skeleton ──────────────────────────────────────────────────────────
+
+.skeletonList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.skeletonRow {
+  height: 3.5rem;
+  background: $bg-input;
+  border-radius: $radius-lg;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+// ── Error state ───────────────────────────────────────────────────────────────
+
+.errorState {
+  text-align: center;
+  padding: 5rem 0;
+}
+
+.errorText {
+  color: $error-text;
+  margin-bottom: $space-4;
+}
+
+.retryBtn {
+  font-size: $text-sm;
+  color: $accent-link;
+
+  &:hover {
+    color: $accent-link-hover;
+  }
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+
+.emptyState {
+  text-align: center;
+  padding: 5rem 0;
+}
+
+.emptyEmoji {
+  font-size: 3rem;
+  margin-bottom: $space-4;
+}
+
+.emptyTitle {
+  font-size: $text-lg;
+  font-weight: 600;
+  color: $text-primary;
+  margin-bottom: $space-2;
+}
+
+.emptySubtitle {
+  font-size: $text-sm;
+  color: $text-muted;
+  margin-bottom: $space-6;
+}
+
+// ── Table ─────────────────────────────────────────────────────────────────────
+
+.tableWrapper {
+  overflow-x: auto;
+  border-radius: $radius-lg;
+  border: 1px solid $border-subtle;
+}
+
+.table {
+  width: 100%;
+  font-size: $text-sm;
+  border-collapse: collapse;
+}
+
+.tableHead th {
+  padding: $space-3 $space-4;
+  font-weight: 500;
+  color: $text-muted;
+  text-align: left;
+  border-bottom: 1px solid $border-subtle;
+
+  &.colCenter {
+    text-align: center;
+  }
+}
+
+.tableRow {
+  border-bottom: 1px solid rgba(31, 41, 55, 0.5);
+  transition: background 0.1s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.cell {
+  padding: $space-3 $space-4;
+  color: $text-muted;
+
+  &.cellCenter {
+    text-align: center;
+  }
+}
+
+.cardName {
+  font-weight: 500;
+  color: $text-primary;
+}
+
+.foilBadge {
+  margin-left: $space-2;
+  font-size: $text-xs;
+  color: $foil-color;
+}
+
+// ── Condition badge ───────────────────────────────────────────────────────────
+// Applied as two classes: styles.badge + styles[card.condition]
+
+.badge {
+  display: inline-block;
+  font-size: $text-xs;
+  font-weight: 500;
+  padding: 2px $space-2;
+  border-radius: $radius-full;
+}
+
+.unused   { background: $cond-unused-bg;  color: $cond-unused-text; }
+.played   { background: $cond-played-bg;  color: $cond-played-text; }
+.damaged  { background: $cond-damaged-bg; color: $cond-damaged-text; }
+
+// ── Availability dot ──────────────────────────────────────────────────────────
+
+.availDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: $radius-full;
+  background: #4b5563; // not available
+
+  &.available {
+    background: $avail-dot;
+  }
+}
+
+// ── Row action buttons ────────────────────────────────────────────────────────
+
+.actions {
+  display: flex;
+  gap: $space-2;
+  justify-content: flex-end;
+}
+
+.actionEdit {
+  font-size: $text-xs;
+  color: $text-muted;
+  transition: color 0.15s;
+
+  &:hover {
+    color: $text-primary;
+  }
+}
+
+.actionDelete {
+  font-size: $text-xs;
+  color: $error-text;
+  transition: color 0.15s;
+
+  &:hover {
+    color: #fca5a5;
+  }
+}
+
+.actionConfirm {
+  font-size: $text-xs;
+  font-weight: 500;
+  color: $error-text;
+  transition: color 0.15s;
+
+  &:hover {
+    color: #fca5a5;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.actionCancel {
+  font-size: $text-xs;
+  color: $text-muted;
+  transition: color 0.15s;
+
+  &:hover {
+    color: $text-primary;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

@@ -4,6 +4,7 @@ import { ApiError } from '@/api/client';
 import { useDebounce } from '@/hooks';
 import { useAddCard } from '@/hooks';
 import type { AddCardModalProps, CardCondition } from '@/types';
+import styles from './AddCardModal.module.scss';
 
 const LANGUAGES = [
   'English',
@@ -103,35 +104,25 @@ export function AddCardModal({ onClose }: AddCardModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+      className={styles.backdrop}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-full max-w-md bg-gray-900 rounded-2xl p-6 space-y-5">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Add card</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="text-gray-400 hover:text-white text-2xl leading-none"
-          >
+      <div className={styles.panel}>
+        <div className={styles.header}>
+          <h2 className={styles.title}>Add card</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className={styles.closeBtn}>
             ×
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className={styles.form}>
           {apiError && (
-            <p role="alert" className="text-sm text-red-400 bg-red-950 border border-red-800 rounded-lg px-3 py-2">
-              {apiError}
-            </p>
+            <p role="alert" className={styles.errorAlert}>{apiError}</p>
           )}
 
           {/* Card name search with autocomplete dropdown */}
-          <div className="space-y-1 relative">
-            <label htmlFor="card-name-search" className="block text-sm text-gray-400">
-              Card name
-            </label>
+          <div className={styles.field}>
+            <label htmlFor="card-name-search" className={styles.label}>Card name</label>
             <input
               ref={inputRef}
               id="card-name-search"
@@ -139,41 +130,24 @@ export function AddCardModal({ onClose }: AddCardModalProps) {
               autoComplete="off"
               required
               value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setCardName(e.target.value);
-              }}
-              onBlur={() => {
-                setTimeout(() => setShowSuggestions(false), 150);
-              }}
-              onFocus={() => {
-                if (suggestions.length > 0) setShowSuggestions(true);
-              }}
+              onChange={(e) => { setQuery(e.target.value); setCardName(e.target.value); }}
+              onBlur={() => { setTimeout(() => setShowSuggestions(false), 150); }}
+              onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
               placeholder="e.g. Black Lotus"
-              className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+              className={styles.input}
             />
-
-            {/* "Searching…" indicator appears inside the input row */}
             {isLoadingSuggestions && (
-              <span className="absolute right-3 top-[2.1rem] text-xs text-gray-500">
-                Searching…
-              </span>
+              <span className={styles.searchingHint}>Searching…</span>
             )}
-
-            {/* Suggestions dropdown */}
             {showSuggestions && suggestions.length > 0 && (
-              <ul
-                role="listbox"
-                aria-label="Card name suggestions"
-                className="absolute z-10 mt-1 w-full bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-xl"
-              >
+              <ul role="listbox" aria-label="Card name suggestions" className={styles.suggestions}>
                 {suggestions.map((name) => (
                   <li
                     key={name}
                     role="option"
                     aria-selected={cardName === name}
                     onMouseDown={() => selectSuggestion(name)}
-                    className="px-3 py-2 text-sm text-white hover:bg-indigo-600 cursor-pointer"
+                    className={styles.suggestion}
                   >
                     {name}
                   </li>
@@ -183,10 +157,9 @@ export function AddCardModal({ onClose }: AddCardModalProps) {
           </div>
 
           {/* Optional set code */}
-          <div className="space-y-1">
-            <label htmlFor="set-code" className="block text-sm text-gray-400">
-              Set code{' '}
-              <span className="text-gray-600">(optional — e.g. LEA)</span>
+          <div className={styles.field}>
+            <label htmlFor="set-code" className={styles.label}>
+              Set code <span className={styles.labelHint}>(optional — e.g. LEA)</span>
             </label>
             <input
               id="set-code"
@@ -196,79 +169,69 @@ export function AddCardModal({ onClose }: AddCardModalProps) {
               onChange={(e) => setSetCode(e.target.value.toUpperCase())}
               placeholder="LEA"
               maxLength={6}
-              className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 uppercase"
+              className={`${styles.input} ${styles.uppercase}`}
             />
           </div>
 
-          {/* Condition + Quantity side by side */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label htmlFor="condition" className="block text-sm text-gray-400">
-                Condition
-              </label>
+          {/* Condition + Quantity */}
+          <div className={styles.grid2}>
+            <div className={styles.field}>
+              <label htmlFor="condition" className={styles.label}>Condition</label>
               <select
                 id="condition"
                 value={condition}
                 onChange={(e) => setCondition(e.target.value as CardCondition)}
-                className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                className={styles.select}
               >
                 <option value="unused">Unused / NM</option>
                 <option value="played">Played</option>
                 <option value="damaged">Damaged</option>
               </select>
             </div>
-            <div className="space-y-1">
-              <label htmlFor="quantity" className="block text-sm text-gray-400">
-                Quantity
-              </label>
+            <div className={styles.field}>
+              <label htmlFor="quantity" className={styles.label}>Quantity</label>
               <input
                 id="quantity"
                 type="number"
                 min={1}
                 required
                 value={quantity}
-                onChange={(e) =>
-                  setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))
-                }
-                className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                className={styles.input}
               />
             </div>
           </div>
 
           {/* Language */}
-          <div className="space-y-1">
-            <label htmlFor="language" className="block text-sm text-gray-400">
-              Language
-            </label>
+          <div className={styles.field}>
+            <label htmlFor="language" className={styles.label}>Language</label>
             <select
               id="language"
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+              className={styles.select}
             >
               {LANGUAGES.map((lang) => (
-                <option key={lang} value={lang}>
-                  {lang}
-                </option>
+                <option key={lang} value={lang}>{lang}</option>
               ))}
             </select>
           </div>
 
           {/* Foil checkbox */}
-          <label className="flex items-center gap-3 cursor-pointer select-none">
+          <label className={styles.checkboxLabel}>
             <input
               type="checkbox"
               checked={isFoil}
               onChange={(e) => setIsFoil(e.target.checked)}
-              className="w-4 h-4 accent-indigo-500"
+              className={styles.checkbox}
             />
-            <span className="text-sm text-gray-300">Foil</span>
+            <span className={styles.checkboxText}>Foil</span>
           </label>
 
           <button
             type="submit"
             disabled={isPending || !cardName.trim()}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-900 disabled:text-indigo-400 text-white font-medium rounded-lg py-2 text-sm transition-colors"
+            className={styles.submitBtn}
           >
             {isPending ? 'Adding…' : 'Add to collection'}
           </button>
