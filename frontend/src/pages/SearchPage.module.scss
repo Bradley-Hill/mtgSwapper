@@ -1,4 +1,4 @@
-@use '../styles/variables' as *;
+@use "../styles/variables" as *;
 
 .page {
   max-width: 60rem;
@@ -62,7 +62,9 @@
 }
 
 @keyframes spin {
-  to { transform: translateY(-50%) rotate(360deg); }
+  to {
+    transform: translateY(-50%) rotate(360deg);
+  }
 }
 
 // ── State messages ────────────────────────────────────────────────────────────
@@ -166,5 +168,25 @@
   &:hover {
     color: $accent-link-hover;
     text-decoration: underline;
+  }
+}
+
+.offerBtn {
+  padding: 0.25rem 0.625rem;
+  background: transparent;
+  border: 1px solid $accent;
+  border-radius: $radius-md;
+  color: $accent-link;
+  font-size: $text-xs;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    color 0.15s;
+
+  &:hover {
+    background: $accent;
+    color: #fff;
   }
 }

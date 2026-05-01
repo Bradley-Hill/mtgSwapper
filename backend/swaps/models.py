@@ -54,6 +54,13 @@ class Offer(models.Model):
     # Counteroffer tracking
     counteroffer_count = models.IntegerField(default=0)
     max_counteroffers = models.IntegerField(default=4)
+    last_counteroffer_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='last_countered_offers',
+    )
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -76,8 +83,11 @@ class Offer(models.Model):
         return f"Offer: {self.initiator_user.username} → {self.target_user.username} ({self.status})"
     
     def save(self, *args, **kwargs):
-        # Set default expiry on creation
-        if not self.pk and not self.expires_at:
+        # Set default expiry on creation.
+        # Must use self._state.adding rather than `not self.pk` because
+        # UUIDField(default=uuid.uuid4) pre-populates pk before save() runs,
+        # making `not self.pk` always False for new objects.
+        if self._state.adding and not self.expires_at:
             self.expires_at = timezone.now() + timedelta(days=7)
         super().save(*args, **kwargs)
 

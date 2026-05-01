@@ -1,8 +1,11 @@
-import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { getUserProfile, getUserCards } from '@/api/users';
-import type { GlobalSearchResult } from '@/types';
-import styles from './UserProfilePage.module.scss';
+import { useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getUserProfile, getUserCards } from "@/api/users";
+import { useAuth } from "@/context";
+import { CreateOfferModal } from "@/components";
+import type { GlobalSearchResult } from "@/types";
+import styles from "./UserProfilePage.module.scss";
 
 /*
  * Why two separate useQuery calls instead of one combined fetch?
@@ -17,13 +20,16 @@ import styles from './UserProfilePage.module.scss';
  */
 export function UserProfilePage() {
   const { id } = useParams<{ id: string }>();
+  const { user: currentUser } = useAuth();
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [cardFilter, setCardFilter] = useState("");
 
   const {
     data: profile,
     isLoading: profileLoading,
     isError: profileError,
   } = useQuery({
-    queryKey: ['userProfile', id],
+    queryKey: ["userProfile", id],
     queryFn: () => getUserProfile(id!),
     enabled: !!id,
     staleTime: 60_000,
@@ -34,110 +40,174 @@ export function UserProfilePage() {
     isLoading: cardsLoading,
     isError: cardsError,
   } = useQuery({
-    queryKey: ['userCards', id],
+    queryKey: ["userCards", id],
     queryFn: () => getUserCards(id!),
     enabled: !!id,
     staleTime: 30_000,
   });
 
   if (profileLoading) {
-    return <main className={styles.page}><p className={styles.muted}>Loading profile…</p></main>;
+    return (
+      <main className={styles.page}>
+        <p className={styles.muted}>Loading profile…</p>
+      </main>
+    );
   }
 
   if (profileError || !profile) {
     return (
       <main className={styles.page}>
         <p className={styles.error}>User not found.</p>
-        <Link to="/search" className={styles.backLink}>← Back to search</Link>
+        <Link to="/search" className={styles.backLink}>
+          ← Back to search
+        </Link>
       </main>
     );
   }
 
   const cardList: GlobalSearchResult[] = cards ?? [];
-  const memberSince = new Date(profile.created_at).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'long',
-  });
+  const memberSince = new Date(profile.created_at).toLocaleDateString(
+    undefined,
+    {
+      year: "numeric",
+      month: "long",
+    },
+  );
 
   return (
-    <main className={styles.page}>
-      {/* ── Profile header ─────────────────────────────────── */}
-      <section className={styles.header}>
-        <div className={styles.avatar} aria-hidden="true">
-          {profile.username.charAt(0).toUpperCase()}
-        </div>
-        <div className={styles.meta}>
-          <h1 className={styles.username}>{profile.username}</h1>
-          <p className={styles.location}>
-            {profile.city && profile.country
-              ? `${profile.city}, ${profile.country}`
-              : profile.country ?? profile.city ?? 'Location not set'}
-          </p>
-          <p className={styles.since}>Member since {memberSince}</p>
-        </div>
-        <div className={styles.stats}>
-          <div className={styles.stat}>
-            <span className={styles.statValue}>{profile.total_swaps_completed}</span>
-            <span className={styles.statLabel}>Swaps</span>
+    <>
+      <main className={styles.page}>
+        {/* ── Profile header ─────────────────────────────────── */}
+        <section className={styles.header}>
+          <div className={styles.avatar} aria-hidden="true">
+            {profile.username.charAt(0).toUpperCase()}
           </div>
-          <div className={styles.stat}>
-            <span className={styles.statValue}>
-              {parseFloat(profile.reputation_avg).toFixed(1)}
-            </span>
-            <span className={styles.statLabel}>Rating</span>
+          <div className={styles.meta}>
+            <h1 className={styles.username}>{profile.username}</h1>
+            <p className={styles.location}>
+              {profile.city && profile.country
+                ? `${profile.city}, ${profile.country}`
+                : (profile.country ?? profile.city ?? "Location not set")}
+            </p>
+            <p className={styles.since}>Member since {memberSince}</p>
           </div>
-        </div>
-      </section>
+          <div className={styles.stats}>
+            <div className={styles.stat}>
+              <span className={styles.statValue}>
+                {profile.total_swaps_completed}
+              </span>
+              <span className={styles.statLabel}>Swaps</span>
+            </div>
+            <div className={styles.stat}>
+              <span className={styles.statValue}>
+                {parseFloat(profile.reputation_avg).toFixed(1)}
+              </span>
+              <span className={styles.statLabel}>Rating</span>
+            </div>
+          </div>
 
-      {/* ── Available cards ────────────────────────────────── */}
-      <section>
-        <h2 className={styles.sectionTitle}>
-          Available Cards
-          {!cardsLoading && (
-            <span className={styles.cardCount}>{cardList.length}</span>
+          {/* Only show Make Offer if viewing someone else's profile */}
+          {currentUser && currentUser.id !== profile.id && (
+            <button
+              className={styles.btnOffer}
+              onClick={() => setShowOfferModal(true)}
+            >
+              Make Offer
+            </button>
           )}
-        </h2>
+        </section>
 
-        {cardsLoading && <p className={styles.muted}>Loading cards…</p>}
-        {cardsError && <p className={styles.error}>Could not load cards.</p>}
+        {/* ── Available cards ────────────────────────────────── */}
+        <section>
+          <h2 className={styles.sectionTitle}>
+            Available Cards
+            {!cardsLoading && (
+              <span className={styles.cardCount}>{cardList.length}</span>
+            )}
+          </h2>
 
-        {!cardsLoading && !cardsError && cardList.length === 0 && (
-          <p className={styles.muted}>This user has no cards available for swap.</p>
-        )}
+          {cardsLoading && <p className={styles.muted}>Loading cards…</p>}
+          {cardsError && <p className={styles.error}>Could not load cards.</p>}
 
-        {cardList.length > 0 && (
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Card</th>
-                  <th>Set</th>
-                  <th>Condition</th>
-                  <th>Language</th>
-                  <th>Foil</th>
-                  <th>Qty</th>
-                </tr>
-              </thead>
-              <tbody>
-                {cardList.map((card: GlobalSearchResult) => (
-                  <tr key={card.id}>
-                    <td className={styles.cardName}>{card.card_name}</td>
-                    <td className={styles.mono}>{card.set_code.toUpperCase()}</td>
-                    <td>
-                      <span className={`${styles.badge} ${styles[card.condition]}`}>
-                        {card.condition}
-                      </span>
-                    </td>
-                    <td>{card.language}</td>
-                    <td>{card.is_foil ? '✦' : '—'}</td>
-                    <td>{card.quantity}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-    </main>
+          {!cardsLoading && !cardsError && cardList.length === 0 && (
+            <p className={styles.muted}>
+              This user has no cards available for swap.
+            </p>
+          )}
+
+          {cardList.length > 0 && (
+            <>
+              <input
+                type="search"
+                className={styles.filterInput}
+                placeholder="Filter by card name…"
+                value={cardFilter}
+                onChange={(e) => setCardFilter(e.target.value)}
+                aria-label="Filter cards"
+              />
+              {(() => {
+                const filtered = cardFilter
+                  ? cardList.filter((c) =>
+                      c.card_name
+                        .toLowerCase()
+                        .includes(cardFilter.toLowerCase()),
+                    )
+                  : cardList;
+                return filtered.length === 0 ? (
+                  <p className={styles.muted}>No cards match.</p>
+                ) : (
+                  <div className={styles.tableWrapper}>
+                    <table className={styles.table}>
+                      <thead>
+                        <tr>
+                          <th>Card</th>
+                          <th>Set</th>
+                          <th>Condition</th>
+                          <th>Language</th>
+                          <th>Foil</th>
+                          <th>Qty</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtered.map((card: GlobalSearchResult) => (
+                          <tr key={card.id}>
+                            <td className={styles.cardName}>
+                              {card.card_name}
+                            </td>
+                            <td className={styles.mono}>
+                              {card.set_code.toUpperCase()}
+                            </td>
+                            <td>
+                              <span
+                                className={`${styles.badge} ${styles[card.condition]}`}
+                              >
+                                {card.condition}
+                              </span>
+                            </td>
+                            <td>{card.language}</td>
+                            <td>{card.is_foil ? "✦" : "—"}</td>
+                            <td>{card.quantity}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+            </>
+          )}
+        </section>
+      </main>
+
+      {/* Modal rendered outside the scroll container so it can cover the page */}
+      {showOfferModal && profile && (
+        <CreateOfferModal
+          targetUserId={profile.id}
+          targetUsername={profile.username}
+          targetCards={cardList}
+          onClose={() => setShowOfferModal(false)}
+        />
+      )}
+    </>
   );
 }

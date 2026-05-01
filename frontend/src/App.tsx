@@ -1,7 +1,15 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
-import { AuthProvider } from '@/context';
-import { Layout, ProtectedRoute } from '@/components';
-import { LoginPage, RegisterPage, CollectionPage, SearchPage, UserProfilePage } from '@/pages';
+import { Navigate, Route, Routes } from "react-router-dom";
+import { AuthProvider } from "@/context";
+import { Layout, ProtectedRoute } from "@/components";
+import {
+  LoginPage,
+  RegisterPage,
+  CollectionPage,
+  SearchPage,
+  UserProfilePage,
+  OffersPage,
+  OfferDetailPage,
+} from "@/pages";
 
 export default function App() {
   return (
@@ -20,6 +28,8 @@ export default function App() {
             <Route path="/" element={<CollectionPage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/users/:id" element={<UserProfilePage />} />
+            <Route path="/offers" element={<OffersPage />} />
+            <Route path="/offers/:id" element={<OfferDetailPage />} />
           </Route>
         </Route>
 

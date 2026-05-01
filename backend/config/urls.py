@@ -23,4 +23,5 @@ urlpatterns = [
     path('api/health/', healthcheck.health_check, name='health_check'),
     path('api/', include('users.urls')),
     path('api/', include('cards.urls')),
+    path('api/', include('swaps.urls')),
 ]

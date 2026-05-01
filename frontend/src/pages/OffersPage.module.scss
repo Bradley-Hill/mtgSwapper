@@ -1,0 +1,183 @@
+@use "../styles/variables" as *;
+
+.page {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: $space-6 $space-4;
+  display: flex;
+  flex-direction: column;
+  gap: $space-6;
+}
+
+.pageTitle {
+  font-size: $text-2xl;
+  font-weight: 700;
+  color: $text-primary;
+}
+
+// ── Filters ───────────────────────────────────────────────────────────────────
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+  flex-wrap: wrap;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  background: $bg-surface;
+  border-radius: $radius-lg;
+  padding: 0.25rem;
+}
+
+.tab {
+  padding: 0.375rem 1rem;
+  border-radius: $radius-md;
+  font-size: $text-sm;
+  font-weight: 500;
+  color: $text-muted;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+
+  &:hover {
+    color: $text-primary;
+  }
+}
+
+.tabActive {
+  background: $bg-hover;
+  color: $text-primary;
+}
+
+.statusSelect {
+  background: $bg-input;
+  color: $text-primary;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  padding: 0.375rem 0.75rem;
+  font-size: $text-sm;
+  cursor: pointer;
+
+  &:focus {
+    outline: 2px solid $accent-ring;
+    outline-offset: 2px;
+  }
+}
+
+// ── Table ─────────────────────────────────────────────────────────────────────
+
+.tableWrapper {
+  overflow-x: auto;
+  border-radius: $radius-xl;
+  border: 1px solid $border-default;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $text-sm;
+
+  th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    color: $text-muted;
+    font-weight: 500;
+    border-bottom: 1px solid $border-default;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 0.75rem 1rem;
+    color: $text-secondary;
+    border-bottom: 1px solid $border-subtle;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  tbody tr:hover td {
+    background: $bg-hover;
+  }
+}
+
+.link {
+  color: $accent-link;
+  text-decoration: none;
+
+  &:hover {
+    color: $accent-link-hover;
+    text-decoration: underline;
+  }
+}
+
+.viewLink {
+  color: $accent-link;
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+
+  &:hover {
+    color: $accent-link-hover;
+  }
+}
+
+.mono {
+  font-family: monospace;
+  font-size: $text-xs;
+  color: $text-faint;
+}
+
+// ── Status badges ─────────────────────────────────────────────────────────────
+
+.badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: $radius-full;
+  font-size: $text-xs;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pending {
+  background: #1c2e4a;
+  color: #60a5fa;
+}
+.accepted {
+  background: $success-bg;
+  color: $success-text;
+}
+.declined {
+  background: $error-bg;
+  color: $error-text;
+}
+.expired {
+  background: #1c1c1c;
+  color: $text-faint;
+}
+.cancelled {
+  background: #1c1c1c;
+  color: $text-faint;
+}
+.completed {
+  background: #052e16;
+  color: $color-leaf;
+}
+
+// ── States ────────────────────────────────────────────────────────────────────
+
+.muted {
+  color: $text-muted;
+  font-size: $text-sm;
+}
+.error {
+  color: $error-text;
+  font-size: $text-sm;
+}

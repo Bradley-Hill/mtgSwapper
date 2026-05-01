@@ -101,7 +101,45 @@ class CardViewSet(viewsets.ModelViewSet):
         Save the card with the authenticated user as the owner.
         """
         serializer.save(user=self.request.user)
-    
+
+    def _card_in_active_offer(self, card):
+        """
+        Return True if the card is part of any pending or accepted offer.
+
+        Why inline import?
+        swaps.models imports cards.models (swaps depends on cards). Importing
+        swaps at the top of cards/views.py would create a circular import at
+        module load time. Importing inside the method defers it to runtime,
+        after both apps are fully loaded — a standard Django pattern for
+        cross-app references.
+        """
+        from swaps.models import Offer
+        return Offer.objects.filter(
+            items__card=card,
+            status__in=['pending', 'accepted'],
+        ).exists()
+
+    def destroy(self, request, *args, **kwargs):
+        """Block deletion if the card is in an active offer."""
+        card = self.get_object()
+        if self._card_in_active_offer(card):
+            return Response(
+                {'error': 'Cannot delete a card that is part of an active offer.'},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return super().destroy(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        """Block marking a card unavailable if it is in an active offer."""
+        if request.data.get('is_available') is False:
+            card = self.get_object()
+            if self._card_in_active_offer(card):
+                return Response(
+                    {'error': 'Cannot mark a card unavailable while it is part of an active offer.'},
+                    status=status.HTTP_409_CONFLICT,
+                )
+        return super().partial_update(request, *args, **kwargs)
+
     @action(detail=False, methods=['post'])
     def autocomplete(self, request):
         """

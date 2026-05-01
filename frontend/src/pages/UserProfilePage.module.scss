@@ -1,4 +1,4 @@
-@use '../styles/variables' as *;
+@use "../styles/variables" as *;
 
 .page {
   max-width: 60rem;
@@ -208,5 +208,45 @@
   &:hover {
     color: $accent-link-hover;
     text-decoration: underline;
+  }
+}
+
+.btnOffer {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  background: $accent;
+  color: #fff;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $text-sm;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  align-self: flex-start;
+
+  &:hover {
+    background: $accent-hover;
+  }
+}
+
+.filterInput {
+  width: 100%;
+  max-width: 24rem;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  background: $bg-input;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  color: $text-primary;
+  font-size: $text-sm;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: $text-faint;
+  }
+
+  &:focus {
+    outline: 2px solid $accent-ring;
+    outline-offset: 2px;
   }
 }

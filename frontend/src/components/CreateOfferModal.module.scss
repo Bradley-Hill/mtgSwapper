@@ -1,0 +1,223 @@
+@use "../styles/variables" as *;
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  padding: 0 $space-4;
+}
+
+.panel {
+  width: 100%;
+  max-width: 42rem;
+  max-height: 90vh;
+  background: $bg-surface;
+  border-radius: $radius-xl;
+  padding: $space-6;
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+  overflow: hidden;
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: $text-lg;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.closeBtn {
+  font-size: 1.5rem;
+  line-height: 1;
+  color: $text-muted;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    color: $text-primary;
+  }
+}
+
+.hint {
+  font-size: $text-sm;
+  color: $text-muted;
+
+  strong {
+    color: $text-secondary;
+  }
+}
+
+// ── Two-column picker ─────────────────────────────────────────────────────────
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-4;
+  overflow: hidden;
+  min-height: 0;
+
+  @media (max-width: 28rem) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.columnTitle {
+  font-size: $text-xs;
+  font-weight: 600;
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: $space-2;
+}
+
+.filterInput {
+  width: 100%;
+  padding: 0.375rem 0.625rem;
+  margin-bottom: $space-2;
+  background: $bg-input;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  color: $text-primary;
+  font-size: $text-sm;
+  box-sizing: border-box;
+
+  &::placeholder { color: $text-faint; }
+  &:focus {
+    outline: 2px solid $accent-ring;
+    outline-offset: 1px;
+  }
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 16rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+
+  scrollbar-width: thin;
+  scrollbar-color: $bg-hover transparent;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  padding: 0.375rem 0.5rem;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: background 0.1s;
+
+  &:hover {
+    background: $bg-input;
+  }
+}
+
+.rowSelected {
+  background: rgba(19, 173, 127, 0.12);
+
+  &:hover {
+    background: rgba(19, 173, 127, 0.18);
+  }
+}
+
+.checkbox {
+  accent-color: $accent;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.cardName {
+  font-size: $text-sm;
+  color: $text-primary;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardMeta {
+  font-size: $text-xs;
+  color: $text-faint;
+  font-family: monospace;
+  flex-shrink: 0;
+}
+
+// ── Footer ────────────────────────────────────────────────────────────────────
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-3;
+  padding-top: $space-2;
+  border-top: 1px solid $border-subtle;
+}
+
+%btn-base {
+  padding: 0.5rem 1.25rem;
+  border-radius: $radius-md;
+  font-size: $text-sm;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btnCancel {
+  @extend %btn-base;
+  background: $bg-input;
+  color: $text-secondary;
+  border: 1px solid $border-default;
+  &:hover:not(:disabled) {
+    background: $bg-hover;
+  }
+}
+
+.btnSubmit {
+  @extend %btn-base;
+  background: $accent;
+  color: #fff;
+  &:hover:not(:disabled) {
+    background: $accent-hover;
+  }
+}
+
+// ── States ────────────────────────────────────────────────────────────────────
+
+.muted {
+  color: $text-muted;
+  font-size: $text-sm;
+  padding: 0.25rem 0;
+}
+.error {
+  color: $error-text;
+  font-size: $text-sm;
+}
