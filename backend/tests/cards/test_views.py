@@ -504,3 +504,73 @@ class CardBulkImportTests(CardTestBase):
         )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+
+# ---------------------------------------------------------------------------
+# GET /api/cards/global_search/?q=
+# ---------------------------------------------------------------------------
+
+class GlobalSearchTests(CardTestBase):
+    """Tests for the cross-user card search endpoint."""
+
+    def setUp(self):
+        super().setUp()
+        # Mark self.user's card as available (setUp default is True, but be explicit)
+        self.card.is_available = True
+        self.card.save()
+
+        # other_user's card available — should appear in global search
+        self.other_card.is_available = True
+        self.other_card.save()
+        # A second available Black Lotus owned by other_user — ensures cross-user results
+        self.other_black_lotus = Card.objects.create(
+            user=self.other_user,
+            scryfall_id='ccc-333',
+            card_name='Black Lotus',
+            set_code='LEA',
+            is_available=True,
+        )
+        # A private card (is_available=False) — must never appear in results
+        self.private_card = Card.objects.create(
+            user=self.other_user,
+            scryfall_id="prv-001",
+            card_name="Black Lotus",
+            set_code="VMA",
+            is_available=False,
+        )
+
+    def test_returns_cards_from_all_users(self):
+        """Results include cards from both the requester and other users."""
+        response = self.client.get("/api/cards/global_search/?q=black")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        names = [r["card_name"] for r in response.data["results"]]
+        self.assertIn("Black Lotus", names)
+        # Both the requester's and other_user's available Black Lotus should appear
+        self.assertGreaterEqual(response.data["count"], 2)
+
+    def test_excludes_unavailable_cards(self):
+        """Cards with is_available=False are never returned."""
+        response = self.client.get("/api/cards/global_search/?q=black")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [r["id"] for r in response.data["results"]]
+        self.assertNotIn(str(self.private_card.id), ids)
+
+    def test_includes_owner_fields(self):
+        """Each result includes owner_id and owner_username."""
+        response = self.client.get("/api/cards/global_search/?q=lightning")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        result = response.data["results"][0]
+        self.assertIn("owner_id", result)
+        self.assertIn("owner_username", result)
+        self.assertEqual(result["owner_username"], self.other_user.username)
+
+    def test_short_query_returns_400(self):
+        """Queries shorter than 2 characters are rejected."""
+        response = self.client.get("/api/cards/global_search/?q=b")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_unauthenticated_returns_401(self):
+        """Unauthenticated requests are rejected."""
+        self.client.force_authenticate(user=None)
+        response = self.client.get("/api/cards/global_search/?q=black")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+

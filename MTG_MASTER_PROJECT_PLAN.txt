@@ -615,12 +615,13 @@ security.
 **Status:** ✅ Sprint 1 Complete
 **Status:** ✅ Sprint 2 Complete - Ready for Sprint 3
 **Status:** ✅ Sprint 3 Complete - Ready for Sprint 4
-**Status:** 🔄 Sprint 4 In Progress
+**Status:** ✅ Sprint 4 Complete - Ready for Sprint 5
 
 **Planning Date:** April 8, 2026  
 **Sprint 1 Completion Date:** April 15, 2026
 **Sprint 2 Completion Date:** April 28, 2026
 **Sprint 3 Completion Date:** April 30, 2026
+**Sprint 4 Completion Date:** May 1, 2026
 
 **Tech Stack Locked:** React + TypeScript + Vite + React Router DOM v7 + SCSS CSS Modules (frontend), Django + Python (backend), Neon PostgreSQL (database), Render (backend hosting), Cloudflare Pages (frontend hosting)
 
@@ -653,15 +654,15 @@ security.
 - ✅ NavBar with hamburger mobile menu
 - ✅ Brand colour palette (plant/teal/leaf system)
 
-**Sprint 4 Deliverables (in progress):**
+**Sprint 4 Deliverables:**
 - ✅ GET /api/cards/global_search/?q= — cross-user card search endpoint
 - ✅ GET /api/users/{id}/ — public user profile endpoint
 - ✅ GET /api/users/{id}/cards/ — user's available cards endpoint
 - ✅ SearchPage (/search) — search all users' available cards with debounce
 - ✅ UserProfilePage (/users/:id) — profile header + available cards table
-- ⬜ Tests for new endpoints
+- ✅ 10 new tests (all passing, 59 total)
 
 **Timeline:** 185-225 hours (9-11 weeks @ 20+ hrs/week) for Phase 1 MVP  
-**Remaining:** Sprints 4 (tests) → 5-9
+**Remaining:** Sprints 5-9
 
-**Next Action:** Write tests for Sprint 4 endpoints, then begin Sprint 5 (Offers)
+**Next Action:** Begin Sprint 5 (Offer creation + counteroffer logic + offer list UI)
