@@ -1,0 +1,201 @@
+@use "../styles/variables" as *;
+
+.panel {
+  margin-top: 2rem;
+  padding: 1.25rem;
+  background: $bg-surface;
+  border: 1px solid $border-default;
+  border-radius: $radius-lg;
+}
+
+.title {
+  font-size: $text-lg;
+  font-weight: 600;
+  color: $text-primary;
+  margin: 0 0 1rem;
+}
+
+.subTitle {
+  font-size: $text-base;
+  font-weight: 600;
+  color: $text-primary;
+  margin: 0 0 0.5rem;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid $border-default;
+  margin-top: 0.75rem;
+}
+
+.prompt {
+  color: $text-muted;
+  font-size: $text-sm;
+  margin: 0;
+}
+
+.modeButtons {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.modeBtn {
+  padding: 0.5rem 1.25rem;
+  background: transparent;
+  border: 1px solid $accent;
+  border-radius: $radius-md;
+  color: $accent;
+  font-size: $text-sm;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: $accent;
+    color: #fff;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.modeBadge {
+  font-size: $text-sm;
+  color: $text-muted;
+  margin: 0;
+}
+
+.proposal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: $text-sm;
+  color: $text-primary;
+
+  p {
+    margin: 0;
+  }
+}
+
+.confirmStatus {
+  font-size: $text-xs;
+  color: $text-faint;
+  margin: 0;
+}
+
+.confirmed {
+  font-size: $text-sm;
+  color: $color-leaf;
+  font-weight: 600;
+  margin: 0;
+}
+
+.completionStatus {
+  font-size: $text-xs;
+  color: $text-faint;
+  margin: 0;
+}
+
+.proposeForm {
+  font-size: $text-sm;
+  color: $text-muted;
+
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: $accent;
+    padding: 0.25rem 0;
+  }
+}
+
+.formFields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: $text-sm;
+  color: $text-muted;
+}
+
+.input {
+  padding: 0.5rem 0.75rem;
+  background: $bg-input;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  color: $text-primary;
+  font-size: $text-sm;
+
+  &:focus {
+    outline: 2px solid $accent-ring;
+    outline-offset: 2px;
+  }
+}
+
+.btnConfirm,
+.btnPropose,
+.btnComplete {
+  padding: 0.5rem 1.25rem;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $text-sm;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  align-self: flex-start;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btnConfirm {
+  background: $accent;
+  color: #fff;
+  &:hover:not(:disabled) {
+    background: $accent-hover;
+  }
+}
+
+.btnPropose {
+  background: $bg-input;
+  color: $text-primary;
+  border: 1px solid $border-default;
+  &:hover:not(:disabled) {
+    background: $border-default;
+  }
+}
+
+.btnComplete {
+  background: $color-leaf;
+  color: #fff;
+  &:hover:not(:disabled) {
+    filter: brightness(0.9);
+  }
+}
+
+.muted {
+  color: $text-faint;
+  font-size: $text-sm;
+  margin: 0;
+}
+
+.error {
+  color: $error-text;
+  font-size: $text-sm;
+  margin: 0;
+}

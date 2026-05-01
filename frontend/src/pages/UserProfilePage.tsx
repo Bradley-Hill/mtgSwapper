@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getUserProfile, getUserCards } from "@/api/users";
+import { getUserRatings } from "@/api/ratings";
 import { useAuth } from "@/context";
-import { CreateOfferModal } from "@/components";
+import { CreateOfferModal, RatingStars } from "@/components";
 import type { GlobalSearchResult } from "@/types";
 import styles from "./UserProfilePage.module.scss";
 
@@ -44,6 +45,13 @@ export function UserProfilePage() {
     queryFn: () => getUserCards(id!),
     enabled: !!id,
     staleTime: 30_000,
+  });
+
+  const { data: ratings } = useQuery({
+    queryKey: ["userRatings", id],
+    queryFn: () => getUserRatings(id!),
+    enabled: !!id,
+    staleTime: 60_000,
   });
 
   if (profileLoading) {
@@ -99,10 +107,11 @@ export function UserProfilePage() {
               <span className={styles.statLabel}>Swaps</span>
             </div>
             <div className={styles.stat}>
-              <span className={styles.statValue}>
-                {parseFloat(profile.reputation_avg).toFixed(1)}
-              </span>
-              <span className={styles.statLabel}>Rating</span>
+              <RatingStars
+                stars={parseFloat(profile.reputation_avg)}
+                size="lg"
+                showValue
+              />
             </div>
           </div>
 
@@ -195,6 +204,41 @@ export function UserProfilePage() {
                 );
               })()}
             </>
+          )}
+        </section>
+
+        {/* ── Ratings received ───────────────────────────────── */}
+        <section>
+          <h2 className={styles.sectionTitle}>
+            Ratings
+            {ratings && (
+              <span className={styles.cardCount}>{ratings.length}</span>
+            )}
+          </h2>
+
+          {!ratings || ratings.length === 0 ? (
+            <p className={styles.muted}>No ratings yet.</p>
+          ) : (
+            <ul className={styles.ratingsList}>
+              {ratings.map((r) => (
+                <li key={r.id} className={styles.ratingRow}>
+                  <div className={styles.ratingHeader}>
+                    <span className={styles.raterName}>{r.rater_username}</span>
+                    <RatingStars stars={r.rating_stars} size="sm" />
+                    <span className={styles.ratingDate}>
+                      {new Date(r.created_at).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </div>
+                  {r.comment && (
+                    <p className={styles.ratingComment}>{r.comment}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
           )}
         </section>
       </main>

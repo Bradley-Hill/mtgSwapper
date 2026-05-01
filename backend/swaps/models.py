@@ -195,19 +195,21 @@ class SwapDetails(models.Model):
     )
     outbound_tracking_number = models.CharField(max_length=255, null=True, blank=True)
     
-    # Completion & Privacy
+    # Completion (two-step — both parties must confirm)
+    completed_by_initiator = models.BooleanField(default=False)
+    completed_by_target = models.BooleanField(default=False)
     swap_completed_at = models.DateTimeField(null=True, blank=True)
     addresses_deleted_at = models.DateTimeField(null=True, blank=True)
-    
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         indexes = [
             models.Index(fields=['offer_id']),
             models.Index(fields=['swap_mode']),
         ]
-    
+
     def __str__(self):
         return f"SwapDetails for Offer {self.offer.id} (mode: {self.swap_mode})"

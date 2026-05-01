@@ -24,4 +24,5 @@ urlpatterns = [
     path('api/', include('users.urls')),
     path('api/', include('cards.urls')),
     path('api/', include('swaps.urls')),
+    path('api/', include('ratings.urls')),
 ]

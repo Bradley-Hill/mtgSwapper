@@ -1,0 +1,62 @@
+@use "../styles/variables" as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $space-3;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.preview {
+  width: 100%;
+  max-width: 20rem;
+  border-radius: $radius-md;
+  overflow: hidden;
+  border: 1px solid $border-default;
+}
+
+.previewImg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+%btn-base {
+  padding: $space-2 $space-5;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $text-sm;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.captureBtn {
+  @extend %btn-base;
+  background: $accent;
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background: $accent-hover;
+  }
+}
+
+.clearBtn {
+  @extend %btn-base;
+  background: $bg-input;
+  color: $text-muted;
+  border: 1px solid $border-default;
+
+  &:hover:not(:disabled) {
+    background: $bg-hover;
+  }
+}

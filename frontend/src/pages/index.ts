@@ -5,3 +5,4 @@ export { SearchPage } from "./SearchPage";
 export { UserProfilePage } from "./UserProfilePage";
 export { OffersPage } from "./OffersPage";
 export { OfferDetailPage } from "./OfferDetailPage";
+export { ScanPage } from "./ScanPage";

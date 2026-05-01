@@ -250,3 +250,50 @@
     outline-offset: 2px;
   }
 }
+
+// ── Ratings list ──────────────────────────────────────────────────────────────
+
+.ratingsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ratingRow {
+  padding: 0.75rem 1rem;
+  background: $bg-surface;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.ratingHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.raterName {
+  font-size: $text-sm;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.ratingDate {
+  font-size: $text-xs;
+  color: $text-faint;
+  margin-left: auto;
+}
+
+.ratingComment {
+  font-size: $text-sm;
+  color: $text-muted;
+  margin: 0;
+  line-height: 1.5;
+}

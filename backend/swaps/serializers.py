@@ -8,6 +8,10 @@ Four serializers, each serving a distinct purpose:
   OfferDetailSerializer       — full offer with all items, used on the detail page
   CreateOfferSerializer       — validates and creates a new offer (ownership checks here)
   CounterOfferSerializer      — validates new card selections for a counteroffer
+  MessageSerializer           — a single chat message on an offer thread
+  SwapDetailsSerializer       — post-acceptance coordination record
+  SetModeSerializer           — input for choosing in_person vs mail
+  ProposeMeetupSerializer     — input for proposing in-person location + datetime
 """
 
 from datetime import timedelta
@@ -17,7 +21,8 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from cards.models import Card
-from .models import Offer, OfferItem
+from .models import Offer, OfferItem, SwapDetails
+from ratings.models import Message
 
 User = get_user_model()
 
@@ -209,3 +214,65 @@ class CounterOfferSerializer(serializers.Serializer):
     requested_card_ids = serializers.ListField(
         child=serializers.UUIDField(), min_length=1
     )
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    """
+    A single message in an offer's chat thread.
+
+    sender_username is a convenience field — the frontend needs to display a
+    name without a second API call. Read-only; sender is set from request.user
+    in the view, never from the request body (prevents impersonation).
+    """
+
+    sender_username = serializers.CharField(
+        source='sender_user.username', read_only=True, default=None
+    )
+
+    class Meta:
+        model = Message
+        fields = ['id', 'sender_username', 'content', 'is_system_message', 'created_at']
+        read_only_fields = ['id', 'sender_username', 'is_system_message', 'created_at']
+
+
+class SwapDetailsSerializer(serializers.ModelSerializer):
+    """
+    Full swap coordination record.
+
+    Read-only on retrieve. Individual fields are updated via dedicated
+    actions (set_mode, propose_meetup, confirm_meetup, mark_complete) rather
+    than a PATCH, so the state-machine logic lives in the view, not here.
+    """
+
+    class Meta:
+        model = SwapDetails
+        fields = [
+            'id',
+            'swap_mode',
+            'mode_decided_at',
+            'proposed_location',
+            'proposed_datetime',
+            'in_person_confirmed_initiator',
+            'in_person_confirmed_target',
+            'in_person_confirmed_at',
+            'completed_by_initiator',
+            'completed_by_target',
+            'swap_completed_at',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = fields
+
+
+class SetModeSerializer(serializers.Serializer):
+    """Input for POST /api/offers/<id>/swap/set_mode/."""
+
+    VALID_MODES = ['in_person', 'mail']
+    swap_mode = serializers.ChoiceField(choices=VALID_MODES)
+
+
+class ProposeMeetupSerializer(serializers.Serializer):
+    """Input for POST /api/offers/<id>/swap/propose_meetup/."""
+
+    proposed_location = serializers.CharField(max_length=500)
+    proposed_datetime = serializers.DateTimeField()

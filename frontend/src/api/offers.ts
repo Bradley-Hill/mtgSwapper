@@ -62,3 +62,8 @@ export async function counterOffer(
   });
   return (await res.json()) as OfferDetail;
 }
+
+export async function completeOffer(id: string): Promise<OfferDetail> {
+  const res = await apiFetch(`/api/offers/${id}/complete/`, { method: "POST" });
+  return (await res.json()) as OfferDetail;
+}

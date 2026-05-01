@@ -9,6 +9,7 @@ import {
   UserProfilePage,
   OffersPage,
   OfferDetailPage,
+  ScanPage,
 } from "@/pages";
 
 export default function App() {
@@ -27,6 +28,7 @@ export default function App() {
           <Route element={<Layout />}>
             <Route path="/" element={<CollectionPage />} />
             <Route path="/search" element={<SearchPage />} />
+            <Route path="/scan" element={<ScanPage />} />
             <Route path="/users/:id" element={<UserProfilePage />} />
             <Route path="/offers" element={<OffersPage />} />
             <Route path="/offers/:id" element={<OfferDetailPage />} />

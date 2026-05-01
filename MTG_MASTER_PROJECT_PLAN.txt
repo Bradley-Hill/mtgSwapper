@@ -356,6 +356,19 @@ and mail-based swaps (no monetary transactions).
 - ✅ Feeds users.reputation_avg (calculated on-read Phase 1)
 - ✅ Audit_log table deferred to Phase 1.5
 
+### Card Ownership Transfer on Swap Completion
+- ✅ When both parties confirm a swap (status → completed), all OfferItem cards are
+     re-assigned to their new owners:
+     - item_type='offered' cards (initiator gave) → card.user = offer.target_user
+     - item_type='requested' cards (target gave) → card.user = offer.initiator_user
+- ✅ All transferred cards set to is_available=False (new owner decides when to re-list)
+- ✅ Entire completion block (status flip + address deletion + card transfer) wrapped
+     in transaction.atomic() — partial failure cannot leave DB in inconsistent state
+- ✅ bulk_update() used for card re-assignment (single SQL UPDATE per batch)
+- ⏳ PHASE 2: If initiator offered only SOME copies of a card (partial quantity), a
+     card split mechanism would be needed. Phase 1 simplification: offering a card
+     row = offering ALL copies. Full row transfers to new owner.
+
 ---
 
 ## DATABASE SCHEMA REFERENCE
@@ -443,14 +456,172 @@ None — all critical decisions finalized. Ready to initialize.
 - ✅ Health check endpoint (GET /api/health/) for Render keep-warm cron job
 - **Status:** Complete — image scanning deferred to Sprint 8
 
-#### Upcoming:
-1. **Sprint 3 (Week 3-4):** React frontend setup + My Collection UI — ✅ Complete
-2. **Sprint 4 (Week 4-5):** Card search + browse other users' collections — 🔄 In Progress
-3. **Sprint 5 (Week 5-6):** Offer creation + counteroffer logic + offer list UI
-4. **Sprint 6 (Week 6-8):** Messaging + polling + swap coordination (in-person)
-5. **Sprint 7 (Week 8-9):** Rating system + reputation calculations + profile UI
-6. **Sprint 8 (Week 9-10):** Image scanning (Tesseract OCR backend + React camera UI)
-7. **Sprint 9 (Week 10-11):** Internationalization (EN+FR), polish, bug fixes, deployment
+#### ✅ Sprint 3 (Week 3-4): React frontend setup + My Collection UI — COMPLETE
+- ✅ React 19 + TypeScript + Vite 8 scaffolding (erasableSyntaxOnly: true, path alias @/)
+- ✅ React Router DOM v7 (BrowserRouter + Layout/Outlet pattern)
+- ✅ TanStack Query v5 (QueryClientProvider wraps BrowserRouter)
+- ✅ SCSS CSS Modules (one .module.scss per component, shared _variables.scss design tokens)
+- ✅ Native fetch wrapper (apiFetch in src/api/client.ts, 401 refresh guard)
+- ✅ Vite dev proxy (/api → http://localhost:8000)
+- ✅ Authentication UI (login, register via invite, logout)
+- ✅ NavBar (desktop + mobile responsive, auth-aware)
+- ✅ My Collection page (list, add via Scryfall autocomplete, edit, delete, mark unavailable)
+- ✅ Bulk import UI (paste plain-text decklist → preview results)
+- **Status:** Complete
+
+#### ✅ Sprint 4 (Week 4-5): Card search + browse other users' collections — COMPLETE
+- ✅ SearchPage: search by card name → table of results showing owner per row
+- ✅ UserProfilePage: view any user's public profile, reputation, full card listing
+- ✅ Global card search endpoint (GET /api/cards/search/) wired to frontend
+- ✅ getUserCards API function (GET /api/users/<id>/cards/)
+- ✅ src/types/ layer (GlobalSearchResult, UserProfile, Card types)
+- ✅ src/api/ layer (cards.ts, users.ts functions)
+- **Status:** Complete
+
+#### ✅ Sprint 5 (Week 5-7): Offer creation + counteroffer logic + offer list UI — COMPLETE
+
+**Backend**
+- ✅ OfferViewSet (GenericViewSet): list, retrieve, create
+- ✅ Actions: accept (target only), decline (target only), cancel (initiator only)
+- ✅ Counteroffer action: ping-pong ownership check, max 4 rounds, replaces items, extends expiry 7 days
+- ✅ get_queryset: filters to Q(initiator_user=user) | Q(target_user=user) → 404 for non-participants
+- ✅ Cards guard: 409 if card in active offer when deleting or marking unavailable
+- ✅ Circular import fix: inline `from swaps.models import Offer` inside cards/views.py guard helper
+- ✅ Offer.save() UUID fix: `self._state.adding` pattern (UUIDField default pre-populates pk, `not self.pk` always False)
+- ✅ swaps/serializers.py: OfferListSerializer, OfferDetailSerializer, CreateOfferSerializer, CounterOfferSerializer
+- ✅ swaps/urls.py: DefaultRouter registers OfferViewSet at r'offers'
+- ✅ swaps/admin.py: Registers Offer, OfferItem, SwapDetails
+- ✅ config/urls.py: Added path('api/', include('swaps.urls'))
+- ✅ 27 new tests (86 total passing): OfferCreate, OfferList, OfferRetrieve, OfferAction, CounterOffer, CardOfferGuard
+
+**Frontend**
+- ✅ src/types/offer.ts: OfferStatus, OfferItem, OfferListItem, OfferDetail, CreateOfferPayload, CounterOfferPayload
+- ✅ src/api/offers.ts: getOffers, getOffer, createOffer, acceptOffer, declineOffer, cancelOffer, counterOffer
+- ✅ OffersPage: inbox with All/Sent/Received tabs + status filter, table with direction indicator
+- ✅ OfferDetailPage: two-column card list, accept/decline/cancel mutations, status badge, 404 handling
+- ✅ CreateOfferModal: two-column card picker, optional targetCards prop (fetches if not provided),
+     live filter inputs on both columns, checkbox selection, submit/cancel
+- ✅ NavBar: "Offers" link added (desktop + mobile)
+- ✅ Routes: /offers → OffersPage, /offers/:id → OfferDetailPage
+
+**UX improvements**
+- ✅ SearchPage: "Make Offer" button per result row (hidden for own cards), opens CreateOfferModal
+- ✅ UserProfilePage: card name filter input above card table
+- **Status:** Complete
+
+#### ✅ Sprint 6 (Week 7-8): Messaging + polling + swap coordination — COMPLETE
+
+**Backend**
+- ✅ Message model: GET/POST /api/offers/{offer_pk}/messages/ (drf-nested-routers)
+- ✅ MessageViewSet: list (with ?since= polling filter), create; participants-only access
+- ✅ SwapDetailsViewSet: list (singleton sub-resource — `list` not `retrieve`), set_mode,
+     propose_meetup, confirm_meetup actions
+- ✅ Offer complete action: POST /api/offers/{id}/complete/ — both parties must confirm,
+     sets status=completed and deletes any stored addresses
+- ✅ System messages auto-created on offer accept, complete, and meetup confirmation events
+- ✅ drf-nested-routers==0.95.0: NestedDefaultRouter for /api/offers/{offer_pk}/messages/
+     and /api/offers/{offer_pk}/swap/
+- ✅ 24 new tests (110 total passing): MessageList, MessageCreate, SwapDetails, Messaging
+
+**Frontend**
+- ✅ src/api/messages.ts: getMessages, sendMessage (GET/POST with ?since= support)
+- ✅ src/api/swapDetails.ts: getSwapDetails, setSwapMode, proposeMeetup, confirmMeetup
+- ✅ src/api/offers.ts: completeOffer added (POST /api/offers/{id}/complete/)
+- ✅ MessageThread component: 3s polling, auto-scroll, Ctrl/Cmd+Enter to send
+- ✅ SwapCoordinationPanel component: mode selector, meetup proposal form, confirm button
+- ✅ OfferDetailPage: coordination panel + message thread rendered for accepted/completed offers
+- **Status:** Complete
+
+#### ✅ Sprint 7 (Week 8-9): Rating system + reputation calculations + profile UI — COMPLETE
+
+**Backend**
+- ✅ RatingViewSet: POST /api/ratings/ — server-side derivation of rated_user from offer;
+     enforces offer exists (404), requester is participant (403), offer is completed (400),
+     no duplicate (409 on IntegrityError)
+- ✅ ratings/serializers.py: RatingSerializer (read), SubmitRatingSerializer (write)
+- ✅ ratings/signals.py: post_save signal updates rated_user.reputation_avg (Avg) and
+     total_swaps_completed (Offer count) after each new rating; uses update_fields for safety
+- ✅ GET /api/users/{id}/ratings/ action added to UserViewSet
+- ✅ ratings/urls.py: DefaultRouter registers RatingViewSet at r'ratings'
+- ✅ config/urls.py: Added path('api/', include('ratings.urls'))
+- ✅ 12 new tests (122 total passing): SubmitRating, ReputationSignal, UserRatingsList
+
+**Frontend**
+- ✅ src/types/rating.ts: Rating, SubmitRatingPayload interfaces
+- ✅ src/api/ratings.ts: submitRating (POST), getUserRatings (GET)
+- ✅ RatingStars component: 5-star display (★ Unicode), sm/md/lg sizes, showValue prop,
+     uses $foil-color (yellow) for filled stars, accessible aria-label
+- ✅ SubmitRatingModal component: interactive star picker (hover preview + click to select),
+     textarea comment (max 1000 chars), useMutation → submitRating, invalidates query cache
+- ✅ UserProfilePage: RatingStars in header stats, ratings history section below card table
+- ✅ OfferDetailPage: "Rate [username]" button on completed offers, hasRated local state,
+     SubmitRatingModal wired with onSuccess/onClose handlers
+- **Status:** Complete
+
+#### 🔜 Sprint 8 (Week 9-10): Card ownership transfer patch + Image scanning (Tesseract OCR)
+
+**Part A — Card ownership transfer (backend patch to Sprint 6 complete action)**
+
+This was discovered as a gap after Sprint 7: when a swap is confirmed by both parties,
+the cards involved need to change hands in the database — not just the offer status.
+
+- ⏳ Backend: Wrap completion block in transaction.atomic()
+- ⏳ Backend: Re-assign item_type='offered' cards → card.user = offer.target_user
+- ⏳ Backend: Re-assign item_type='requested' cards → card.user = offer.initiator_user
+- ⏳ Backend: Set is_available=False on all transferred cards (bulk_update)
+- ⏳ Tests: New test class OwnershipTransferTests (verify cards move, are unavailable,
+     unrelated cards untouched, atomic rollback on error)
+
+**Part B — Image scanning (Tesseract OCR backend + React camera UI)**
+#### Sprint 9 (Week 10-11): Internationalization (EN+FR), polish, bug fixes, deployment
+
+---
+
+### Sprint 8 Detail: Card Ownership Transfer + Image Scanning (Tesseract OCR)
+
+#### Part A — Card Ownership Transfer
+
+**Why this was missed in Sprint 6:**
+The `complete` action correctly handled offer status, timestamp, and address deletion,
+but did not update the `cards` table. Cards remained registered to their original owners
+even after the swap was confirmed. This is a correctness gap, not a UI gap — the data
+model was simply not fully updated on completion.
+
+**Design decisions:**
+- `item_type='offered'` items: initiator's cards → reassigned to `offer.target_user`
+- `item_type='requested'` items: target's cards → reassigned to `offer.initiator_user`
+- All transferred cards set to `is_available=False` — new owner decides when to re-list
+- Use `Card.objects.bulk_update(cards, ['user', 'is_available'])` for a single SQL UPDATE
+  per batch (not N individual `card.save()` calls — important at scale)
+- Entire completion block wrapped in `transaction.atomic()` — if any step fails (e.g.
+  a card FK constraint), the DB rolls back completely. Without this, a crash between
+  "status = completed" and "cards reassigned" would leave the offer completed but cards
+  still belonging to the wrong users with no way to recover.
+
+**Why transaction.atomic() matters here (learning note):**
+Database transactions guarantee "all or nothing". Without `atomic()`, if your server
+crashes mid-request, you can end up in a "partial success" state — the offer is marked
+complete, the system message was sent, but card ownership was never updated. These
+silent partial failures are among the hardest bugs to diagnose in production because
+they leave no error trace. `atomic()` wraps the entire block so a failure at any point
+triggers a full rollback to the pre-request state.
+
+**Phase 2 note — partial quantity offers:**
+Phase 1 simplification: offering a card row transfers ALL copies (the full Card row).
+Phase 2 would need a "split" mechanism: if a Card row has quantity=3 and you offer 2,
+create a new Card row with quantity=2 (the offered copies) and reduce the original to
+quantity=1. Not needed for Phase 1 MVP.
+
+#### Part A tasks
+1. Wrap `complete` completion block in `transaction.atomic()`
+2. Fetch OfferItems with `select_related('card')` for the completing offer
+3. Re-assign offered cards to target_user, requested cards to initiator_user
+4. `bulk_update` all transferred cards with new user + is_available=False
+5. New test class: `OwnershipTransferTests`
+   - Cards transfer to correct owners after dual confirmation
+   - Cards set to is_available=False after transfer
+   - Unrelated cards (same users, different offer) are untouched
+   - Single confirmation does NOT trigger transfer (only on both confirmed)
 
 ---
 
@@ -521,14 +692,20 @@ No extra logic needed — Scryfall does the work.
   those users should use bulk import instead
 
 #### Sprint 8 tasks
-1. Install pytesseract + Pillow, add tesseract-ocr to Render build
-2. Implement image preprocessing helper (crop, grayscale, contrast)
-3. Implement POST /api/cards/scan/ endpoint
-4. Unit tests for scan endpoint (mock pytesseract + Scryfall)
-5. React CameraCapture component
-6. React ScanStagingList + ScanCardItem components
-7. Wire staging list → existing bulk_import endpoint
-8. Manual QA: scan real cards in varying lighting conditions
+**Part A (card ownership transfer)**
+1. Wrap completion block in `transaction.atomic()`
+2. Fetch OfferItems, bulk re-assign card.user + card.is_available
+3. Tests: OwnershipTransferTests (4 tests)
+
+**Part B (image scanning)**
+4. Install pytesseract + Pillow, add tesseract-ocr to Render build
+5. Implement image preprocessing helper (crop, grayscale, contrast)
+6. Implement POST /api/cards/scan/ endpoint
+7. Unit tests for scan endpoint (mock pytesseract + Scryfall)
+8. React CameraCapture component
+9. React ScanStagingList + ScanCardItem components
+10. Wire staging list → existing bulk_import endpoint
+11. Manual QA: scan real cards in varying lighting conditions
 
 ---
 
@@ -581,11 +758,41 @@ No extra logic needed — Scryfall does the work.
 
 ## WHAT'S NOT INCLUDED IN THIS MASTER PLAN
 
-### Deferred to Phase 2+
+### Known Technical Debt
+
+- **Message model in wrong app (REFACTOR)** — `Message` currently lives in `ratings/models.py`
+  because it was scaffolded there before Sprint 6. It is used heavily by the `swaps/` app
+  (messaging thread, system messages, coordination events) and only loosely related to ratings.
+  The correct home is either a dedicated `messaging/` app or `swaps/` itself.
+  Blocked on: migration to move the table without data loss (requires `SeparateDatabaseAndState`
+  or a new app + data migration). Do before Sprint 9 / deployment — keeping it in `ratings/`
+  long-term creates confusing import paths (`from ratings.models import Message` in swap views).
+
 - **Refresh Token Blacklist (SECURITY)** — Currently using stateless JWT with short-lived 
 access tokens (15 min). Phase 2 must implement refresh token blacklist on logout to prevent 
 stolen refresh tokens from generating new access tokens for 7 days. Critical for location data 
 security.
+
+### Development Gotchas Learned
+
+- **DRF nested router: `retrieve` vs `list` for 1:1 resources** — DRF's router maps `retrieve`
+  to `GET /{pk}/` and `list` to `GET /`. For a resource that is 1:1 with its parent (e.g.
+  SwapDetails — one per Offer, no separate pk), use `list` not `retrieve`. Using `retrieve`
+  makes the router expect a pk segment in the URL (`/swap/{pk}/`), which is never what you
+  want for a singleton sub-resource. Discovered: Sprint 6 `SwapDetailsViewSet`.
+
+- **URL query strings silently corrupt ISO datetimes with timezone offsets** — Python's
+  `datetime.isoformat()` for a UTC-aware datetime produces e.g. `2026-05-01T12:00:00+00:00`.
+  In a URL query string, `+` is decoded as a space, so Django's `parse_datetime` receives a
+  broken string and returns `None` — silently skipping the filter. Always wrap datetime values
+  in `urllib.parse.quote()` before building query string parameters. Discovered: Sprint 6
+  `?since=` filter in `MessageViewSet`.
+
+- **`auto_now_add` timing in tests** — Two DB records created in rapid succession may receive
+  identical (or near-identical) `auto_now_add` timestamps, making time-window tests flaky.
+  Fix: use `.update()` (which bypasses `auto_now_add`) to explicitly back-date the "old"
+  record after creation, then the "new" record's real timestamp is reliably later than the
+  cutoff. Discovered: Sprint 6 `test_list_messages_since_filter`.
 - Mail-based swaps (address shipping coordination)
 - Location-based search ("cards near me")
 - Event organization (group swaps)
@@ -616,12 +823,18 @@ security.
 **Status:** ✅ Sprint 2 Complete - Ready for Sprint 3
 **Status:** ✅ Sprint 3 Complete - Ready for Sprint 4
 **Status:** ✅ Sprint 4 Complete - Ready for Sprint 5
+**Status:** ✅ Sprint 5 Complete - Ready for Sprint 6
+**Status:** ✅ Sprint 6 Complete - Ready for Sprint 7
+**Status:** ✅ Sprint 7 Complete - Ready for Sprint 8
 
 **Planning Date:** April 8, 2026  
 **Sprint 1 Completion Date:** April 15, 2026
 **Sprint 2 Completion Date:** April 28, 2026
 **Sprint 3 Completion Date:** April 30, 2026
 **Sprint 4 Completion Date:** May 1, 2026
+**Sprint 5 Completion Date:** May 1, 2026
+**Sprint 6 Completion Date:** May 1, 2026
+**Sprint 7 Completion Date:** May 1, 2026
 
 **Tech Stack Locked:** React + TypeScript + Vite + React Router DOM v7 + SCSS CSS Modules (frontend), Django + Python (backend), Neon PostgreSQL (database), Render (backend hosting), Cloudflare Pages (frontend hosting)
 
@@ -661,6 +874,37 @@ security.
 - ✅ SearchPage (/search) — search all users' available cards with debounce
 - ✅ UserProfilePage (/users/:id) — profile header + available cards table
 - ✅ 10 new tests (all passing, 59 total)
+
+**Sprint 5 Deliverables:**
+- ✅ OfferViewSet: list, retrieve, create + accept/decline/cancel/counteroffer actions
+- ✅ Counteroffer engine: ping-pong ownership, max 4 rounds, item replacement, 7-day expiry renewal
+- ✅ Cards guard: 409 when card in active offer is deleted or marked unavailable
+- ✅ swaps/serializers.py: OfferListSerializer, OfferDetailSerializer, CreateOfferSerializer, CounterOfferSerializer
+- ✅ OffersPage (/offers): inbox with All/Sent/Received tabs + status filter
+- ✅ OfferDetailPage (/offers/:id): card list, action buttons, status badge, 404 handling
+- ✅ CreateOfferModal: two-column card picker, live filter, checkbox selection
+- ✅ SearchPage: "Make Offer" button per result row wired to CreateOfferModal
+- ✅ 27 new tests (all passing, 86 total)
+
+**Sprint 6 Deliverables:**
+- ✅ MessageViewSet: GET /api/offers/{offer_pk}/messages/ (?since= polling filter) + POST
+- ✅ SwapDetailsViewSet: mode selection, meetup proposal, meetup confirmation, completion
+- ✅ Offer complete action: dual-confirm → status=completed, addresses deleted
+- ✅ System messages auto-created on key offer lifecycle events
+- ✅ MessageThread component: 3s polling, auto-scroll, keyboard shortcut send
+- ✅ SwapCoordinationPanel component: mode selector + meetup form + confirm
+- ✅ OfferDetailPage wired: coordination panel + thread for accepted/completed offers
+- ✅ 24 new tests (all passing, 110 total)
+
+**Sprint 7 Deliverables:**
+- ✅ RatingViewSet: POST /api/ratings/ with full server-side participant validation
+- ✅ post_save signal: updates reputation_avg + total_swaps_completed after each new rating
+- ✅ GET /api/users/{id}/ratings/ action on UserViewSet
+- ✅ RatingStars component: pure display, 5-star Unicode, sm/md/lg sizes, accessible
+- ✅ SubmitRatingModal: interactive star picker, comment textarea, mutation + cache invalidation
+- ✅ UserProfilePage: star display in header stats + full ratings history section
+- ✅ OfferDetailPage: rate button on completed offers + modal wired
+- ✅ 12 new tests (all passing, 122 total)
 
 **Timeline:** 185-225 hours (9-11 weeks @ 20+ hrs/week) for Phase 1 MVP  
 **Remaining:** Sprints 5-9

@@ -215,6 +215,23 @@
   }
 }
 
+.btnRate {
+  @extend %btn-base;
+  background: $foil-color;
+  color: $color-darkest;
+  font-weight: 700;
+  &:hover:not(:disabled) {
+    filter: brightness(0.9);
+  }
+}
+
+.ratedNote {
+  font-size: $text-sm;
+  color: $color-leaf;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
 // ── States ────────────────────────────────────────────────────────────────────
 
 .muted {

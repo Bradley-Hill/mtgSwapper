@@ -2,11 +2,15 @@
 Views for Card management (CRUD + Scryfall integration).
 """
 
+import io
 import re
 import time
 
+import pytesseract
+from PIL import Image, ImageFilter, ImageEnhance
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
@@ -26,6 +30,40 @@ from .scryfall_service import ScryfallService
 # Matches: "4 Black Lotus" or "4 Black Lotus (VMA)" or "4 Black Lotus (VMA) 123"
 # Group 1 → quantity, Group 2 → card name (everything up to optional set code in parens)
 _DECKLIST_LINE_RE = re.compile(r'^(\d+)\s+([^(]+?)(?:\s*\(.*)?$')
+
+
+def _preprocess_card_image(image_bytes: bytes) -> Image.Image:
+    """
+    Prepare a card image for OCR.
+
+    Steps:
+    1. Crop to the top 20% of the image — that's where the card name lives.
+       MTG cards have a consistent layout: name bar sits at the top, roughly
+       10-15% of the total card height. Using 20% gives a small safety margin
+       for angled shots without pulling in the art (which confuses OCR badly).
+    2. Convert to greyscale — colour information is noise for text recognition.
+    3. Boost contrast (factor 2.0) — increases the ink-to-paper ratio so
+       Tesseract's binarization step produces cleaner black/white pixels.
+    4. Sharpen — reduces blur from camera shake, improving character edge clarity.
+
+    Why not deskew or perspective-correct?
+    That requires more complex affine transforms (e.g. OpenCV). The accuracy
+    improvement for typical handheld card shots doesn't justify the dependency.
+    Tesseract handles mild skew reasonably well on its own.
+    """
+    img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    width, height = img.size
+
+    # Crop: top 20%
+    crop_bottom = int(height * 0.20)
+    img = img.crop((0, 0, width, crop_bottom))
+
+    # Greyscale → contrast boost → sharpen
+    img = img.convert("L")
+    img = ImageEnhance.Contrast(img).enhance(2.0)
+    img = img.filter(ImageFilter.SHARPEN)
+
+    return img
 
 
 def _parse_decklist(text):
@@ -365,4 +403,96 @@ class CardViewSet(viewsets.ModelViewSet):
         return Response({
             'count': cards.count(),
             'results': serializer.data
+        }, status=status.HTTP_200_OK)
+
+    # ── Image Scan ────────────────────────────────────────────────────────────
+
+    @action(
+        detail=False,
+        methods=['post'],
+        parser_classes=[MultiPartParser],
+        url_path='scan',
+    )
+    def scan(self, request):
+        """
+        POST /api/cards/scan/
+        Content-Type: multipart/form-data
+        Body field: image (JPEG or PNG)
+
+        Accepts a photo of an MTG card, runs Tesseract OCR on the top 20%
+        (where the card name lives), then does a fuzzy Scryfall lookup.
+
+        Returns card metadata for the caller to review before adding to their
+        collection — this endpoint NEVER creates a Card row itself. The caller
+        passes the result through the normal add_from_scryfall flow after review.
+
+        Why not create the card directly?
+        OCR is imperfect. Returning a "staging" result lets the user correct a
+        mis-read name before it ends up in their collection. The staging list
+        on the frontend is the safety net.
+
+        Response 200:
+        {
+            "card_name": "Black Lotus",
+            "set_name": "Limited Edition Beta",
+            "set_code": "leb",
+            "card_type": "Artifact",
+            "mana_cost": "{0}",
+            "scryfall_id": "e0e0d...",
+            "raw_ocr_text": "Black Lotus"
+        }
+
+        Errors:
+            400 — no image uploaded, or no text detected
+            404 — Scryfall couldn't match the OCR text to any card
+        """
+        image_file = request.FILES.get('image')
+        if not image_file:
+            return Response(
+                {'error': 'No image uploaded. Send a JPEG or PNG as the "image" field.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        image_bytes = image_file.read()
+
+        try:
+            processed = _preprocess_card_image(image_bytes)
+        except Exception:
+            return Response(
+                {'error': 'Could not decode the uploaded image. Use JPEG or PNG.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Run OCR — Tesseract returns a multi-line string; collapse it to one line
+        raw_text = pytesseract.image_to_string(processed, config='--psm 7').strip()
+        # --psm 7: treat the image as a single text line (suits a cropped name bar)
+
+        if not raw_text:
+            return Response(
+                {'error': 'No text detected in the image. Try better lighting or a closer shot.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Clean up common OCR noise (leading/trailing punctuation, extra spaces)
+        cleaned = re.sub(r'[^\w\s\',\-]', '', raw_text).strip()
+
+        card_data = ScryfallService.search(cleaned)
+        if not card_data:
+            return Response(
+                {
+                    'error': f'No card found matching "{cleaned}". Try retaking the photo.',
+                    'raw_ocr_text': raw_text,
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        metadata = ScryfallService.extract_card_metadata(card_data)
+        return Response({
+            'card_name':   metadata['card_name'],
+            'set_name':    metadata.get('set_name', ''),
+            'set_code':    metadata.get('set_code', ''),
+            'card_type':   metadata.get('card_type', ''),
+            'mana_cost':   metadata.get('mana_cost', ''),
+            'scryfall_id': metadata['scryfall_id'],
+            'raw_ocr_text': raw_text,
         }, status=status.HTTP_200_OK)

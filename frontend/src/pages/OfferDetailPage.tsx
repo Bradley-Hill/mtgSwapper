@@ -3,6 +3,11 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getOffer, acceptOffer, declineOffer, cancelOffer } from "@/api/offers";
 import { useAuth } from "@/context";
+import {
+  MessageThread,
+  SwapCoordinationPanel,
+  SubmitRatingModal,
+} from "@/components";
 import type { OfferItem, OfferStatus } from "@/types";
 import styles from "./OfferDetailPage.module.scss";
 
@@ -21,6 +26,8 @@ export function OfferDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [actionError, setActionError] = useState<string | null>(null);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [hasRated, setHasRated] = useState(false);
 
   const {
     data: offer,
@@ -74,6 +81,8 @@ export function OfferDetailPage() {
   const isInitiator = offer.initiator.id === user?.id;
   const isTarget = offer.target.id === user?.id;
   const isPending = offer.status === "pending";
+  // The user rates the other participant; derive their username for the button label
+  const otherParticipant = isInitiator ? offer.target : offer.initiator;
 
   const offeredItems = offer.items.filter(
     (i: OfferItem) => i.item_type === "offered",
@@ -178,6 +187,49 @@ export function OfferDetailPage() {
             </button>
           )}
         </div>
+      )}
+
+      {/* ── Post-acceptance coordination + messaging ───────── */}
+      {(offer.status === "accepted" || offer.status === "completed") &&
+        user && (
+          <>
+            <SwapCoordinationPanel
+              offerId={offer.id}
+              isInitiator={isInitiator}
+              offerStatus={offer.status}
+              onOfferCompleted={() => {
+                void queryClient.invalidateQueries({ queryKey: ["offer", id] });
+              }}
+            />
+            <MessageThread offerId={offer.id} currentUsername={user.username} />
+          </>
+        )}
+
+      {/* ── Rate swap partner (completed offers only) ────── */}
+      {offer.status === "completed" && !hasRated && (
+        <div className={styles.actions}>
+          <button
+            className={styles.btnRate}
+            onClick={() => setShowRatingModal(true)}
+          >
+            Rate {otherParticipant.username}
+          </button>
+        </div>
+      )}
+      {offer.status === "completed" && hasRated && (
+        <p className={styles.ratedNote}>✓ You've submitted your rating.</p>
+      )}
+
+      {showRatingModal && (
+        <SubmitRatingModal
+          offerId={offer.id}
+          targetUsername={otherParticipant.username}
+          onClose={() => setShowRatingModal(false)}
+          onSuccess={() => {
+            setHasRated(true);
+            setShowRatingModal(false);
+          }}
+        />
       )}
     </main>
   );

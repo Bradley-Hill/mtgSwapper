@@ -1,0 +1,101 @@
+@use "../styles/variables" as *;
+
+.page {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: $space-6 $space-4;
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.title {
+  font-size: $text-2xl;
+  font-weight: 700;
+  color: $text-primary;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: $text-sm;
+  color: $text-muted;
+  margin: 0;
+}
+
+.captureSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-5;
+  background: $bg-surface;
+  border-radius: $radius-lg;
+  border: 1px solid $border-default;
+}
+
+.scanning {
+  font-size: $text-sm;
+  color: $text-muted;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.error {
+  font-size: $text-sm;
+  color: $error-text;
+  background: $error-bg;
+  border: 1px solid $error-border;
+  border-radius: $radius-md;
+  padding: $space-2 $space-3;
+  width: 100%;
+  text-align: center;
+}
+
+.resultBanner {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-3 $space-4;
+  background: $success-bg;
+  border: 1px solid $success-border;
+  border-radius: $radius-md;
+  font-size: $text-sm;
+}
+
+.addedCount {
+  color: $success-text;
+  font-weight: 600;
+}
+
+.failedCount {
+  color: $error-text;
+}
+
+.dismissBtn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: $text-muted;
+  cursor: pointer;
+  font-size: $text-sm;
+  padding: 0;
+
+  &:hover {
+    color: $text-primary;
+  }
+}

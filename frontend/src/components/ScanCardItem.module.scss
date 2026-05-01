@@ -1,0 +1,75 @@
+@use "../styles/variables" as *;
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-3;
+  padding: $space-3;
+  background: $bg-input;
+  border-radius: $radius-md;
+  border: 1px solid $border-subtle;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+}
+
+.nameInput {
+  background: $bg-hover;
+  border: 1px solid $border-default;
+  border-radius: $radius-sm;
+  color: $text-primary;
+  font-size: $text-base;
+  font-weight: 600;
+  padding: $space-1 $space-2;
+  width: 100%;
+
+  &:focus {
+    outline: none;
+    border-color: $accent-ring;
+    box-shadow: 0 0 0 2px rgba($accent-ring, 0.25);
+  }
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+  font-size: $text-xs;
+  color: $text-muted;
+}
+
+.mana {
+  font-family: monospace;
+  color: $foil-color;
+}
+
+.type {
+  color: $text-faint;
+}
+
+.ocrHint {
+  font-size: $text-xs;
+  color: $text-dimmer;
+  font-style: italic;
+}
+
+.removeBtn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: $error-text;
+  font-size: $text-base;
+  cursor: pointer;
+  padding: $space-1;
+  line-height: 1;
+  border-radius: $radius-sm;
+  transition: background 0.1s;
+
+  &:hover {
+    background: $error-bg;
+  }
+}

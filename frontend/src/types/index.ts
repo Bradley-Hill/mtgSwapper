@@ -28,3 +28,12 @@ export type {
   CreateOfferPayload,
   CounterOfferPayload,
 } from "./offer";
+export type { Message, SendMessagePayload } from "./message";
+export type {
+  SwapDetails,
+  SwapMode,
+  SetModePayload,
+  ProposeMeetupPayload,
+} from "./swapDetails";
+export type { Rating, SubmitRatingPayload } from "./rating";
+export type { ScanResult, StagedCard } from "./scan";

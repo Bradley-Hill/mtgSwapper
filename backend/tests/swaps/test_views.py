@@ -329,3 +329,89 @@ class CardOfferGuardTests(OfferTestBase):
             format="json",
         )
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+
+# ---------------------------------------------------------------------------
+# POST /api/offers/{id}/complete/ — card ownership transfer
+# ---------------------------------------------------------------------------
+
+class OwnershipTransferTests(OfferTestBase):
+    """
+    When both parties confirm completion, OfferItem cards must be re-assigned
+    to their new owners and set to is_available=False.
+
+    item_type='offered'   → initiator gave these → new owner = target_user (bob)
+    item_type='requested' → target gave these   → new owner = initiator_user (alice)
+    """
+
+    def _make_accepted_offer_with_swap_details(self):
+        """Create an accepted offer with SwapDetails (required for /complete/)."""
+        from swaps.models import SwapDetails
+        offer = self._make_offer()
+        offer.status = "accepted"
+        offer.accepted_at = timezone.now()
+        offer.save()
+        SwapDetails.objects.create(offer=offer)
+        return offer
+
+    def _complete_offer(self, offer):
+        """Make both alice and bob call /complete/ on the given offer."""
+        self.client.force_authenticate(user=self.alice)
+        self.client.post(f"/api/offers/{offer.id}/complete/")
+        self.client.force_authenticate(user=self.bob)
+        self.client.post(f"/api/offers/{offer.id}/complete/")
+
+    def test_offered_card_transfers_to_target(self):
+        """alice's Lightning Bolt (offered) should belong to bob after completion."""
+        offer = self._make_accepted_offer_with_swap_details()
+        self._complete_offer(offer)
+
+        self.alice_card.refresh_from_db()
+        self.assertEqual(self.alice_card.user, self.bob)
+
+    def test_requested_card_transfers_to_initiator(self):
+        """bob's Black Lotus (requested) should belong to alice after completion."""
+        offer = self._make_accepted_offer_with_swap_details()
+        self._complete_offer(offer)
+
+        self.bob_card.refresh_from_db()
+        self.assertEqual(self.bob_card.user, self.alice)
+
+    def test_transferred_cards_marked_unavailable(self):
+        """Both transferred cards must be set to is_available=False."""
+        offer = self._make_accepted_offer_with_swap_details()
+        self._complete_offer(offer)
+
+        self.alice_card.refresh_from_db()
+        self.bob_card.refresh_from_db()
+        self.assertFalse(self.alice_card.is_available)
+        self.assertFalse(self.bob_card.is_available)
+
+    def test_single_confirmation_does_not_transfer_cards(self):
+        """Cards must not move until BOTH parties confirm."""
+        offer = self._make_accepted_offer_with_swap_details()
+
+        # Only alice confirms
+        self.client.force_authenticate(user=self.alice)
+        self.client.post(f"/api/offers/{offer.id}/complete/")
+
+        self.alice_card.refresh_from_db()
+        self.bob_card.refresh_from_db()
+        self.assertEqual(self.alice_card.user, self.alice)
+        self.assertEqual(self.bob_card.user, self.bob)
+
+    def test_unrelated_card_is_untouched(self):
+        """A card owned by alice that is NOT part of the offer must not be re-assigned."""
+        unrelated = Card.objects.create(
+            user=self.alice,
+            scryfall_id="ccc-333",
+            card_name="Forest",
+            set_code="M10",
+            is_available=True,
+        )
+        offer = self._make_accepted_offer_with_swap_details()
+        self._complete_offer(offer)
+
+        unrelated.refresh_from_db()
+        self.assertEqual(unrelated.user, self.alice)
+        self.assertTrue(unrelated.is_available)

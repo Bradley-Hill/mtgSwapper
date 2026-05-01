@@ -10,6 +10,8 @@ from django.conf import settings
 from .models import User, InviteCode
 from cards.models import Card
 from cards.serializers import CardSerializer
+from ratings.models import Rating
+from ratings.serializers import RatingSerializer
 from .serializers import (
     SignupSerializer,
     LoginSerializer,
@@ -332,3 +334,19 @@ class UserViewSet(viewsets.GenericViewSet):
         qs = Card.objects.filter(user=user, is_available=True)
         serializer = CardSerializer(qs, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='ratings', permission_classes=[IsAuthenticated])
+    def ratings(self, request, pk=None):
+        """
+        GET /api/users/{id}/ratings/
+        Returns all ratings received by this user, newest first.
+
+        Why on UserViewSet instead of RatingViewSet?
+        Ratings are a sub-resource of a user's public profile — the same way
+        cards are. Keeping both actions here means the profile page can call
+        /api/users/{id}/cards/ and /api/users/{id}/ratings/ symmetrically.
+        RatingViewSet only needs to handle submission (POST /api/ratings/).
+        """
+        user = self.get_object()
+        qs = Rating.objects.filter(rated_user=user).select_related("rater_user")
+        return Response(RatingSerializer(qs, many=True).data)

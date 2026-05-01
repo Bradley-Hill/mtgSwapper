@@ -12,3 +12,6 @@ python-dotenv==1.2.2
 requests==2.31.0
 sqlparse==0.5.5
 urllib3==2.6.3
+drf-nested-routers==0.95.0
+Pillow==12.2.0
+pytesseract==0.3.13

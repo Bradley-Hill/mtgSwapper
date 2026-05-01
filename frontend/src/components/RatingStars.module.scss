@@ -1,0 +1,35 @@
+@use "../styles/variables" as *;
+
+.stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  line-height: 1;
+}
+
+// ── Sizes ─────────────────────────────────────────────────────────────────────
+.sm {
+  font-size: 0.85rem;
+}
+.md {
+  font-size: 1.1rem;
+}
+.lg {
+  font-size: 1.4rem;
+}
+
+// ── Star states ───────────────────────────────────────────────────────────────
+.filled {
+  color: $foil-color;
+} // #facc15 — yellow (same token as foil indicator)
+.empty {
+  color: $text-faint;
+}
+
+// ── Optional numeric value ────────────────────────────────────────────────────
+.value {
+  margin-left: 0.35rem;
+  font-size: $text-sm;
+  color: $text-muted;
+  font-variant-numeric: tabular-nums;
+}
