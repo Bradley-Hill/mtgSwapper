@@ -814,9 +814,9 @@ Sprint 9 is the final MVP sprint. Three tracks run in parallel:
 - `CORS_ALLOWED_ORIGINS` = `https://mtgswapper.bradley-hill.com,https://mtgswapper.pages.dev`
 
 **Pre-launch checklist:**
-- ⏳ Generate 10-20 invite codes via Django admin (/admin/ → Invite Codes → Add)
-- ⏳ Smoke test full swap workflow end-to-end on production
-- ⏳ Confirm card scanning works on iOS Safari + Android Chrome
+- ⏳ Generate 10-20 invite codes via Django admin (/admin/ → Invite Codes → Add) — scheduled for tomorrow
+- ✅ Smoke test core flows (login, collection, search, offers) — PASSED
+- ❌ Card scanning on mobile — photo captured but no card suggestion returned (see Known Issues below)
 - ⏳ Set up keep-alive cron job (cron-job.org, GET /api/health/ every 10 min)
 
 #### Sprint 9 tasks
@@ -826,7 +826,18 @@ Sprint 9 is the final MVP sprint. Three tracks run in parallel:
 4. ✅ Polish: ErrorBoundary, loading/empty states, 404 page, favicon + page titles
 5. ✅ Deployment — backend: Render, Docker, gunicorn, whitenoise, security settings, Neon DB
 6. ✅ Deployment — frontend: Cloudflare Pages, custom domain, _redirects, VITE_API_URL
-7. ⏳ Pre-launch: generate invite codes, smoke test, mobile QA (iOS + Android)
+7. ⏳ Pre-launch: generate invite codes (tomorrow), mobile QA scan fix, cron job
+
+#### Known Issues (post-deployment)
+- ❌ **Card scanning broken on mobile** — Camera capture works but no card suggestion is
+  returned. Likely cause: Tesseract OCR is running on the Render free tier (512MB RAM,
+  shared CPU) and either timing out or producing empty output on real card images. The
+  unit tests mock pytesseract so this was not caught pre-deployment. Needs investigation:
+  check Render logs during a scan attempt, test with a high-contrast card image, consider
+  adding a timeout + clearer error response from POST /api/cards/scan/. Deferred to
+  post-beta Sprint 10.
+- ⏳ **Cron job not set up** — Render free tier spins down after 15 min inactivity. First
+  request after spin-down takes ~30s. Set up cron-job.org to ping /api/health/ every 10 min.
 
 ---
 
@@ -926,6 +937,20 @@ security.
   bradley-hill.com (e.g. `api.bradley-hill.com`) via Render custom domain. Both frontend
   and backend would then share the same registrable domain, allowing reversion to
   `SameSite=Lax` which is stricter. Not urgent for closed beta.
+
+- **CHIPS / Partitioned cookie warnings (DEPLOYMENT)** — Browsers warn that cross-site
+  cookies without the `Partitioned` attribute will eventually be rejected (Privacy Sandbox /
+  CHIPS rollout). Fix: add `partitioned=not settings.DEBUG` to all `set_cookie()` calls in
+  `users/views.py`. This pairs with `SameSite=None` + `Secure=True` — all three required
+  together. Applied May 2026.
+
+- **Relative URLs in fetch calls broke production auth (DEPLOYMENT)** — `AuthContext.tsx`
+  used bare `fetch('/api/auth/me/')` and `fetch('/api/auth/refresh/')` instead of `apiFetch`.
+  In development Vite's proxy rewrites `/api/*` → `http://localhost:8000/api/*`, so relative
+  URLs work. In production there is no proxy — relative URLs resolve to the Cloudflare Pages
+  domain, which has no `/api/` routes. Fix: export `API_BASE` from `client.ts` and prefix
+  all bare `fetch()` calls with it. `apiFetch` already does this internally — only bare
+  `fetch()` calls (used for multipart scan + the two auth init calls) needed fixing.
 
 - Mail-based swaps (address shipping coordination)
 - Location-based search ("cards near me")

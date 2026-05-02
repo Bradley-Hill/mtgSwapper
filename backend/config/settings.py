@@ -36,7 +36,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-dev-key-change-in-producti
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = [h for h in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h]
 
 
 # Application definition
@@ -172,7 +172,7 @@ CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', 'False') == 'True'
 # Required when SECURE_SSL_REDIRECT=True — tells Django which hosts are trusted
 # for HTTPS requests (prevents CSRF attacks via host header spoofing).
 # Set to your Render URL in production: https://your-app.onrender.com
-CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:8000').split(',')
+CSRF_TRUSTED_ORIGINS = [o for o in os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:8000').split(',') if o]
 
 
 # Django REST Framework Configuration
@@ -204,10 +204,10 @@ SIMPLE_JWT = {
 
 
 # CORS Configuration (allow frontend to make requests)
-CORS_ALLOWED_ORIGINS = os.getenv(
+CORS_ALLOWED_ORIGINS = [o for o in os.getenv(
     'CORS_ALLOWED_ORIGINS',
     'http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173'
-).split(',')
+).split(',') if o]
 
 CORS_ALLOW_CREDENTIALS = True  # Allow cookies to be sent
 
