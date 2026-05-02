@@ -35,7 +35,7 @@ yarn-error.log*
 .DS_Store
 
 # Docker
-.dockerignore
+# (intentionally not ignoring .dockerignore — it must be committed)
 
 # OS
 Thumbs.db
