@@ -79,7 +79,8 @@ class AuthViewSet(viewsets.ViewSet):
                 max_age=3600,  # 1 hour
                 httponly=True,
                 secure=not settings.DEBUG,  # True in production, False in dev
-                samesite='None'
+                samesite='None',
+                partitioned=not settings.DEBUG,
             )
             response.set_cookie(
                 key='refresh_token',
@@ -87,7 +88,8 @@ class AuthViewSet(viewsets.ViewSet):
                 max_age=604800,  # 7 days
                 httponly=True,
                 secure=not settings.DEBUG,
-                samesite='None'
+                samesite='None',
+                partitioned=not settings.DEBUG,
             )
             
             return response
@@ -130,7 +132,8 @@ class AuthViewSet(viewsets.ViewSet):
                 max_age=3600,  # 1 hour
                 httponly=True,
                 secure=not settings.DEBUG,  # True in production, False in dev
-                samesite='None'
+                samesite='None',
+                partitioned=not settings.DEBUG,
             )
             response.set_cookie(
                 key='refresh_token',
@@ -138,7 +141,8 @@ class AuthViewSet(viewsets.ViewSet):
                 max_age=604800,  # 7 days
                 httponly=True,
                 secure=not settings.DEBUG,
-                samesite='None'
+                samesite='None',
+                partitioned=not settings.DEBUG,
             )
             
             return response
@@ -199,7 +203,8 @@ class AuthViewSet(viewsets.ViewSet):
                 max_age=3600,  # 1 hour
                 httponly=True,
                 secure=not settings.DEBUG,  # True in production, False in dev
-                samesite='None'
+                samesite='None',
+                partitioned=not settings.DEBUG,
             )
             
             return response
