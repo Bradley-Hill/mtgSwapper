@@ -5,7 +5,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { apiFetch } from "@/api/client";
+import { apiFetch, API_BASE } from "@/api/client";
 import type { User, AuthContextValue } from "@/types";
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -19,15 +19,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
   async function initializeAuth() {
     try {
-      let res = await fetch("/api/auth/me/", { credentials: "include" });
+      let res = await fetch(`${API_BASE}/api/auth/me/`, {
+        credentials: "include",
+      });
 
       if (res.status === 401) {
-        const refreshRes = await fetch("/api/auth/refresh/", {
+        const refreshRes = await fetch(`${API_BASE}/api/auth/refresh/`, {
           method: "POST",
           credentials: "include",
         });
         if (refreshRes.ok) {
-          res = await fetch("/api/auth/me/", { credentials: "include" });
+          res = await fetch(`${API_BASE}/api/auth/me/`, {
+            credentials: "include",
+          });
         }
       }
 
@@ -60,7 +64,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<void> {
     const res = await apiFetch("/api/auth/signup/", {
       method: "POST",
-      body: JSON.stringify({ username, email, password, invite_code: inviteCode }),
+      body: JSON.stringify({
+        username,
+        email,
+        password,
+        invite_code: inviteCode,
+      }),
     });
     const data = (await res.json()) as { user: User; message: string };
     setUser(data.user);

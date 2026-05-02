@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL ?? "";
+export const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
 // Prevents multiple simultaneous 401s from each triggering their own refresh call.
 // The first 401 sets this to true and starts the refresh. Subsequent 401s wait for
@@ -84,7 +84,7 @@ export class ApiError extends Error {
 
   constructor(status: number, message: string) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
     this.status = status;
   }
 }

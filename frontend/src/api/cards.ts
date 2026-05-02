@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiFetch, API_BASE } from "./client";
 import type {
   Card,
   AddFromScryfallPayload,
@@ -82,7 +82,7 @@ export async function globalSearch(
 export async function scanCard(imageFile: File): Promise<ScanResult> {
   const form = new FormData();
   form.append("image", imageFile);
-  const res = await fetch("/api/cards/scan/", {
+  const res = await fetch(`${API_BASE}/api/cards/scan/`, {
     method: "POST",
     body: form,
     credentials: "include",
