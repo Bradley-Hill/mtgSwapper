@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import {
   getSwapDetails,
   setSwapMode,
@@ -27,6 +28,7 @@ export function SwapCoordinationPanel({
   const [location, setLocation] = useState("");
   const [datetime, setDatetime] = useState("");
   const [panelError, setPanelError] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const { data: details, isLoading } = useQuery({
     queryKey: ["swapDetails", offerId],
@@ -65,7 +67,7 @@ export function SwapCoordinationPanel({
   if (isLoading || !details) {
     return (
       <div className={styles.panel}>
-        <p className={styles.muted}>Loading coordination details…</p>
+        <p className={styles.muted}>{t("swapCoordination.loading")}</p>
       </div>
     );
   }
@@ -80,14 +82,14 @@ export function SwapCoordinationPanel({
 
   return (
     <div className={styles.panel}>
-      <h3 className={styles.title}>Swap Coordination</h3>
+      <h3 className={styles.title}>{t("swapCoordination.title")}</h3>
 
       {panelError && <p className={styles.error}>{panelError}</p>}
 
       {/* ── Mode selection ─────────────────────────────────── */}
       {!details.swap_mode && offerStatus === "accepted" && (
         <section className={styles.section}>
-          <p className={styles.prompt}>How will you exchange the cards?</p>
+          <p className={styles.prompt}>{t("swapCoordination.modeQuestion")}</p>
           <div className={styles.modeButtons}>
             <button
               className={styles.modeBtn}
@@ -96,7 +98,7 @@ export function SwapCoordinationPanel({
                 run(() => setSwapMode(offerId, { swap_mode: "in_person" }))
               }
             >
-              In-Person Meetup
+              {t("swapCoordination.inPerson")}
             </button>
             <button
               className={styles.modeBtn}
@@ -105,7 +107,7 @@ export function SwapCoordinationPanel({
                 run(() => setSwapMode(offerId, { swap_mode: "mail" }))
               }
             >
-              Mail Swap
+              {t("swapCoordination.mail")}
             </button>
           </div>
         </section>
@@ -114,11 +116,11 @@ export function SwapCoordinationPanel({
       {/* ── Mode confirmed ─────────────────────────────────── */}
       {details.swap_mode && (
         <p className={styles.modeBadge}>
-          Mode:{" "}
+          {t("swapCoordination.mode")}:{" "}
           <strong>
             {details.swap_mode === "in_person"
-              ? "In-Person Meetup"
-              : "Mail Swap"}
+              ? t("swapCoordination.inPerson")
+              : t("swapCoordination.mail")}
           </strong>
         </p>
       )}
@@ -127,15 +129,18 @@ export function SwapCoordinationPanel({
       {details.swap_mode === "in_person" && offerStatus === "accepted" && (
         <section className={styles.section}>
           {/* Propose meetup form */}
-          <h4 className={styles.subTitle}>Meetup Details</h4>
+          <h4 className={styles.subTitle}>
+            {t("swapCoordination.meetupDetails")}
+          </h4>
 
           {details.proposed_location ? (
             <div className={styles.proposal}>
               <p>
-                <strong>Location:</strong> {details.proposed_location}
+                <strong>{t("swapCoordination.location")}:</strong>{" "}
+                {details.proposed_location}
               </p>
               <p>
-                <strong>Time:</strong>{" "}
+                <strong>{t("swapCoordination.dateTime")}:</strong>{" "}
                 {new Date(details.proposed_datetime!).toLocaleString(
                   undefined,
                   {
@@ -145,14 +150,20 @@ export function SwapCoordinationPanel({
                 )}
               </p>
               {details.in_person_confirmed_at ? (
-                <p className={styles.confirmed}>✓ Both parties confirmed</p>
+                <p className={styles.confirmed}>
+                  {t("swapCoordination.bothConfirmed")}
+                </p>
               ) : (
                 <>
                   <p className={styles.confirmStatus}>
-                    Initiator:{" "}
-                    {details.in_person_confirmed_initiator ? "✓" : "pending"} ·
-                    Target:{" "}
-                    {details.in_person_confirmed_target ? "✓" : "pending"}
+                    {t("swapCoordination.initiatorStatus")}:{" "}
+                    {details.in_person_confirmed_initiator
+                      ? "✓"
+                      : t("swapCoordination.pending")}{" "}
+                    · {t("swapCoordination.targetStatus")}:{" "}
+                    {details.in_person_confirmed_target
+                      ? "✓"
+                      : t("swapCoordination.pending")}
                   </p>
                   {!myConfirmed && (
                     <button
@@ -160,35 +171,39 @@ export function SwapCoordinationPanel({
                       disabled={isPending}
                       onClick={() => run(() => confirmMeetup(offerId))}
                     >
-                      Confirm Meetup
+                      {t("swapCoordination.confirmMeetup")}
                     </button>
                   )}
                 </>
               )}
             </div>
           ) : (
-            <p className={styles.muted}>No meetup proposed yet.</p>
+            <p className={styles.muted}>
+              {t("swapCoordination.noMeetupProposed")}
+            </p>
           )}
 
           {/* Propose / re-propose form */}
           <details className={styles.proposeForm}>
             <summary>
-              {details.proposed_location ? "Change proposal" : "Propose meetup"}
+              {details.proposed_location
+                ? t("swapCoordination.changeProposal")
+                : t("swapCoordination.proposeMeetup")}
             </summary>
             <div className={styles.formFields}>
               <label className={styles.label}>
-                Location
+                {t("swapCoordination.location")}
                 <input
                   type="text"
                   className={styles.input}
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g. Starbucks on 5th & Pike"
+                  placeholder={t("swapCoordination.locationPlaceholder")}
                   maxLength={500}
                 />
               </label>
               <label className={styles.label}>
-                Date & Time
+                {t("swapCoordination.dateTime")}
                 <input
                   type="datetime-local"
                   className={styles.input}
@@ -208,7 +223,7 @@ export function SwapCoordinationPanel({
                   )
                 }
               >
-                Submit Proposal
+                {t("swapCoordination.submitProposal")}
               </button>
             </div>
           </details>
@@ -217,19 +232,18 @@ export function SwapCoordinationPanel({
 
       {/* ── Mail swap note ──────────────────────────────────── */}
       {details.swap_mode === "mail" && (
-        <p className={styles.muted}>
-          Mail swap selected. Use the message thread to coordinate shipping
-          details.
-        </p>
+        <p className={styles.muted}>{t("swapCoordination.mailNote")}</p>
       )}
 
       {/* ── Mark Complete ───────────────────────────────────── */}
       {offerStatus === "accepted" && (
         <section className={styles.section}>
-          <h4 className={styles.subTitle}>Completion</h4>
+          <h4 className={styles.subTitle}>
+            {t("swapCoordination.completion")}
+          </h4>
           {myCompleted ? (
             <p className={styles.confirmed}>
-              ✓ You've marked this swap as complete.
+              {t("swapCoordination.youMarkedComplete")}
             </p>
           ) : (
             <button
@@ -237,18 +251,24 @@ export function SwapCoordinationPanel({
               disabled={isPending}
               onClick={handleComplete}
             >
-              Mark My Side Complete
+              {t("swapCoordination.markComplete")}
             </button>
           )}
           <p className={styles.completionStatus}>
-            Initiator: {details.completed_by_initiator ? "✓" : "pending"} ·
-            Target: {details.completed_by_target ? "✓" : "pending"}
+            {t("swapCoordination.initiatorStatus")}:{" "}
+            {details.completed_by_initiator
+              ? "✓"
+              : t("swapCoordination.pending")}{" "}
+            · {t("swapCoordination.targetStatus")}:{" "}
+            {details.completed_by_target ? "✓" : t("swapCoordination.pending")}
           </p>
         </section>
       )}
 
       {offerStatus === "completed" && (
-        <p className={styles.confirmed}>✓ Swap completed!</p>
+        <p className={styles.confirmed}>
+          {t("swapCoordination.swapCompleted")}
+        </p>
       )}
     </div>
   );

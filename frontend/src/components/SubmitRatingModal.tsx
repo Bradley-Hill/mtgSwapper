@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { submitRating } from "@/api/ratings";
 import styles from "./SubmitRatingModal.module.scss";
 
@@ -32,6 +33,7 @@ export function SubmitRatingModal({
   const [hovered, setHovered] = useState(0);
   const [comment, setComment] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const { mutate, isPending } = useMutation({
     mutationFn: () =>
@@ -47,7 +49,7 @@ export function SubmitRatingModal({
       onSuccess();
     },
     onError: (err: Error) => {
-      setSubmitError(err.message ?? "Could not submit rating.");
+      setSubmitError(err.message ?? t("rating.error"));
     },
   });
 
@@ -63,7 +65,7 @@ export function SubmitRatingModal({
         aria-labelledby="rating-title"
       >
         <h2 id="rating-title" className={styles.title}>
-          Rate {targetUsername}
+          {t("rating.title", { username: targetUsername })}
         </h2>
 
         {/* ── Star picker ──────────────────────────────────── */}
@@ -77,7 +79,7 @@ export function SubmitRatingModal({
               key={n}
               type="button"
               className={`${styles.star} ${n <= display ? styles.active : ""}`}
-              aria-label={`${n} star${n !== 1 ? "s" : ""}`}
+              aria-label={t("rating.starLabel", { count: n })}
               aria-pressed={selectedStars === n}
               onClick={() => setSelectedStars(n)}
               onMouseEnter={() => setHovered(n)}
@@ -90,20 +92,23 @@ export function SubmitRatingModal({
 
         {selectedStars > 0 && (
           <p className={styles.starLabel}>
-            {["", "Poor", "Fair", "Good", "Great", "Excellent"][selectedStars]}
+            {t(`rating.labels.${selectedStars}`)}
           </p>
         )}
 
         {/* ── Comment ──────────────────────────────────────── */}
         <label className={styles.label}>
-          Comment <span className={styles.optional}>(optional)</span>
+          {t("rating.comment")}{" "}
+          <span className={styles.optional}>{t("rating.commentOptional")}</span>
           <textarea
             className={styles.textarea}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             maxLength={1000}
             rows={3}
-            placeholder={`How was your swap with ${targetUsername}?`}
+            placeholder={t("rating.commentPlaceholder", {
+              username: targetUsername,
+            })}
           />
         </label>
 
@@ -116,7 +121,7 @@ export function SubmitRatingModal({
             onClick={onClose}
             disabled={isPending}
           >
-            Cancel
+            {t("rating.cancel")}
           </button>
           <button
             className={styles.btnSubmit}
@@ -126,7 +131,7 @@ export function SubmitRatingModal({
               mutate();
             }}
           >
-            {isPending ? "Submitting…" : "Submit Rating"}
+            {isPending ? t("rating.submitting") : t("rating.submit")}
           </button>
         </div>
       </div>

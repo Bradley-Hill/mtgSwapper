@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { getMessages, sendMessage } from "@/api/messages";
 import type { Message } from "@/types";
 import styles from "./MessageThread.module.scss";
@@ -17,6 +18,7 @@ export function MessageThread({
   const [draft, setDraft] = useState("");
   const [sendError, setSendError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   /*
    * Why refetchInterval: 3000?
@@ -51,7 +53,7 @@ export function MessageThread({
       void queryClient.invalidateQueries({ queryKey: ["messages", offerId] });
     },
     onError: (err: Error) => {
-      setSendError(err.message ?? "Failed to send message.");
+      setSendError(err.message ?? t("messages.sendError"));
     },
   });
 
@@ -67,17 +69,15 @@ export function MessageThread({
 
   return (
     <div className={styles.thread}>
-      <h3 className={styles.title}>Messages</h3>
+      <h3 className={styles.title}>{t("messages.title")}</h3>
 
       <div
         className={styles.messageList}
         aria-live="polite"
-        aria-label="Message thread"
+        aria-label={t("messages.title")}
       >
         {messages.length === 0 && (
-          <p className={styles.empty}>
-            No messages yet. Start the conversation!
-          </p>
+          <p className={styles.empty}>{t("messages.empty")}</p>
         )}
 
         {messages.map((msg: Message) => {
@@ -122,18 +122,18 @@ export function MessageThread({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message… (Ctrl+Enter to send)"
+          placeholder={t("messages.placeholder")}
           rows={2}
           maxLength={2000}
-          aria-label="Message input"
+          aria-label={t("messages.title")}
         />
         <button
           className={styles.sendBtn}
           onClick={() => submit()}
           disabled={!canSend}
-          aria-label="Send message"
+          aria-label={t("messages.send")}
         >
-          Send
+          {t("messages.send")}
         </button>
       </div>
     </div>

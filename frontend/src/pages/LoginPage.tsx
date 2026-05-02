@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { usePageTitle } from "@/hooks";
 import { useAuth } from "@/context";
 import { ApiError } from "@/api/client";
 import styles from './LoginPage.module.scss';
@@ -7,6 +9,8 @@ import styles from './LoginPage.module.scss';
 export function LoginPage() {
   const { user, isLoading, login } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  usePageTitle(t('auth.login.title'));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,7 +35,7 @@ export function LoginPage() {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError("Something went wrong. Please try again.");
+        setError(t('common.error'));
       }
     } finally {
       setIsSubmitting(false);
@@ -50,7 +54,7 @@ export function LoginPage() {
           className={styles.form}
           noValidate
         >
-          <h2 className={styles.formTitle}>Sign in</h2>
+          <h2 className={styles.formTitle}>{t("auth.login.title")}</h2>
 
           {error && (
             <p role="alert" className={styles.errorAlert}>
@@ -59,7 +63,7 @@ export function LoginPage() {
           )}
 
           <div className={styles.field}>
-            <label htmlFor="email" className={styles.label}>Email</label>
+            <label htmlFor="email" className={styles.label}>{t("auth.login.email")}</label>
             <input
               id="email"
               type="email"
@@ -72,7 +76,7 @@ export function LoginPage() {
           </div>
 
           <div className={styles.field}>
-            <label htmlFor="password" className={styles.label}>Password</label>
+            <label htmlFor="password" className={styles.label}>{t("auth.login.password")}</label>
             <input
               id="password"
               type="password"
@@ -89,13 +93,13 @@ export function LoginPage() {
             disabled={isSubmitting}
             className={styles.submitBtn}
           >
-            {isSubmitting ? 'Signing in…' : 'Sign in'}
+            {isSubmitting ? t("auth.login.submitting") : t("auth.login.submit")}
           </button>
         </form>
 
         <p className={styles.footer}>
-          Have an invite?{' '}
-          <Link to="/register">Create account</Link>
+          {t("auth.login.noAccount")}{' '}
+          <Link to="/register">{t("auth.login.register")}</Link>
         </p>
       </div>
     </main>

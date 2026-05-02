@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { StagedCard } from "@/types";
 import { ScanCardItem } from "./ScanCardItem";
 import styles from "./ScanStagingList.module.scss";
@@ -36,15 +37,16 @@ export function ScanStagingList({
   onSubmit,
   isSubmitting,
 }: Props) {
+  const { t } = useTranslation();
   if (cards.length === 0) return null;
 
   return (
     <section className={styles.root}>
       <header className={styles.header}>
-        <h3 className={styles.title}>Staged cards ({cards.length})</h3>
-        <p className={styles.hint}>
-          Review names before adding — edit inline if OCR made a mistake.
-        </p>
+        <h3 className={styles.title}>
+          {t("scan.staging.title", { count: cards.length })}
+        </h3>
+        <p className={styles.hint}>{t("scan.staging.hint")}</p>
       </header>
 
       <ul className={styles.list}>
@@ -66,8 +68,8 @@ export function ScanStagingList({
         disabled={isSubmitting || cards.length === 0}
       >
         {isSubmitting
-          ? "Adding…"
-          : `Add ${cards.length} card${cards.length === 1 ? "" : "s"} to my collection`}
+          ? t("scan.staging.adding")
+          : t("scan.staging.addButton", { count: cards.length })}
       </button>
     </section>
   );

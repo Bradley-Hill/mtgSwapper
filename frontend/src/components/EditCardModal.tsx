@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useUpdateCard } from "@/hooks";
 import type { CardCondition, EditCardModalProps } from "@/types";
 import styles from "./EditCardModal.module.scss";
@@ -15,6 +16,7 @@ export function EditCardModal({ card, onClose }: EditCardModalProps) {
   const [notes, setNotes] = useState(card.notes ?? "");
 
   const updateCard = useUpdateCard();
+  const { t } = useTranslation();
 
   // Close on Escape
   useEffect(() => {
@@ -62,7 +64,7 @@ export function EditCardModal({ card, onClose }: EditCardModalProps) {
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("common.close")}
             className={styles.closeBtn}
           >
             ×
@@ -73,7 +75,7 @@ export function EditCardModal({ card, onClose }: EditCardModalProps) {
           <div className={styles.grid2}>
             <div className={styles.field}>
               <label htmlFor="edit-condition" className={styles.label}>
-                Condition
+                {t("editCard.condition")}
               </label>
               <select
                 id="edit-condition"
@@ -81,14 +83,16 @@ export function EditCardModal({ card, onClose }: EditCardModalProps) {
                 onChange={(e) => setCondition(e.target.value as CardCondition)}
                 className={styles.select}
               >
-                <option value="unused">Unused / NM</option>
-                <option value="played">Played</option>
-                <option value="damaged">Damaged</option>
+                <option value="unused">{t("editCard.conditionUnused")}</option>
+                <option value="played">{t("editCard.conditionPlayed")}</option>
+                <option value="damaged">
+                  {t("editCard.conditionDamaged")}
+                </option>
               </select>
             </div>
             <div className={styles.field}>
               <label htmlFor="edit-qty" className={styles.label}>
-                Quantity
+                {t("editCard.quantity")}
               </label>
               <input
                 id="edit-qty"
@@ -104,7 +108,7 @@ export function EditCardModal({ card, onClose }: EditCardModalProps) {
 
           <div className={styles.field}>
             <label htmlFor="edit-language" className={styles.label}>
-              Language
+              {t("editCard.language")}
             </label>
             <select
               id="edit-language"
@@ -134,7 +138,7 @@ export function EditCardModal({ card, onClose }: EditCardModalProps) {
                 onChange={(e) => setIsFoil(e.target.checked)}
                 className={styles.checkbox}
               />
-              <span className={styles.checkboxText}>Foil</span>
+              <span className={styles.checkboxText}>{t("editCard.foil")}</span>
             </label>
             <label className={styles.checkboxLabel}>
               <input
@@ -143,20 +147,23 @@ export function EditCardModal({ card, onClose }: EditCardModalProps) {
                 onChange={(e) => setIsAvailable(e.target.checked)}
                 className={styles.checkbox}
               />
-              <span className={styles.checkboxText}>Available for swap</span>
+              <span className={styles.checkboxText}>
+                {t("editCard.available")}
+              </span>
             </label>
           </div>
 
           <div className={styles.field}>
             <label htmlFor="edit-notes" className={styles.label}>
-              Notes <span className={styles.labelHint}>(optional)</span>
+              {t("editCard.notes")}{" "}
+              <span className={styles.labelHint}>(optional)</span>
             </label>
             <textarea
               id="edit-notes"
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. signed, water damage on corner…"
+              placeholder={t("editCard.notesPlaceholder")}
               className={styles.textarea}
             />
           </div>
@@ -165,7 +172,7 @@ export function EditCardModal({ card, onClose }: EditCardModalProps) {
             <p role="alert" className={styles.errorAlert}>
               {updateCard.error instanceof Error
                 ? updateCard.error.message
-                : "Failed to save changes."}
+                : t("editCard.error")}
             </p>
           )}
 
@@ -174,7 +181,7 @@ export function EditCardModal({ card, onClose }: EditCardModalProps) {
             disabled={updateCard.isPending}
             className={styles.submitBtn}
           >
-            {updateCard.isPending ? "Saving…" : "Save changes"}
+            {updateCard.isPending ? t("editCard.saving") : t("editCard.save")}
           </button>
         </form>
       </div>

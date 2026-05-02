@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import { usePageTitle } from "@/hooks";
 import { getOffer, acceptOffer, declineOffer, cancelOffer } from "@/api/offers";
 import { useAuth } from "@/context";
 import {
@@ -8,17 +10,8 @@ import {
   SwapCoordinationPanel,
   SubmitRatingModal,
 } from "@/components";
-import type { OfferItem, OfferStatus } from "@/types";
+import type { OfferItem } from "@/types";
 import styles from "./OfferDetailPage.module.scss";
-
-const STATUS_LABELS: Record<OfferStatus, string> = {
-  pending: "Pending",
-  accepted: "Accepted",
-  declined: "Declined",
-  expired: "Expired",
-  cancelled: "Cancelled",
-  completed: "Completed",
-};
 
 export function OfferDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +21,7 @@ export function OfferDetailPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [hasRated, setHasRated] = useState(false);
+  const { t } = useTranslation();
 
   const {
     data: offer,
@@ -39,6 +33,9 @@ export function OfferDetailPage() {
     enabled: !!id,
     staleTime: 10_000,
   });
+
+  // Title updates once the offer loads; undefined falls back to base app name
+  usePageTitle(offer ? `#${offer.id.slice(0, 8)}` : undefined);
 
   /*
    * Why one shared mutation config instead of three separate useMutation calls?
@@ -62,7 +59,7 @@ export function OfferDetailPage() {
   if (isLoading) {
     return (
       <main className={styles.page}>
-        <p className={styles.muted}>Loading offer…</p>
+        <p className={styles.muted}>{t("offerDetail.loading")}</p>
       </main>
     );
   }
@@ -70,9 +67,9 @@ export function OfferDetailPage() {
   if (isError || !offer) {
     return (
       <main className={styles.page}>
-        <p className={styles.error}>Offer not found.</p>
+        <p className={styles.error}>{t("offerDetail.notFound")}</p>
         <Link to="/offers" className={styles.backLink}>
-          ← Back to offers
+          {t("offerDetail.backToOffers")}
         </Link>
       </main>
     );
@@ -101,7 +98,7 @@ export function OfferDetailPage() {
     <main className={styles.page}>
       {/* ── Back nav ───────────────────────────────────────── */}
       <Link to="/offers" className={styles.backLink}>
-        ← Back to offers
+        {t("offerDetail.backToOffers")}
       </Link>
 
       {/* ── Header ─────────────────────────────────────────── */}
@@ -118,15 +115,19 @@ export function OfferDetailPage() {
 
         <div className={styles.meta}>
           <span className={`${styles.badge} ${styles[offer.status]}`}>
-            {STATUS_LABELS[offer.status]}
+            {t(`offers.status.${offer.status}`)}
           </span>
           {offer.counteroffer_count > 0 && (
             <span className={styles.metaItem}>
-              {offer.counteroffer_count} / {offer.max_counteroffers}{" "}
-              counteroffers
+              {t("offerDetail.counterofferLine", {
+                count: offer.counteroffer_count,
+                max: offer.max_counteroffers,
+              })}
             </span>
           )}
-          <span className={styles.metaItem}>Expires {expiresAt}</span>
+          <span className={styles.metaItem}>
+            {t("offerDetail.expires", { date: expiresAt })}
+          </span>
         </div>
       </section>
 
@@ -134,14 +135,22 @@ export function OfferDetailPage() {
       <div className={styles.columns}>
         <section className={styles.column}>
           <h2 className={styles.columnTitle}>
-            {isInitiator ? "Your offer" : `${offer.initiator.username} offers`}
+            {isInitiator
+              ? t("offerDetail.yourOffer")
+              : t("offerDetail.initiatorOffers", {
+                  username: offer.initiator.username,
+                })}
           </h2>
           <CardList items={offeredItems} />
         </section>
 
         <section className={styles.column}>
           <h2 className={styles.columnTitle}>
-            {isInitiator ? "You want" : `${offer.initiator.username} wants`}
+            {isInitiator
+              ? t("offerDetail.youWant")
+              : t("offerDetail.initiatorWants", {
+                  username: offer.initiator.username,
+                })}
           </h2>
           <CardList items={requestedItems} />
         </section>
@@ -159,14 +168,14 @@ export function OfferDetailPage() {
                 disabled={isActing}
                 onClick={() => runAction(() => acceptOffer(offer.id))}
               >
-                Accept
+                {t("offerDetail.actions.accept")}
               </button>
               <button
                 className={styles.btnDecline}
                 disabled={isActing}
                 onClick={() => runAction(() => declineOffer(offer.id))}
               >
-                Decline
+                {t("offerDetail.actions.decline")}
               </button>
             </>
           )}
@@ -183,7 +192,7 @@ export function OfferDetailPage() {
                 })
               }
             >
-              Cancel Offer
+              {t("offerDetail.actions.cancel")}
             </button>
           )}
         </div>
@@ -212,12 +221,14 @@ export function OfferDetailPage() {
             className={styles.btnRate}
             onClick={() => setShowRatingModal(true)}
           >
-            Rate {otherParticipant.username}
+            {t("offerDetail.actions.rateUser", {
+              username: otherParticipant.username,
+            })}
           </button>
         </div>
       )}
       {offer.status === "completed" && hasRated && (
-        <p className={styles.ratedNote}>✓ You've submitted your rating.</p>
+        <p className={styles.ratedNote}>{t("offerDetail.ratedNote")}</p>
       )}
 
       {showRatingModal && (
@@ -238,8 +249,9 @@ export function OfferDetailPage() {
 // ── Sub-component ─────────────────────────────────────────────────────────────
 
 function CardList({ items }: { items: OfferItem[] }) {
+  const { t } = useTranslation();
   if (items.length === 0) {
-    return <p className={styles.muted}>None</p>;
+    return <p className={styles.muted}>{t("offerDetail.none")}</p>;
   }
   return (
     <ul className={styles.cardList}>

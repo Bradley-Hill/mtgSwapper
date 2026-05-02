@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "./CameraCapture.module.scss";
 
 interface Props {
@@ -39,6 +40,7 @@ interface Props {
 export function CameraCapture({ onCapture, disabled = false }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,7 +62,11 @@ export function CameraCapture({ onCapture, disabled = false }: Props) {
     <div className={styles.root}>
       {preview && (
         <div className={styles.preview}>
-          <img src={preview} alt="Card preview" className={styles.previewImg} />
+          <img
+            src={preview}
+            alt={t("scan.capture.preview")}
+            className={styles.previewImg}
+          />
         </div>
       )}
 
@@ -83,10 +89,10 @@ export function CameraCapture({ onCapture, disabled = false }: Props) {
         disabled={disabled}
       >
         {disabled
-          ? "Scanning…"
+          ? t("scan.scanning")
           : preview
-            ? "Retake Photo"
-            : "Take Photo / Upload Image"}
+            ? t("scan.capture.retake")
+            : t("scan.capture.takePhoto")}
       </button>
 
       {preview && (
@@ -96,7 +102,7 @@ export function CameraCapture({ onCapture, disabled = false }: Props) {
           onClick={() => setPreview(null)}
           disabled={disabled}
         >
-          Clear
+          {t("scan.capture.clear")}
         </button>
       )}
     </div>

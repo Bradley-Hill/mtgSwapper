@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import dj_database_url
 
 # Load environment variables from the project root .env file using an explicit
 # path derived from this file's location, so it works regardless of which
@@ -58,6 +59,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Must be directly after SecurityMiddleware
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -89,20 +91,24 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
+#
+# In production (Render), DATABASE_URL is set as a single connection string:
+#   postgresql://user:pass@host/dbname
+# dj_database_url parses that into the dict Django needs.
+# Locally, we fall back to the individual DB_* variables from .env.
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'neondb'),
-        'USER': os.getenv('DB_USER', 'neondb_owner'),
-        'PASSWORD': os.getenv('DB_PASSWORD', ''),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
-        'CONN_MAX_AGE': 600,
-        'OPTIONS': {
-            'sslmode': 'require',
-        },
-    }
+    'default': dj_database_url.config(
+        default=(
+            f"postgresql://{os.getenv('DB_USER', 'neondb_owner')}:"
+            f"{os.getenv('DB_PASSWORD', '')}@"
+            f"{os.getenv('DB_HOST', 'localhost')}:"
+            f"{os.getenv('DB_PORT', '5432')}/"
+            f"{os.getenv('DB_NAME', 'neondb')}"
+        ),
+        conn_max_age=600,
+        ssl_require=True,
+    )
 }
 
 
@@ -142,6 +148,14 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Production: where collectstatic gathers all static files into one place.
+# WhiteNoise serves them from here.
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# WhiteNoise: serve compressed, cached static files with long-lived cache headers.
+# Only active when WhiteNoiseMiddleware is in MIDDLEWARE.
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/6.0/ref/settings/#default-auto-field
 
@@ -154,6 +168,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False') == 'True'
 SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'False') == 'True'
 CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', 'False') == 'True'
+
+# Required when SECURE_SSL_REDIRECT=True — tells Django which hosts are trusted
+# for HTTPS requests (prevents CSRF attacks via host header spoofing).
+# Set to your Render URL in production: https://your-app.onrender.com
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:8000').split(',')
 
 
 # Django REST Framework Configuration

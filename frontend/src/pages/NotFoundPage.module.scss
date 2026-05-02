@@ -1,0 +1,55 @@
+@use '../styles/variables' as *;
+
+.page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  padding: $space-6;
+}
+
+.card {
+  text-align: center;
+  max-width: 440px;
+}
+
+.code {
+  display: block;
+  font-size: 6rem;
+  font-weight: 800;
+  line-height: 1;
+  background: linear-gradient(135deg, $accent 0%, #47bfff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: $space-4;
+  user-select: none;
+}
+
+.title {
+  font-size: $text-2xl;
+  font-weight: 600;
+  color: $text-primary;
+  margin: 0 0 $space-3;
+}
+
+.message {
+  font-size: $text-base;
+  color: $text-muted;
+  line-height: 1.6;
+  margin: 0 0 $space-6;
+}
+
+.homeLink {
+  display: inline-block;
+  padding: $space-3 $space-6;
+  background: $accent;
+  color: $text-primary;
+  border-radius: $radius-md;
+  font-size: $text-sm;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s;
+
+  &:hover { background: $accent-hover; }
+}

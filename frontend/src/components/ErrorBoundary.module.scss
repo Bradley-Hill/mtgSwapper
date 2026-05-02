@@ -1,0 +1,84 @@
+@use '../styles/variables' as *;
+
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: $space-6;
+}
+
+.card {
+  background: $bg-surface;
+  border: 1px solid $border-default;
+  border-radius: $radius-xl;
+  padding: $space-8;
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+}
+
+.icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: $space-4;
+}
+
+.title {
+  font-size: $text-xl;
+  font-weight: 600;
+  color: $text-primary;
+  margin: 0 0 $space-3;
+}
+
+.message {
+  font-size: $text-sm;
+  color: $text-muted;
+  line-height: 1.6;
+  margin: 0 0 $space-5;
+}
+
+.detail {
+  font-size: $text-xs;
+  color: $error-text;
+  background: $error-bg;
+  border: 1px solid $error-border;
+  border-radius: $radius-md;
+  padding: $space-3;
+  text-align: left;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: $space-5;
+}
+
+.actions {
+  display: flex;
+  gap: $space-3;
+  justify-content: center;
+}
+
+.btnPrimary {
+  padding: $space-2 $space-5;
+  background: $accent;
+  color: $text-primary;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $text-sm;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover { background: $accent-hover; }
+}
+
+.btnSecondary {
+  padding: $space-2 $space-5;
+  background: transparent;
+  color: $text-muted;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  font-size: $text-sm;
+  cursor: pointer;
+
+  &:hover { color: $text-primary; border-color: $text-muted; }
+}

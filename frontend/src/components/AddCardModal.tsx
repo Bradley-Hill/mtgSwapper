@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { autocomplete } from '@/api/cards';
 import { ApiError } from '@/api/client';
 import { useDebounce } from '@/hooks';
@@ -22,9 +23,6 @@ const LANGUAGES = [
 
 export function AddCardModal({ onClose }: AddCardModalProps) {
   // --- Search / autocomplete state ---
-  // `query` drives what's displayed in the input AND what gets sent to autocomplete.
-  // `cardName` is the confirmed selection — separate so we don't re-trigger
-  // autocomplete when the user has already picked from the dropdown.
   const [query, setQuery] = useState('');
   const [cardName, setCardName] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -42,6 +40,7 @@ export function AddCardModal({ onClose }: AddCardModalProps) {
   const debouncedQuery = useDebounce(query, 300);
   const { mutate: addCard, isPending } = useAddCard();
   const inputRef = useRef<HTMLInputElement>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -96,7 +95,7 @@ export function AddCardModal({ onClose }: AddCardModalProps) {
         onSuccess: () => onClose(),
         onError: (err) => {
           if (err instanceof ApiError) setApiError(err.message);
-          else setApiError('Failed to add card. Please try again.');
+          else setApiError(t('addCard.errorFallback'));
         },
       },
     );
@@ -109,8 +108,8 @@ export function AddCardModal({ onClose }: AddCardModalProps) {
     >
       <div className={styles.panel}>
         <div className={styles.header}>
-          <h2 className={styles.title}>Add card</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className={styles.closeBtn}>
+          <h2 className={styles.title}>{t('addCard.title')}</h2>
+          <button type="button" onClick={onClose} aria-label={t('common.close')} className={styles.closeBtn}>
             ×
           </button>
         </div>
@@ -122,7 +121,7 @@ export function AddCardModal({ onClose }: AddCardModalProps) {
 
           {/* Card name search with autocomplete dropdown */}
           <div className={styles.field}>
-            <label htmlFor="card-name-search" className={styles.label}>Card name</label>
+            <label htmlFor="card-name-search" className={styles.label}>{t('addCard.cardName')}</label>
             <input
               ref={inputRef}
               id="card-name-search"
@@ -133,14 +132,14 @@ export function AddCardModal({ onClose }: AddCardModalProps) {
               onChange={(e) => { setQuery(e.target.value); setCardName(e.target.value); }}
               onBlur={() => { setTimeout(() => setShowSuggestions(false), 150); }}
               onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
-              placeholder="e.g. Black Lotus"
+              placeholder={t('addCard.cardNamePlaceholder')}
               className={styles.input}
             />
             {isLoadingSuggestions && (
-              <span className={styles.searchingHint}>Searching…</span>
+              <span className={styles.searchingHint}>{t('addCard.searching')}</span>
             )}
             {showSuggestions && suggestions.length > 0 && (
-              <ul role="listbox" aria-label="Card name suggestions" className={styles.suggestions}>
+              <ul role="listbox" aria-label={t('addCard.cardName')} className={styles.suggestions}>
                 {suggestions.map((name) => (
                   <li
                     key={name}
@@ -159,7 +158,7 @@ export function AddCardModal({ onClose }: AddCardModalProps) {
           {/* Optional set code */}
           <div className={styles.field}>
             <label htmlFor="set-code" className={styles.label}>
-              Set code <span className={styles.labelHint}>(optional — e.g. LEA)</span>
+              {t('addCard.setCode')} <span className={styles.labelHint}>{t('addCard.setCodeHint')}</span>
             </label>
             <input
               id="set-code"
@@ -167,7 +166,7 @@ export function AddCardModal({ onClose }: AddCardModalProps) {
               autoComplete="off"
               value={setCode}
               onChange={(e) => setSetCode(e.target.value.toUpperCase())}
-              placeholder="LEA"
+              placeholder={t('addCard.setCodePlaceholder')}
               maxLength={6}
               className={`${styles.input} ${styles.uppercase}`}
             />
@@ -176,20 +175,20 @@ export function AddCardModal({ onClose }: AddCardModalProps) {
           {/* Condition + Quantity */}
           <div className={styles.grid2}>
             <div className={styles.field}>
-              <label htmlFor="condition" className={styles.label}>Condition</label>
+              <label htmlFor="condition" className={styles.label}>{t('addCard.condition')}</label>
               <select
                 id="condition"
                 value={condition}
                 onChange={(e) => setCondition(e.target.value as CardCondition)}
                 className={styles.select}
               >
-                <option value="unused">Unused / NM</option>
-                <option value="played">Played</option>
-                <option value="damaged">Damaged</option>
+                <option value="unused">{t('addCard.conditionUnused')}</option>
+                <option value="played">{t('addCard.conditionPlayed')}</option>
+                <option value="damaged">{t('addCard.conditionDamaged')}</option>
               </select>
             </div>
             <div className={styles.field}>
-              <label htmlFor="quantity" className={styles.label}>Quantity</label>
+              <label htmlFor="quantity" className={styles.label}>{t('addCard.quantity')}</label>
               <input
                 id="quantity"
                 type="number"
@@ -204,7 +203,7 @@ export function AddCardModal({ onClose }: AddCardModalProps) {
 
           {/* Language */}
           <div className={styles.field}>
-            <label htmlFor="language" className={styles.label}>Language</label>
+            <label htmlFor="language" className={styles.label}>{t('addCard.language')}</label>
             <select
               id="language"
               value={language}
@@ -225,7 +224,7 @@ export function AddCardModal({ onClose }: AddCardModalProps) {
               onChange={(e) => setIsFoil(e.target.checked)}
               className={styles.checkbox}
             />
-            <span className={styles.checkboxText}>Foil</span>
+            <span className={styles.checkboxText}>{t('addCard.foil')}</span>
           </label>
 
           <button
@@ -233,7 +232,7 @@ export function AddCardModal({ onClose }: AddCardModalProps) {
             disabled={isPending || !cardName.trim()}
             className={styles.submitBtn}
           >
-            {isPending ? 'Adding…' : 'Add to collection'}
+            {isPending ? t('addCard.submitting') : t('addCard.submit')}
           </button>
         </form>
       </div>

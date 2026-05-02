@@ -34,15 +34,15 @@ and mail-based swaps (no monetary transactions).
 - **Hosting:** Render (managed PostgreSQL + Python WSGI support)
 
 ### Database
-- **Type:** PostgreSQL (managed on Render)
+- **Type:** PostgreSQL (managed on Neon, free tier)
 - **Schema:** 8 core tables (see mtg_database_schema_finalized.txt)
 - **Reference:** Full schema + ER diagram in separate planning document
 
 ### Deployment
-- **Backend:** Docker container on Render
+- **Backend:** Render (free web service, Docker container, spins down after inactivity — health check cron job mitigates)
 - **Frontend:** Cloudflare Pages
-- **Repository:** Public GitHub (building in public)
-- **Environment:** docker-compose for local dev (optional), or Python venv + local PostgreSQL
+- **Repository:** Single monorepo (Cloudflare builds from frontend/, Render builds from backend/)
+- **Environment:** docker-compose for local dev (optional), or Python venv + Neon PostgreSQL
 
 ---
 
@@ -558,22 +558,49 @@ None — all critical decisions finalized. Ready to initialize.
      SubmitRatingModal wired with onSuccess/onClose handlers
 - **Status:** Complete
 
-#### 🔜 Sprint 8 (Week 9-10): Card ownership transfer patch + Image scanning (Tesseract OCR)
+#### ✅ Sprint 8 (Week 9-10): Card ownership transfer patch + Image scanning (Tesseract OCR) — COMPLETE
 
 **Part A — Card ownership transfer (backend patch to Sprint 6 complete action)**
 
-This was discovered as a gap after Sprint 7: when a swap is confirmed by both parties,
-the cards involved need to change hands in the database — not just the offer status.
-
-- ⏳ Backend: Wrap completion block in transaction.atomic()
-- ⏳ Backend: Re-assign item_type='offered' cards → card.user = offer.target_user
-- ⏳ Backend: Re-assign item_type='requested' cards → card.user = offer.initiator_user
-- ⏳ Backend: Set is_available=False on all transferred cards (bulk_update)
-- ⏳ Tests: New test class OwnershipTransferTests (verify cards move, are unavailable,
-     unrelated cards untouched, atomic rollback on error)
+- ✅ Backend: Wrap completion block in transaction.atomic()
+- ✅ Backend: Re-assign item_type='offered' cards → card.user = offer.target_user
+- ✅ Backend: Re-assign item_type='requested' cards → card.user = offer.initiator_user
+- ✅ Backend: Set is_available=False on all transferred cards (bulk_update)
+- ✅ Tests: OwnershipTransferTests — 5 tests (transfer directions, unavailability, partial-confirm guard, unrelated-card isolation)
 
 **Part B — Image scanning (Tesseract OCR backend + React camera UI)**
-#### Sprint 9 (Week 10-11): Internationalization (EN+FR), polish, bug fixes, deployment
+- ✅ pytesseract + Pillow installed; tesseract-ocr noted for Render build command
+- ✅ POST /api/cards/scan/ endpoint with PIL preprocessing (crop 20% → greyscale → contrast → sharpen)
+- ✅ 7 scan endpoint tests across 4 test classes
+- ✅ ScanResult + StagedCard types (src/types/scan.ts)
+- ✅ scanCard() API function (raw fetch — preserves multipart/form-data boundary)
+- ✅ CameraCapture component (native input capture="environment", local preview)
+- ✅ ScanCardItem + ScanStagingList components (inline-editable, OCR hint, commit button)
+- ✅ ScanPage (/scan) — three-phase workflow: capture → OCR → review/commit
+- ✅ Route + NavBar link + barrel exports wired
+- **Status:** Complete — 134 backend tests passing, frontend build clean
+
+#### 🔜 Sprint 9 (Week 10-11): Internationalization (EN+FR), polish, bug fixes, deployment
+
+**Track 1 — i18n frontend: COMPLETE**
+- ✅ i18next + react-i18next + i18next-browser-languagedetector installed
+- ✅ en.json + fr.json created (full coverage of all UI strings)
+- ✅ Language toggle in NavBar (EN | FR, persisted to localStorage)
+- ✅ All 19 frontend files (9 pages + 10 components) using t() calls
+- ✅ i18n backend: DEFERRED — no emails exist in the app; Django i18n not needed Phase 1
+
+**Track 2 — Polish + Technical Debt: COMPLETE**
+- ✅ Message model migration (ratings → swaps, SeparateDatabaseAndState)
+- ✅ ErrorBoundary component wrapping router
+- ✅ Loading/empty states audit — all pages covered
+- ✅ 404 page (NotFoundPage) replacing catch-all redirect
+- ✅ Favicon (purple lightning bolt SVG) + per-page document.title via usePageTitle hook
+- ✅ index.html title updated from "frontend" → "MTG Swapper"
+
+**Track 3 — Deployment: IN PROGRESS**
+- ⏳ Backend: Render env vars, Dockerfile, gunicorn, whitenoise, security settings
+- ⏳ Frontend: Cloudflare Pages config, _redirects, VITE_API_BASE_URL
+- ⏳ Pre-launch: generate invite codes, smoke test, mobile QA (iOS + Android)
 
 ---
 
@@ -691,21 +718,106 @@ No extra logic needed — Scryfall does the work.
 - Cards with non-Latin scripts (Japanese, Korean, Russian) will not OCR correctly via Tesseract;
   those users should use bulk import instead
 
-#### Sprint 8 tasks
+#### Sprint 8 tasks — ALL COMPLETE
 **Part A (card ownership transfer)**
-1. Wrap completion block in `transaction.atomic()`
-2. Fetch OfferItems, bulk re-assign card.user + card.is_available
-3. Tests: OwnershipTransferTests (4 tests)
+1. ✅ Wrap completion block in `transaction.atomic()`
+2. ✅ Fetch OfferItems with `select_related('card')`, bulk re-assign card.user + card.is_available
+3. ✅ OwnershipTransferTests — 5 tests (both transfer directions, unavailability, single-confirm guard, unrelated-card isolation)
 
 **Part B (image scanning)**
-4. Install pytesseract + Pillow, add tesseract-ocr to Render build
-5. Implement image preprocessing helper (crop, grayscale, contrast)
-6. Implement POST /api/cards/scan/ endpoint
-7. Unit tests for scan endpoint (mock pytesseract + Scryfall)
-8. React CameraCapture component
-9. React ScanStagingList + ScanCardItem components
-10. Wire staging list → existing bulk_import endpoint
-11. Manual QA: scan real cards in varying lighting conditions
+4. ✅ Install pytesseract + Pillow, add tesseract-ocr to Render build command
+5. ✅ `_preprocess_card_image()` helper (crop top 20%, greyscale, contrast ×2, sharpen)
+6. ✅ POST /api/cards/scan/ endpoint (MultiPartParser, 400 on empty OCR, 404 on Scryfall miss)
+7. ✅ 7 scan endpoint tests across 4 classes (ScanEndpointAuthTests, InputTests, OCRTests)
+8. ✅ CameraCapture component (native file input, capture="environment", object URL preview)
+9. ✅ ScanCardItem + ScanStagingList components
+10. ✅ ScanPage — commit loop calls addFromScryfall() per staged card
+11. ⏳ Manual QA: scan real cards in varied lighting (to be done at deployment stage)
+
+---
+
+### Sprint 9 Detail: Internationalization + Polish + Deployment
+
+#### Goals
+Sprint 9 is the final MVP sprint. Three tracks run in parallel:
+
+1. **i18n (EN+FR)** — wire i18next on the frontend and Django i18n on backend emails
+2. **Polish + technical debt** — known rough edges and the Message model migration
+3. **Deployment** — get the app live on Render + Cloudflare Pages for closed beta
+
+---
+
+#### Track 1 — Internationalization (EN+FR)
+
+**Frontend (i18next)**
+- Install `i18next` + `react-i18next`
+- Create `src/i18n/` with `en.json` + `fr.json` translation files
+- Wrap `main.tsx` with `I18nextProvider`; detect browser language, fall back to EN
+- Replace all hardcoded UI strings with `t('key')` calls
+- Language toggle in NavBar (EN | FR, persisted to localStorage)
+- Scope: UI labels, page titles, error messages, button text — NOT API error payloads (Phase 1.5)
+
+**Backend (Django i18n — email templates only)**
+- `django.middleware.locale.LocaleMiddleware` + `USE_I18N = True` in settings
+- Translate invite email + password reset email subject/body (EN + FR .po files)
+- API error messages stay in English Phase 1
+
+**Why i18next over react-intl / LinguiJS?**
+- i18next: most widely adopted React i18n library, JSON files, minimal ceremony
+- react-intl: more structured (ICU message format) but higher setup cost for 2 languages
+- LinguiJS: elegant compile-time extraction but adds build complexity not needed Phase 1
+
+---
+
+#### Track 2 — Polish + Known Technical Debt
+
+**Must-do before deployment:**
+- ⏳ **Message model migration** — Move `Message` from `ratings/models.py` → `swaps/models.py`
+  using Django's `SeparateDatabaseAndState` migration pattern. Fixes confusing import paths.
+- ⏳ **Error boundary** — React `ErrorBoundary` wrapping the router (friendly error page vs blank screen)
+- ⏳ **Loading + empty states** — Audit pages: CollectionPage (no cards), OffersPage (no offers),
+  SearchPage (no results); scan page "scanning…" indicator
+- ⏳ **404 page** — Custom `NotFound` component for unmatched routes
+- ⏳ **Favicon + page title** — Set `<title>` per-page; add favicon
+
+**Nice-to-have:**
+- ⏳ Surface offer expiry date on OfferDetailPage
+- ⏳ Pagination for CollectionPage + SearchPage (can return many rows)
+- ⏳ Tesseract QA — scan real cards in varied lighting, tune preprocessing if needed
+
+---
+
+#### Track 3 — Deployment
+
+**Backend (Render)**
+- ⏳ Environment variables: `SECRET_KEY`, `DATABASE_URL`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`
+- ⏳ Add `tesseract-ocr` to Render build command (`apt-get install -y tesseract-ocr`)
+- ⏳ `collectstatic` + `whitenoise` for static file serving
+- ⏳ `DEBUG=False`, `SECURE_SSL_REDIRECT=True`, `CSRF_TRUSTED_ORIGINS` configured
+- ⏳ Neon PostgreSQL connection string confirmed in `DATABASE_URL`
+- ⏳ Render cron job → `/api/health/` every 10 min (prevent cold starts on free tier)
+
+**Frontend (Cloudflare Pages)**
+- ⏳ Connect GitHub repo to Cloudflare Pages (auto-deploy on push to `main`)
+- ⏳ Build command: `cd frontend && npm run build`, output: `frontend/dist`
+- ⏳ Add `_redirects` file (`/* /index.html 200`) for React Router client-side routing
+- ⏳ `VITE_API_BASE_URL` env var pointing to Render backend URL in production
+- ⏳ Confirm Vite proxy only active in dev; production hits absolute URL via env var
+
+**Pre-launch checklist:**
+- ⏳ Generate 10-20 invite codes for closed beta friends
+- ⏳ Smoke test full swap workflow end-to-end on production
+- ⏳ Confirm card scanning works on iOS Safari + Android Chrome
+- ⏳ CORS: Cloudflare Pages domain whitelisted on Render backend
+
+#### Sprint 9 tasks
+1. ✅ i18n frontend: install i18next, create en.json + fr.json, replace strings, language toggle in NavBar
+2. ✅ i18n backend: DEFERRED — no email templates exist in app; Django i18n not needed Phase 1
+3. ✅ Technical debt: Message model migration (ratings → swaps app, SeparateDatabaseAndState)
+4. ✅ Polish: ErrorBoundary, loading/empty states, 404 page, favicon + page titles
+5. ⏳ Deployment — backend: Render env vars, Dockerfile, gunicorn, whitenoise, security settings
+6. ⏳ Deployment — frontend: Cloudflare Pages config, _redirects, VITE_API_BASE_URL
+7. ⏳ Pre-launch: generate invite codes, smoke test, mobile QA (iOS + Android)
 
 ---
 
@@ -826,6 +938,7 @@ security.
 **Status:** ✅ Sprint 5 Complete - Ready for Sprint 6
 **Status:** ✅ Sprint 6 Complete - Ready for Sprint 7
 **Status:** ✅ Sprint 7 Complete - Ready for Sprint 8
+**Status:** ✅ Sprint 8 Complete - Ready for Sprint 9
 
 **Planning Date:** April 8, 2026  
 **Sprint 1 Completion Date:** April 15, 2026
@@ -835,6 +948,8 @@ security.
 **Sprint 5 Completion Date:** May 1, 2026
 **Sprint 6 Completion Date:** May 1, 2026
 **Sprint 7 Completion Date:** May 1, 2026
+**Sprint 8 Completion Date:** May 1, 2026
+**Sprint 9 Tracks 1+2 Completion Date:** May 2, 2026
 
 **Tech Stack Locked:** React + TypeScript + Vite + React Router DOM v7 + SCSS CSS Modules (frontend), Django + Python (backend), Neon PostgreSQL (database), Render (backend hosting), Cloudflare Pages (frontend hosting)
 
@@ -906,7 +1021,20 @@ security.
 - ✅ OfferDetailPage: rate button on completed offers + modal wired
 - ✅ 12 new tests (all passing, 122 total)
 
-**Timeline:** 185-225 hours (9-11 weeks @ 20+ hrs/week) for Phase 1 MVP  
-**Remaining:** Sprints 5-9
+**Sprint 8 Deliverables:**
+- ✅ transaction.atomic() wrapping entire swap completion block
+- ✅ Card ownership transfer on dual-confirm: offered cards → target_user, requested cards → initiator_user
+- ✅ bulk_update sets is_available=False on all transferred cards
+- ✅ 5 OwnershipTransferTests (transfer directions, unavailability, partial-confirm guard, unrelated-card isolation)
+- ✅ POST /api/cards/scan/ — PIL preprocessing + Tesseract OCR (--psm 7) + Scryfall fuzzy lookup
+- ✅ pytesseract + Pillow in requirements.txt; tesseract-ocr noted for Render build
+- ✅ 7 scan endpoint tests (auth, input validation, OCR + Scryfall mocking)
+- ✅ ScanResult + StagedCard types; scanCard() using raw fetch (multipart boundary safety)
+- ✅ CameraCapture, ScanCardItem, ScanStagingList components
+- ✅ ScanPage (/scan) — full three-phase capture → OCR → review/commit workflow
+- ✅ 134 backend tests passing; frontend build clean
 
-**Next Action:** Begin Sprint 5 (Offer creation + counteroffer logic + offer list UI)
+**Timeline:** 185-225 hours (9-11 weeks @ 20+ hrs/week) for Phase 1 MVP  
+**Remaining:** Sprint 9 (i18n + polish + deployment — MVP finish line)
+
+**Next Action:** Begin Sprint 9 (Internationalization EN+FR + polish + Render/Cloudflare Pages deployment)

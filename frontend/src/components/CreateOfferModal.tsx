@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Trans, useTranslation } from "react-i18next";
 import { listCards } from "@/api/cards";
 import { getUserCards } from "@/api/users";
 import { createOffer } from "@/api/offers";
@@ -28,6 +29,7 @@ export function CreateOfferModal({
   const [theirFilter, setTheirFilter] = useState("");
   const [apiError, setApiError] = useState<string | null>(null);
   const firstFocusRef = useRef<HTMLButtonElement>(null);
+  const { t } = useTranslation();
 
   // Close on Escape
   useEffect(() => {
@@ -49,14 +51,16 @@ export function CreateOfferModal({
   });
 
   // Only fetch target cards if the caller didn't supply them
-  const { data: fetchedTargetCards = [], isLoading: targetCardsLoading } = useQuery({
-    queryKey: ["userCards", targetUserId],
-    queryFn: () => getUserCards(targetUserId),
-    enabled: targetCardsProp === undefined,
-    staleTime: 30_000,
-  });
+  const { data: fetchedTargetCards = [], isLoading: targetCardsLoading } =
+    useQuery({
+      queryKey: ["userCards", targetUserId],
+      queryFn: () => getUserCards(targetUserId),
+      enabled: targetCardsProp === undefined,
+      staleTime: 30_000,
+    });
 
-  const targetCards: GlobalSearchResult[] = targetCardsProp ?? fetchedTargetCards;
+  const targetCards: GlobalSearchResult[] =
+    targetCardsProp ?? fetchedTargetCards;
   const targetLoading = targetCardsProp === undefined && targetCardsLoading;
 
   const availableMyCards = myCards.filter((c) => c.is_available);
@@ -64,13 +68,13 @@ export function CreateOfferModal({
   // Client-side filter — case-insensitive substring match on card name
   const filteredMyCards = myFilter
     ? availableMyCards.filter((c) =>
-        c.card_name.toLowerCase().includes(myFilter.toLowerCase())
+        c.card_name.toLowerCase().includes(myFilter.toLowerCase()),
       )
     : availableMyCards;
 
   const filteredTargetCards = theirFilter
     ? targetCards.filter((c) =>
-        c.card_name.toLowerCase().includes(theirFilter.toLowerCase())
+        c.card_name.toLowerCase().includes(theirFilter.toLowerCase()),
       )
     : targetCards;
 
@@ -86,7 +90,7 @@ export function CreateOfferModal({
       onClose();
     },
     onError: (err: Error) => {
-      setApiError(err.message ?? "Failed to create offer.");
+      setApiError(err.message ?? t("createOffer.failedToCreate"));
     },
   });
 
@@ -109,20 +113,25 @@ export function CreateOfferModal({
       <div className={styles.panel} onClick={(e) => e.stopPropagation()}>
         {/* ── Header ─────────────────────────────────────────── */}
         <div className={styles.header}>
-          <h2 className={styles.title}>Offer to {targetUsername}</h2>
+          <h2 className={styles.title}>
+            {t("createOffer.title", { username: targetUsername })}
+          </h2>
           <button
             ref={firstFocusRef}
             className={styles.closeBtn}
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("common.close")}
           >
             ×
           </button>
         </div>
 
         <p className={styles.hint}>
-          Select cards <strong>you offer</strong> on the left and cards{" "}
-          <strong>you want</strong> from {targetUsername} on the right.
+          <Trans
+            i18nKey="createOffer.hint"
+            values={{ username: targetUsername }}
+            components={{ 1: <strong />, 2: <strong /> }}
+          />
         </p>
 
         {/* ── Two-column picker ───────────────────────────────── */}
@@ -130,23 +139,30 @@ export function CreateOfferModal({
           {/* Your cards */}
           <section className={styles.column}>
             <h3 className={styles.columnTitle}>
-              Your cards{offeredIds.size > 0 && ` (${offeredIds.size})`}
+              {t("createOffer.yourCards")}
+              {offeredIds.size > 0 && ` (${offeredIds.size})`}
             </h3>
             <input
               type="search"
               className={styles.filterInput}
-              placeholder="Filter…"
+              placeholder={t("createOffer.filterYourCards")}
               value={myFilter}
               onChange={(e) => setMyFilter(e.target.value)}
-              aria-label="Filter your cards"
+              aria-label={t("createOffer.filterYourCards")}
             />
-            {myCardsLoading && <p className={styles.muted}>Loading…</p>}
+            {myCardsLoading && (
+              <p className={styles.muted}>{t("createOffer.loading")}</p>
+            )}
             {!myCardsLoading && availableMyCards.length === 0 && (
-              <p className={styles.muted}>No available cards.</p>
+              <p className={styles.muted}>
+                {t("createOffer.noAvailableCards")}
+              </p>
             )}
-            {!myCardsLoading && availableMyCards.length > 0 && filteredMyCards.length === 0 && (
-              <p className={styles.muted}>No cards match.</p>
-            )}
+            {!myCardsLoading &&
+              availableMyCards.length > 0 &&
+              filteredMyCards.length === 0 && (
+                <p className={styles.muted}>{t("createOffer.noCardsMatch")}</p>
+              )}
             <ul className={styles.list}>
               {filteredMyCards.map((card) => (
                 <li key={card.id}>
@@ -174,24 +190,34 @@ export function CreateOfferModal({
           {/* Their cards */}
           <section className={styles.column}>
             <h3 className={styles.columnTitle}>
-              {targetUsername}&apos;s cards
+              {t("createOffer.theirCards", { username: targetUsername })}
               {requestedIds.size > 0 && ` (${requestedIds.size})`}
             </h3>
             <input
               type="search"
               className={styles.filterInput}
-              placeholder="Filter…"
+              placeholder={t("createOffer.filterTheirCards", {
+                username: targetUsername,
+              })}
               value={theirFilter}
               onChange={(e) => setTheirFilter(e.target.value)}
-              aria-label={`Filter ${targetUsername}'s cards`}
+              aria-label={t("createOffer.filterTheirCards", {
+                username: targetUsername,
+              })}
             />
-            {targetLoading && <p className={styles.muted}>Loading…</p>}
+            {targetLoading && (
+              <p className={styles.muted}>{t("createOffer.loading")}</p>
+            )}
             {!targetLoading && targetCards.length === 0 && (
-              <p className={styles.muted}>No available cards.</p>
+              <p className={styles.muted}>
+                {t("createOffer.noAvailableCards")}
+              </p>
             )}
-            {!targetLoading && targetCards.length > 0 && filteredTargetCards.length === 0 && (
-              <p className={styles.muted}>No cards match.</p>
-            )}
+            {!targetLoading &&
+              targetCards.length > 0 &&
+              filteredTargetCards.length === 0 && (
+                <p className={styles.muted}>{t("createOffer.noCardsMatch")}</p>
+              )}
             <ul className={styles.list}>
               {filteredTargetCards.map((card: GlobalSearchResult) => (
                 <li key={card.id}>
@@ -226,14 +252,14 @@ export function CreateOfferModal({
             onClick={onClose}
             disabled={isPending}
           >
-            Cancel
+            {t("createOffer.cancel")}
           </button>
           <button
             className={styles.btnSubmit}
             onClick={() => submit()}
             disabled={!canSubmit}
           >
-            {isPending ? "Sending…" : "Send Offer"}
+            {isPending ? t("createOffer.sending") : t("createOffer.send")}
           </button>
         </div>
       </div>

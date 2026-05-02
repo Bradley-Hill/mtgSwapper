@@ -94,6 +94,24 @@
   }
 }
 
+// ── Language toggle button ────────────────────────────────────────────────────
+.langToggle {
+  font-size: $text-xs;
+  font-weight: 600;
+  color: $text-muted;
+  padding: $space-1 $space-2;
+  border: 1px solid $border-subtle;
+  border-radius: $radius-sm;
+  letter-spacing: 0.05em;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+
+  &:hover {
+    color: $accent;
+    border-color: $accent;
+    background: $bg-hover;
+  }
+}
+
 // ── Hamburger button — mobile only ────────────────────────────────────────────
 .hamburger {
   display: none;

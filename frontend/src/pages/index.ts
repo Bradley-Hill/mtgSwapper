@@ -6,3 +6,4 @@ export { UserProfilePage } from "./UserProfilePage";
 export { OffersPage } from "./OffersPage";
 export { OfferDetailPage } from "./OfferDetailPage";
 export { ScanPage } from "./ScanPage";
+export { NotFoundPage } from "./NotFoundPage";

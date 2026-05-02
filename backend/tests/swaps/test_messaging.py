@@ -18,8 +18,7 @@ from rest_framework.test import APITestCase
 from urllib.parse import quote
 
 from cards.models import Card
-from ratings.models import Message
-from swaps.models import Offer, OfferItem, SwapDetails
+from swaps.models import Message, Offer, OfferItem, SwapDetails
 
 User = get_user_model()
 

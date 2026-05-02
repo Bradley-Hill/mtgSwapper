@@ -1,38 +1,35 @@
 import { useState } from 'react';
-import { useCards, useDeleteCard } from '@/hooks';
+import { useTranslation } from 'react-i18next';
+import { useCards, useDeleteCard, usePageTitle } from '@/hooks';
 import { AddCardModal, BulkImportModal, EditCardModal } from '@/components';
 import type { Card } from '@/types';
 import styles from './CollectionPage.module.scss';
-
-const CONDITION_LABEL: Record<string, string> = {
-  unused: 'NM',
-  played: 'Played',
-  damaged: 'Damaged',
-};
 
 export function CollectionPage() {
   const { data: cards, isLoading, isError, error, refetch } = useCards();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const { t } = useTranslation();
+  usePageTitle(t('collection.title'));
 
   return (
     <div className={styles.page}>
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <div>
-            <h1 className={styles.headerTitle}>My Collection</h1>
+            <h1 className={styles.headerTitle}>{t('collection.title')}</h1>
             {cards && cards.length > 0 && (
               <p className={styles.headerSubtitle}>
-                {cards.length} card{cards.length !== 1 ? 's' : ''}
+                {t('collection.subtitle', { count: cards.length })}
               </p>
             )}
           </div>
           <div className={styles.headerActions}>
             <button onClick={() => setIsAddModalOpen(true)} className={styles.btnPrimary}>
-              + Add card
+              {t('collection.addCard')}
             </button>
             <button onClick={() => setIsBulkModalOpen(true)} className={styles.btnSecondary}>
-              Bulk import
+              {t('collection.bulkImport')}
             </button>
           </div>
         </div>
@@ -52,10 +49,10 @@ export function CollectionPage() {
         {isError && (
           <div className={styles.errorState}>
             <p className={styles.errorText}>
-              {error instanceof Error ? error.message : 'Failed to load collection.'}
+              {error instanceof Error ? error.message : t('collection.errorLoading')}
             </p>
             <button onClick={() => void refetch()} className={styles.retryBtn}>
-              Try again
+              {t('collection.retryLoad')}
             </button>
           </div>
         )}
@@ -64,12 +61,10 @@ export function CollectionPage() {
         {!isLoading && !isError && cards?.length === 0 && (
           <div className={styles.emptyState}>
             <p className={styles.emptyEmoji}>🃏</p>
-            <h2 className={styles.emptyTitle}>No cards yet</h2>
-            <p className={styles.emptySubtitle}>
-              Add your first card to start building your collection.
-            </p>
+            <h2 className={styles.emptyTitle}>{t('collection.emptyTitle')}</h2>
+            <p className={styles.emptySubtitle}>{t('collection.emptySubtitle')}</p>
             <button onClick={() => setIsAddModalOpen(true)} className={styles.btnPrimary}>
-              Add your first card
+              {t('collection.addFirstCard')}
             </button>
           </div>
         )}
@@ -80,12 +75,12 @@ export function CollectionPage() {
             <table className={styles.table}>
               <thead className={styles.tableHead}>
                 <tr>
-                  <th>Card</th>
-                  <th>Set</th>
-                  <th>Condition</th>
-                  <th className={styles.colCenter}>Qty</th>
-                  <th>Language</th>
-                  <th className={styles.colCenter}>Available</th>
+                  <th>{t('collection.columns.name')}</th>
+                  <th>{t('collection.columns.set')}</th>
+                  <th>{t('collection.columns.condition')}</th>
+                  <th className={styles.colCenter}>{t('collection.columns.quantity')}</th>
+                  <th>{t('collection.columns.language')}</th>
+                  <th className={styles.colCenter}>{t('collection.columns.available')}</th>
                   <th />
                 </tr>
               </thead>
@@ -115,6 +110,7 @@ function CardRow({ card }: { card: Card }) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const deleteCard = useDeleteCard();
+  const { t } = useTranslation();
 
   return (
     <>
@@ -122,14 +118,13 @@ function CardRow({ card }: { card: Card }) {
         <td className={styles.cell}>
           <span className={styles.cardName}>{card.card_name}</span>
           {card.is_foil && (
-            <span className={styles.foilBadge} title="Foil">✦</span>
+            <span className={styles.foilBadge} title={t('collection.foilYes')}>✦</span>
           )}
         </td>
         <td className={styles.cell}>{card.set_name ?? card.set_code}</td>
         <td className={styles.cell}>
-          {/* Two classes: base badge style + condition-specific colour */}
           <span className={`${styles.badge} ${styles[card.condition]}`}>
-            {CONDITION_LABEL[card.condition]}
+            {t(`collection.condition.${card.condition}`)}
           </span>
         </td>
         <td className={`${styles.cell} ${styles.cellCenter}`}>{card.quantity}</td>
@@ -137,7 +132,7 @@ function CardRow({ card }: { card: Card }) {
         <td className={`${styles.cell} ${styles.cellCenter}`}>
           <span
             className={`${styles.availDot} ${card.is_available ? styles.available : ''}`}
-            title={card.is_available ? 'Available for swap' : 'Not available'}
+            title={card.is_available ? t('collection.availableYes') : t('collection.availableNo')}
           />
         </td>
         <td className={styles.cell}>
@@ -149,23 +144,23 @@ function CardRow({ card }: { card: Card }) {
                   disabled={deleteCard.isPending}
                   className={styles.actionConfirm}
                 >
-                  {deleteCard.isPending ? 'Deleting…' : 'Sure?'}
+                  {deleteCard.isPending ? t('collection.deleting') : t('collection.confirmDelete')}
                 </button>
                 <button
                   onClick={() => setIsConfirmingDelete(false)}
                   disabled={deleteCard.isPending}
                   className={styles.actionCancel}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </>
             ) : (
               <>
                 <button onClick={() => setIsEditOpen(true)} className={styles.actionEdit}>
-                  Edit
+                  {t('collection.edit')}
                 </button>
                 <button onClick={() => setIsConfirmingDelete(true)} className={styles.actionDelete}>
-                  Delete
+                  {t('collection.delete')}
                 </button>
               </>
             )}

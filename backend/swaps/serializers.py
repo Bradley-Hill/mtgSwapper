@@ -21,8 +21,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from cards.models import Card
-from .models import Offer, OfferItem, SwapDetails
-from ratings.models import Message
+from .models import Message, Offer, OfferItem, SwapDetails
 
 User = get_user_model()
 

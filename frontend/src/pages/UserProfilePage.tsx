@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import { usePageTitle } from "@/hooks";
 import { getUserProfile, getUserCards } from "@/api/users";
 import { getUserRatings } from "@/api/ratings";
 import { useAuth } from "@/context";
@@ -24,6 +26,7 @@ export function UserProfilePage() {
   const { user: currentUser } = useAuth();
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [cardFilter, setCardFilter] = useState("");
+  const { t } = useTranslation();
 
   const {
     data: profile,
@@ -35,6 +38,9 @@ export function UserProfilePage() {
     enabled: !!id,
     staleTime: 60_000,
   });
+
+  // Title shows the user's username once loaded; undefined falls back to app name
+  usePageTitle(profile?.username);
 
   const {
     data: cards,
@@ -57,7 +63,7 @@ export function UserProfilePage() {
   if (profileLoading) {
     return (
       <main className={styles.page}>
-        <p className={styles.muted}>Loading profile…</p>
+        <p className={styles.muted}>{t("userProfile.loading")}</p>
       </main>
     );
   }
@@ -65,9 +71,9 @@ export function UserProfilePage() {
   if (profileError || !profile) {
     return (
       <main className={styles.page}>
-        <p className={styles.error}>User not found.</p>
+        <p className={styles.error}>{t("userProfile.notFound")}</p>
         <Link to="/search" className={styles.backLink}>
-          ← Back to search
+          {t("offerDetail.backToOffers")}
         </Link>
       </main>
     );
@@ -95,16 +101,22 @@ export function UserProfilePage() {
             <p className={styles.location}>
               {profile.city && profile.country
                 ? `${profile.city}, ${profile.country}`
-                : (profile.country ?? profile.city ?? "Location not set")}
+                : (profile.country ??
+                  profile.city ??
+                  t("userProfile.locationNotSet"))}
             </p>
-            <p className={styles.since}>Member since {memberSince}</p>
+            <p className={styles.since}>
+              {t("userProfile.memberSince", { date: memberSince })}
+            </p>
           </div>
           <div className={styles.stats}>
             <div className={styles.stat}>
               <span className={styles.statValue}>
                 {profile.total_swaps_completed}
               </span>
-              <span className={styles.statLabel}>Swaps</span>
+              <span className={styles.statLabel}>
+                {t("userProfile.swapsLabel")}
+              </span>
             </div>
             <div className={styles.stat}>
               <RatingStars
@@ -121,7 +133,7 @@ export function UserProfilePage() {
               className={styles.btnOffer}
               onClick={() => setShowOfferModal(true)}
             >
-              Make Offer
+              {t("userProfile.makeOffer")}
             </button>
           )}
         </section>
@@ -129,19 +141,17 @@ export function UserProfilePage() {
         {/* ── Available cards ────────────────────────────────── */}
         <section>
           <h2 className={styles.sectionTitle}>
-            Available Cards
+            {t("userProfile.availableCards")}
             {!cardsLoading && (
               <span className={styles.cardCount}>{cardList.length}</span>
             )}
           </h2>
 
-          {cardsLoading && <p className={styles.muted}>Loading cards…</p>}
-          {cardsError && <p className={styles.error}>Could not load cards.</p>}
+          {cardsLoading && <p className={styles.muted}>{t("userProfile.loadingCards")}</p>}
+          {cardsError && <p className={styles.error}>{t("userProfile.errorLoadingCards")}</p>}
 
           {!cardsLoading && !cardsError && cardList.length === 0 && (
-            <p className={styles.muted}>
-              This user has no cards available for swap.
-            </p>
+            <p className={styles.muted}>{t("userProfile.noCardsAvailable")}</p>
           )}
 
           {cardList.length > 0 && (
@@ -149,10 +159,10 @@ export function UserProfilePage() {
               <input
                 type="search"
                 className={styles.filterInput}
-                placeholder="Filter by card name…"
+                placeholder={t("userProfile.filterPlaceholder")}
                 value={cardFilter}
                 onChange={(e) => setCardFilter(e.target.value)}
-                aria-label="Filter cards"
+                aria-label={t("userProfile.filterPlaceholder")}
               />
               {(() => {
                 const filtered = cardFilter
@@ -163,18 +173,18 @@ export function UserProfilePage() {
                     )
                   : cardList;
                 return filtered.length === 0 ? (
-                  <p className={styles.muted}>No cards match.</p>
+                  <p className={styles.muted}>{t("userProfile.noCardsMatch")}</p>
                 ) : (
                   <div className={styles.tableWrapper}>
                     <table className={styles.table}>
                       <thead>
                         <tr>
-                          <th>Card</th>
-                          <th>Set</th>
-                          <th>Condition</th>
-                          <th>Language</th>
-                          <th>Foil</th>
-                          <th>Qty</th>
+                          <th>{t("userProfile.columns.card")}</th>
+                          <th>{t("userProfile.columns.set")}</th>
+                          <th>{t("userProfile.columns.condition")}</th>
+                          <th>{t("userProfile.columns.language")}</th>
+                          <th>{t("userProfile.columns.foil")}</th>
+                          <th>{t("userProfile.columns.quantity")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -210,14 +220,14 @@ export function UserProfilePage() {
         {/* ── Ratings received ───────────────────────────────── */}
         <section>
           <h2 className={styles.sectionTitle}>
-            Ratings
+            {t("userProfile.ratingsTitle")}
             {ratings && (
               <span className={styles.cardCount}>{ratings.length}</span>
             )}
           </h2>
 
           {!ratings || ratings.length === 0 ? (
-            <p className={styles.muted}>No ratings yet.</p>
+            <p className={styles.muted}>{t("userProfile.noRatings")}</p>
           ) : (
             <ul className={styles.ratingsList}>
               {ratings.map((r) => (

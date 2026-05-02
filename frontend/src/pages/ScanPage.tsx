@@ -1,5 +1,7 @@
 import { useState, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import { usePageTitle } from "@/hooks";
 import { scanCard, addFromScryfall } from "@/api/cards";
 import { CameraCapture, ScanStagingList } from "@/components";
 import type { StagedCard } from "@/types";
@@ -40,6 +42,8 @@ export function ScanPage() {
     added: number;
     failed: number;
   } | null>(null);
+  const { t } = useTranslation();
+  usePageTitle(t('scan.title'));
 
   // ── Scan mutation (OCR + Scryfall) ──────────────────────────────────────
   const scanMutation = useMutation({
@@ -52,9 +56,7 @@ export function ScanPage() {
       ]);
     },
     onError: (err: Error) => {
-      setScanError(
-        err.message || "Scan failed. Try better lighting or a closer shot.",
-      );
+      setScanError(err.message || t("scan.errorFallback"));
     },
   });
 
@@ -107,11 +109,8 @@ export function ScanPage() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1 className={styles.title}>Scan Cards</h1>
-        <p className={styles.subtitle}>
-          Point your camera at a card's name bar. Each scan adds one card to the
-          staging list — review before saving.
-        </p>
+        <h1 className={styles.title}>{t("scan.title")}</h1>
+        <p className={styles.subtitle}>{t("scan.subtitle")}</p>
       </header>
 
       {/* ── Capture area ── */}
@@ -121,7 +120,9 @@ export function ScanPage() {
           disabled={scanMutation.isPending}
         />
 
-        {scanMutation.isPending && <p className={styles.scanning}>Scanning…</p>}
+        {scanMutation.isPending && (
+          <p className={styles.scanning}>{t("scan.scanning")}</p>
+        )}
 
         {scanError && (
           <p className={styles.error} role="alert">
@@ -135,18 +136,19 @@ export function ScanPage() {
         <div className={styles.resultBanner} role="status">
           {addResults.added > 0 && (
             <span className={styles.addedCount}>
-              ✓ {addResults.added} card{addResults.added !== 1 ? "s" : ""} added
+              {t("scan.results.added", { count: addResults.added })}
             </span>
           )}
           {addResults.failed > 0 && (
             <span className={styles.failedCount}>
-              {addResults.failed} failed — try adding manually
+              {t("scan.results.failed", { count: addResults.failed })}
             </span>
           )}
           <button
             type="button"
             className={styles.dismissBtn}
             onClick={() => setAddResults(null)}
+            aria-label={t("scan.results.dismiss")}
           >
             ✕
           </button>

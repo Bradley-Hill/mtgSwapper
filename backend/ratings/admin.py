@@ -1,6 +1,5 @@
 from django.contrib import admin
 
-from .models import Message, Rating
+from .models import Rating
 
-admin.site.register(Message)
 admin.site.register(Rating)

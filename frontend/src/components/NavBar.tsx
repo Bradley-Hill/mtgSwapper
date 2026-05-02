@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/context";
 import styles from "./NavBar.module.scss";
 
@@ -15,6 +16,13 @@ export function NavBar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const { t, i18n } = useTranslation();
+
+  const currentLang = i18n.language.startsWith("fr") ? "fr" : "en";
+
+  function toggleLanguage() {
+    void i18n.changeLanguage(currentLang === "en" ? "fr" : "en");
+  }
 
   function close() {
     setIsOpen(false);
@@ -30,51 +38,57 @@ export function NavBar() {
     <header>
       <nav className={styles.nav}>
         <div className={styles.inner}>
-          {/* Brand / logo */}
           <NavLink to="/" className={styles.brand} onClick={close}>
             MTG Swapper
           </NavLink>
 
-          {/* ── Desktop links ───────────────────────────────────────── */}
           <ul className={styles.links}>
             <li>
               <NavLink to="/" end className={navLinkClass}>
-                My Collection
+                {t("nav.myCollection")}
               </NavLink>
             </li>
             <li>
               <NavLink to="/search" className={navLinkClass}>
-                Search
+                {t("nav.search")}
               </NavLink>
             </li>
             <li>
               <NavLink to="/scan" className={navLinkClass}>
-                Scan
+                {t("nav.scan")}
               </NavLink>
             </li>
             <li>
               <NavLink to="/offers" className={navLinkClass}>
-                Offers
+                {t("nav.offers")}
               </NavLink>
             </li>
           </ul>
 
-          {/* Desktop user section */}
           <div className={styles.userSection}>
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              className={styles.langToggle}
+              aria-label={
+                currentLang === "en" ? "Switch to French" : "Passer en anglais"
+              }
+            >
+              {currentLang === "en" ? "FR" : "EN"}
+            </button>
             {user && <span className={styles.username}>{user.username}</span>}
             <button
               type="button"
               onClick={handleLogout}
               className={styles.logoutBtn}
             >
-              Log out
+              {t("nav.logOut")}
             </button>
           </div>
 
-          {/* ── Hamburger (mobile) ──────────────────────────────────── */}
           <button
             type="button"
-            aria-label={isOpen ? "Close menu" : "Open menu"}
+            aria-label={isOpen ? t("nav.closeMenu") : t("nav.openMenu")}
             aria-expanded={isOpen}
             aria-controls="mobile-menu"
             onClick={() => setIsOpen((o) => !o)}
@@ -87,20 +101,19 @@ export function NavBar() {
         </div>
       </nav>
 
-      {/* ── Mobile dropdown ─────────────────────────────────────────── */}
       {isOpen && (
         <div id="mobile-menu" className={styles.mobileMenu}>
           <NavLink to="/" end className={mobileNavLinkClass} onClick={close}>
-            My Collection
+            {t("nav.myCollection")}
           </NavLink>
           <NavLink to="/search" className={mobileNavLinkClass} onClick={close}>
-            Search
+            {t("nav.search")}
           </NavLink>
           <NavLink to="/scan" className={mobileNavLinkClass} onClick={close}>
-            Scan
+            {t("nav.scan")}
           </NavLink>
           <NavLink to="/offers" className={mobileNavLinkClass} onClick={close}>
-            Offers
+            {t("nav.offers")}
           </NavLink>
 
           <div className={styles.mobileUser}>
@@ -109,10 +122,20 @@ export function NavBar() {
             )}
             <button
               type="button"
+              onClick={toggleLanguage}
+              className={styles.langToggle}
+              aria-label={
+                currentLang === "en" ? "Switch to French" : "Passer en anglais"
+              }
+            >
+              {currentLang === "en" ? "FR" : "EN"}
+            </button>
+            <button
+              type="button"
               onClick={handleLogout}
               className={styles.mobileLogoutBtn}
             >
-              Log out
+              {t("nav.logOut")}
             </button>
           </div>
         </div>

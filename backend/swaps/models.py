@@ -213,3 +213,44 @@ class SwapDetails(models.Model):
 
     def __str__(self):
         return f"SwapDetails for Offer {self.offer.id} (mode: {self.swap_mode})"
+
+
+class Message(models.Model):
+    """
+    Messages tied to an offer. Used for negotiation and coordination.
+
+    Moved here from the ratings app so all swap-related models are co-located.
+    The physical table (ratings_message) is unchanged — see migration
+    0005_move_message_from_ratings for details.
+
+    Privacy:
+    - Only offer participants can read / send messages
+    - Messages visible ONLY after offer accepted
+    - API enforces: Only initiator/target can view/send
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    offer = models.ForeignKey(Offer, on_delete=models.CASCADE, related_name='messages')
+    sender_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+
+    content = models.TextField()
+    is_system_message = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['created_at']
+        # Keep the existing table name — avoids a data migration.
+        # Run `ALTER TABLE ratings_message RENAME TO swaps_message` manually
+        # (and remove db_table) if you want a cleaner schema long-term.
+        db_table = 'ratings_message'
+        indexes = [
+            # Names match the indexes already in the DB (created by ratings migrations).
+            models.Index(fields=['offer_id'], name='ratings_mes_offer_i_9a5ff4_idx'),
+            models.Index(fields=['created_at'], name='ratings_mes_created_e9db42_idx'),
+            models.Index(fields=['offer_id', '-created_at'], name='ratings_mes_offer_i_2cf5cb_idx'),
+        ]
+
+    def __str__(self):
+        msg_type = "(system)" if self.is_system_message else ""
+        return f"Message from {self.sender_user} on Offer {self.offer.id} {msg_type}"

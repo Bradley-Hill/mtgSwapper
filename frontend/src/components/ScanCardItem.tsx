@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { StagedCard } from "@/types";
 import styles from "./ScanCardItem.module.scss";
 
@@ -24,6 +25,7 @@ interface Props {
  * picked the wrong card entirely.
  */
 export function ScanCardItem({ card, onRemove, onEditName }: Props) {
+  const { t } = useTranslation();
   return (
     <div className={styles.row}>
       <div className={styles.main}>
@@ -44,7 +46,7 @@ export function ScanCardItem({ card, onRemove, onEditName }: Props) {
         </span>
         {card.raw_ocr_text && card.raw_ocr_text !== card.card_name && (
           <span className={styles.ocrHint}>
-            OCR read: &ldquo;{card.raw_ocr_text}&rdquo;
+            {t("scan.staging.ocrHint", { text: card.raw_ocr_text })}
           </span>
         )}
       </div>
@@ -53,7 +55,7 @@ export function ScanCardItem({ card, onRemove, onEditName }: Props) {
         type="button"
         className={styles.removeBtn}
         onClick={() => onRemove(card.stageId)}
-        aria-label={`Remove ${card.card_name}`}
+        aria-label={t("scan.staging.removeCard", { name: card.card_name })}
       >
         ✕
       </button>

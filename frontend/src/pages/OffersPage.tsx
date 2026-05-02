@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import { usePageTitle } from "@/hooks";
 import { getOffers } from "@/api/offers";
 import { useAuth } from "@/context";
 import type { OfferListItem, OfferStatus } from "@/types";
@@ -8,19 +10,27 @@ import styles from "./OffersPage.module.scss";
 
 type Direction = "all" | "sent" | "received";
 
-const STATUS_LABELS: Record<OfferStatus, string> = {
-  pending: "Pending",
-  accepted: "Accepted",
-  declined: "Declined",
-  expired: "Expired",
-  cancelled: "Cancelled",
-  completed: "Completed",
-};
-
 export function OffersPage() {
   const { user } = useAuth();
   const [direction, setDirection] = useState<Direction>("all");
   const [statusFilter, setStatusFilter] = useState("");
+  const { t } = useTranslation();
+  usePageTitle(t('offers.title'));
+
+  const STATUS_LABELS: Record<OfferStatus, string> = {
+    pending: t("offers.status.pending"),
+    accepted: t("offers.status.accepted"),
+    declined: t("offers.status.declined"),
+    expired: t("offers.status.expired"),
+    cancelled: t("offers.status.cancelled"),
+    completed: t("offers.status.completed"),
+  };
+
+  const DIRECTION_LABELS: Record<Direction, string> = {
+    all: t("offers.tabs.all"),
+    sent: t("offers.tabs.sent"),
+    received: t("offers.tabs.received"),
+  };
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["offers", direction, statusFilter],
@@ -36,7 +46,7 @@ export function OffersPage() {
 
   return (
     <main className={styles.page}>
-      <h1 className={styles.pageTitle}>Offers</h1>
+      <h1 className={styles.pageTitle}>{t("offers.title")}</h1>
 
       {/* ── Filters ──────────────────────────────────────── */}
       <div className={styles.filters}>
@@ -49,7 +59,7 @@ export function OffersPage() {
               className={`${styles.tab} ${direction === d ? styles.tabActive : ""}`}
               onClick={() => setDirection(d)}
             >
-              {d.charAt(0).toUpperCase() + d.slice(1)}
+              {DIRECTION_LABELS[d]}
             </button>
           ))}
         </div>
@@ -58,9 +68,9 @@ export function OffersPage() {
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           className={styles.statusSelect}
-          aria-label="Filter by status"
+          aria-label={t("offers.filter.allStatuses")}
         >
-          <option value="">All statuses</option>
+          <option value="">{t("offers.filter.allStatuses")}</option>
           {(Object.keys(STATUS_LABELS) as OfferStatus[]).map((s) => (
             <option key={s} value={s}>
               {STATUS_LABELS[s]}
@@ -70,11 +80,11 @@ export function OffersPage() {
       </div>
 
       {/* ── Content ──────────────────────────────────────── */}
-      {isLoading && <p className={styles.muted}>Loading offers…</p>}
-      {isError && <p className={styles.error}>Could not load offers.</p>}
+      {isLoading && <p className={styles.muted}>{t("offers.loading")}</p>}
+      {isError && <p className={styles.error}>{t("common.error")}</p>}
 
       {!isLoading && !isError && offers.length === 0 && (
-        <p className={styles.muted}>No offers found.</p>
+        <p className={styles.muted}>{t("offers.empty")}</p>
       )}
 
       {offers.length > 0 && (
@@ -82,13 +92,13 @@ export function OffersPage() {
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Other Party</th>
-                <th>Direction</th>
-                <th>Offered</th>
-                <th>Requested</th>
-                <th>Counters</th>
-                <th>Status</th>
-                <th>Date</th>
+                <th>{t("offers.columns.with")}</th>
+                <th>{t("offers.columns.direction")}</th>
+                <th>{t("offers.columns.offered")}</th>
+                <th>{t("offers.columns.requested")}</th>
+                <th>{t("offers.columns.counteroffers")}</th>
+                <th>{t("offers.columns.status")}</th>
+                <th>{t("offers.columns.created")}</th>
                 <th></th>
               </tr>
             </thead>
@@ -104,7 +114,7 @@ export function OffersPage() {
                       </Link>
                     </td>
                     <td className={styles.mono}>
-                      {isSent ? "↑ Sent" : "↓ Received"}
+                      {isSent ? t("offers.direction.sent") : t("offers.direction.received")}
                     </td>
                     <td>{offer.offered_count}</td>
                     <td>{offer.requested_count}</td>
@@ -124,7 +134,7 @@ export function OffersPage() {
                         to={`/offers/${offer.id}`}
                         className={styles.viewLink}
                       >
-                        View →
+                        {t("offers.viewDetail")}
                       </Link>
                     </td>
                   </tr>

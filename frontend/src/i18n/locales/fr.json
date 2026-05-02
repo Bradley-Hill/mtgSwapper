@@ -1,0 +1,368 @@
+{
+    "nav": {
+        "myCollection": "Ma Collection",
+        "search": "Rechercher",
+        "scan": "Scanner",
+        "offers": "Échanges",
+        "logOut": "Déconnexion",
+        "openMenu": "Ouvrir le menu",
+        "closeMenu": "Fermer le menu"
+    },
+    "auth": {
+        "login": {
+            "title": "Connexion",
+            "email": "Courriel",
+            "password": "Mot de passe",
+            "submit": "Se connecter",
+            "submitting": "Connexion…",
+            "noAccount": "Pas encore de compte ?",
+            "register": "Créer un compte avec un code d'invitation"
+        },
+        "register": {
+            "title": "Créer un compte",
+            "inviteCode": "Code d'invitation",
+            "username": "Nom d'utilisateur",
+            "email": "Courriel",
+            "password": "Mot de passe",
+            "submit": "Créer un compte",
+            "submitting": "Création du compte…",
+            "haveAccount": "Vous avez déjà un compte ?",
+            "signIn": "Se connecter",
+            "errorMinUsername": "Le nom d'utilisateur doit comporter au moins 3 caractères.",
+            "errorMinPassword": "Le mot de passe doit comporter au moins 8 caractères.",
+            "errorNoInvite": "Un code d'invitation est requis pour s'inscrire."
+        }
+    },
+    "collection": {
+        "title": "Ma Collection",
+        "addCard": "Ajouter une carte",
+        "bulkImport": "Importation en masse",
+        "loading": "Chargement de votre collection…",
+        "empty": "Aucune carte pour l'instant — ajoutez-en une ci-dessus !",
+        "columns": {
+            "name": "Nom",
+            "set": "Extension",
+            "condition": "État",
+            "language": "Langue",
+            "quantity": "Qté",
+            "foil": "Brillante",
+            "available": "Disponible",
+            "actions": "Actions"
+        },
+        "foilYes": "Oui",
+        "foilNo": "Non",
+        "availableYes": "Oui",
+        "availableNo": "Non",
+        "edit": "Modifier",
+        "delete": "Supprimer",
+        "deleteConfirm": "Supprimer {{name}} ?",
+        "cardInActiveOffer": "Cette carte fait partie d'un échange en cours et ne peut pas être modifiée.",
+        "subtitle_one": "{{count}} carte",
+        "subtitle_other": "{{count}} cartes",
+        "emptyTitle": "Aucune carte",
+        "emptySubtitle": "Ajoutez votre première carte pour commencer votre collection.",
+        "addFirstCard": "Ajouter votre première carte",
+        "condition": {
+            "unused": "NM",
+            "played": "Jouée",
+            "damaged": "Endommagée"
+        },
+        "confirmDelete": "Sûr ?",
+        "deleting": "Suppression…",
+        "errorLoading": "Impossible de charger la collection.",
+        "retryLoad": "Réessayer"
+    },
+    "addCard": {
+        "title": "Ajouter une carte",
+        "cardName": "Nom de la carte",
+        "cardNamePlaceholder": "ex. Black Lotus",
+        "searching": "Recherche…",
+        "setCode": "Code d'extension",
+        "setCodeHint": "(optionnel — ex. LEA)",
+        "setCodePlaceholder": "LEA",
+        "condition": "État",
+        "conditionUnused": "Non jouée / NM",
+        "conditionPlayed": "Jouée",
+        "conditionDamaged": "Endommagée",
+        "quantity": "Quantité",
+        "language": "Langue",
+        "foil": "Brillante",
+        "submit": "Ajouter à la collection",
+        "submitting": "Ajout…",
+        "errorFallback": "Impossible d'ajouter la carte. Veuillez réessayer."
+    },
+    "bulkImport": {
+        "title": "Importation en masse",
+        "decklistLabel": "Liste de cartes",
+        "decklistHint": "(format Moxfield / MTG Arena)",
+        "decklistPlaceholder": "4 Black Lotus\n3 Lightning Bolt\n1 Sol Ring (NEO)",
+        "decklistFormatHint": "Une carte par ligne : <1>4 Nom de la carte</1> ou <2>4 Nom de la carte (EXT)</2>. Les cartes inconnues sont ignorées et signalées après l'importation.",
+        "batchNote": "Ces paramètres s'appliquent à toutes les cartes de cette importation.",
+        "condition": "État par défaut",
+        "conditionUnused": "Non jouée / NM",
+        "conditionPlayed": "Jouée",
+        "conditionDamaged": "Endommagée",
+        "language": "Langue par défaut",
+        "foil": "Tout brillant",
+        "submit": "Importer",
+        "submitting": "Importation…",
+        "importingNotice": "Importation des cartes…",
+        "results": {
+            "title": "Résultats de l'importation",
+            "imported": "{{count}} carte importée",
+            "imported_other": "{{count}} cartes importées",
+            "failed": "{{count}} ignorée",
+            "close": "Terminer",
+            "importedLabel": "Importées",
+            "failedLabel": "Échouées",
+            "status": {
+                "ok": "Ajoutée",
+                "skipped": "Ignorée",
+                "error": "Erreur"
+            }
+        }
+    },
+    "editCard": {
+        "title": "Modifier la carte",
+        "condition": "État",
+        "conditionUnused": "Non jouée / NM",
+        "conditionPlayed": "Jouée",
+        "conditionDamaged": "Endommagée",
+        "quantity": "Quantité",
+        "language": "Langue",
+        "foil": "Brillante",
+        "available": "Disponible pour échange",
+        "notes": "Notes",
+        "notesPlaceholder": "Remarques sur l'état, l'édition, etc.",
+        "save": "Enregistrer",
+        "saving": "Enregistrement…",
+        "cancel": "Annuler",
+        "error": "Impossible d'enregistrer les modifications."
+    },
+    "search": {
+        "title": "Rechercher des cartes",
+        "sub": "Trouvez des cartes disponibles pour échange parmi tous les utilisateurs.",
+        "resultCount_one": "{{count}} résultat",
+        "resultCount_other": "{{count}} résultats",
+        "placeholder": "Rechercher une carte…",
+        "loading": "Recherche…",
+        "noResults": "Aucune carte trouvée.",
+        "columns": {
+            "card": "Carte",
+            "owner": "Propriétaire",
+            "set": "Extension",
+            "condition": "État",
+            "language": "Langue",
+            "foil": "Brillante",
+            "quantity": "Qté",
+            "actions": "Actions"
+        },
+        "foilYes": "Brillante",
+        "makeOffer": "Proposer un échange",
+        "yourCard": "(à vous)"
+    },
+    "offers": {
+        "title": "Échanges",
+        "tabs": {
+            "all": "Tous",
+            "sent": "Envoyés",
+            "received": "Reçus"
+        },
+        "filter": {
+            "allStatuses": "Tous les états"
+        },
+        "loading": "Chargement des échanges…",
+        "empty": "Aucun échange trouvé.",
+        "columns": {
+            "with": "Avec",
+            "direction": "Direction",
+            "status": "État",
+            "created": "Créé le",
+            "expires": "Expire le",
+            "offered": "Proposées",
+            "requested": "Demandées",
+            "counteroffers": "Contre-offres"
+        },
+        "viewDetail": "Voir →",
+        "direction": {
+            "sent": "→ Envoyé",
+            "received": "← Reçu"
+        },
+        "status": {
+            "pending": "En attente",
+            "accepted": "Accepté",
+            "declined": "Refusé",
+            "cancelled": "Annulé",
+            "expired": "Expiré",
+            "completed": "Terminé"
+        }
+    },
+    "offerDetail": {
+        "loading": "Chargement de l'échange…",
+        "notFound": "Échange introuvable.",
+        "status": "État",
+        "theyOffer": "Ils proposent",
+        "youOffer": "Vous proposez",
+        "theyWant": "Ils veulent",
+        "youWant": "Vous voulez",
+        "actions": {
+            "accept": "Accepter",
+            "accepting": "Acceptation…",
+            "decline": "Refuser",
+            "declining": "Refus…",
+            "cancel": "Annuler l'échange",
+            "cancelling": "Annulation…",
+            "counteroffer": "Contre-offre",
+            "rateUser": "Évaluer {{username}}"
+        },
+        "counterofferRoundsLeft": "{{n}} tour de contre-offre restant",
+        "counterofferRoundsLeft_other": "{{n}} tours de contre-offre restants",
+        "yourOffer": "Votre offre",
+        "initiatorOffers": "{{username}} propose",
+        "initiatorWants": "{{username}} veut",
+        "backToOffers": "← Retour aux échanges",
+        "expires": "Expire le {{date}}",
+        "counterofferLine": "{{count}} / {{max}} contre-offres",
+        "none": "Aucune",
+        "ratedNote": "✓ Vous avez soumis votre évaluation."
+    },
+    "createOffer": {
+        "title": "Offre à {{username}}",
+        "hint": "Sélectionnez les cartes <1>que vous offrez</1> à gauche et les cartes <2>que vous voulez</2> de {{username}} à droite.",
+        "yourCards": "Vos cartes",
+        "theirCards": "Cartes de {{username}}",
+        "filterPlaceholder": "Filtrer…",
+        "filterYourCards": "Filtrer vos cartes",
+        "filterTheirCards": "Filtrer les cartes de {{username}}",
+        "loading": "Chargement…",
+        "noAvailableCards": "Aucune carte disponible.",
+        "noCardsMatch": "Aucune carte ne correspond.",
+        "cancel": "Annuler",
+        "send": "Envoyer l'offre",
+        "sending": "Envoi…",
+        "failedToCreate": "Impossible de créer l'offre.",
+        "close": "Fermer"
+    },
+    "messages": {
+        "title": "Messages",
+        "empty": "Aucun message pour l'instant. Commencez la conversation !",
+        "placeholder": "Tapez un message… (Ctrl+Entrée pour envoyer)",
+        "send": "Envoyer",
+        "sendError": "Impossible d'envoyer le message."
+    },
+    "swapCoordination": {
+        "title": "Coordination de l'échange",
+        "loading": "Chargement des détails…",
+        "modeQuestion": "Comment allez-vous échanger les cartes ?",
+        "inPerson": "Rencontre en personne",
+        "mail": "Envoi postal",
+        "mode": "Mode",
+        "meetupDetails": "Détails de la rencontre",
+        "location": "Lieu",
+        "locationPlaceholder": "ex. Café de la Place, 14h",
+        "dateTime": "Date et heure",
+        "submitProposal": "Soumettre la proposition",
+        "changeProposal": "Modifier la proposition",
+        "proposeMeetup": "Proposer une rencontre",
+        "bothConfirmed": "✓ Les deux parties ont confirmé",
+        "initiatorStatus": "Initiateur",
+        "targetStatus": "Destinataire",
+        "pending": "en attente",
+        "confirmMeetup": "Confirmer la rencontre",
+        "noMeetupProposed": "Aucune rencontre proposée pour l'instant.",
+        "mailNote": "Envoi postal sélectionné. Utilisez le fil de messages pour coordonner les détails d'expédition.",
+        "completion": "Finalisation",
+        "markComplete": "Marquer ma partie comme terminée",
+        "youMarkedComplete": "✓ Vous avez marqué cet échange comme terminé.",
+        "swapCompleted": "✓ Échange terminé !"
+    },
+    "scan": {
+        "title": "Scanner des cartes",
+        "subtitle": "Pointez l'appareil photo vers la barre de nom de la carte. Chaque scan ajoute une carte à la liste de validation — vérifiez avant d'enregistrer.",
+        "scanning": "Analyse en cours…",
+        "errorFallback": "Échec du scan. Essayez avec un meilleur éclairage ou rapprochez-vous.",
+        "capture": {
+            "takePhoto": "Prendre une photo / Téléverser une image",
+            "retake": "Reprendre la photo",
+            "clear": "Effacer",
+            "preview": "Aperçu de la carte"
+        },
+        "staging": {
+            "title": "Cartes en attente ({{count}})",
+            "hint": "Vérifiez les noms avant d'ajouter — modifiez-les si l'OCR a fait une erreur.",
+            "addButton_one": "Ajouter {{count}} carte à ma collection",
+            "addButton_other": "Ajouter {{count}} cartes à ma collection",
+            "adding": "Ajout…",
+            "ocrHint": "OCR a lu : « {{text}} »",
+            "removeCard": "Retirer {{name}}"
+        },
+        "results": {
+            "added_one": "✓ {{count}} carte ajoutée",
+            "added_other": "✓ {{count}} cartes ajoutées",
+            "failed": "{{count}} échec — essayez d'ajouter manuellement",
+            "dismiss": "Fermer"
+        }
+    },
+    "userProfile": {
+        "loading": "Chargement du profil…",
+        "notFound": "Utilisateur introuvable.",
+        "totalSwaps": "{{count}} échange",
+        "totalSwaps_other": "{{count}} échanges",
+        "noRating": "Pas encore d'évaluation",
+        "makeOffer": "Proposer un échange",
+        "availableCards": "Cartes disponibles",
+        "filterPlaceholder": "Filtrer les cartes…",
+        "noCards": "Aucune carte disponible.",
+        "ratingsTitle": "Évaluations",
+        "noRatings": "Aucune évaluation pour l'instant.",
+        "locationNotSet": "Localisation non renseignée",
+        "memberSince": "Membre depuis {{date}}",
+        "swapsLabel": "Échanges",
+        "loadingCards": "Chargement des cartes…",
+        "noCardsAvailable": "Cet utilisateur n'a aucune carte disponible pour échange.",
+        "noCardsMatch": "Aucune carte ne correspond.",
+        "errorLoadingCards": "Impossible de charger les cartes.",
+        "columns": {
+            "card": "Carte",
+            "set": "Extension",
+            "condition": "État",
+            "language": "Langue",
+            "foil": "Brillante",
+            "quantity": "Qté"
+        }
+    },
+    "rating": {
+        "title": "Évaluer {{username}}",
+        "starLabel": "{{count}} étoile",
+        "starLabel_other": "{{count}} étoiles",
+        "starRating": "Note en étoiles",
+        "labels": {
+            "1": "Mauvais",
+            "2": "Passable",
+            "3": "Bien",
+            "4": "Très bien",
+            "5": "Excellent"
+        },
+        "comment": "Commentaire",
+        "commentOptional": "(optionnel)",
+        "commentPlaceholder": "Comment s'est passé votre échange avec {{username}} ?",
+        "cancel": "Annuler",
+        "submit": "Soumettre l'évaluation",
+        "submitting": "Envoi…",
+        "error": "Impossible de soumettre l'évaluation."
+    },
+    "common": {
+        "close": "Fermer",
+        "cancel": "Annuler",
+        "loading": "Chargement…",
+        "error": "Une erreur est survenue.",
+        "yes": "Oui",
+        "no": "Non"
+    },
+
+    "notFound": {
+        "title": "Page introuvable",
+        "message": "La page que vous recherchez n'existe pas ou a peut-être été déplacée.",
+        "homeLink": "← Retour à ma collection"
+    }
+}

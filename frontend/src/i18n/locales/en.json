@@ -1,0 +1,383 @@
+{
+  "nav": {
+    "myCollection": "My Collection",
+    "search": "Search",
+    "scan": "Scan",
+    "offers": "Offers",
+    "logOut": "Log out",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
+  },
+
+  "auth": {
+    "login": {
+      "title": "Sign in",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "noAccount": "Don't have an account?",
+      "register": "Register with an invite code"
+    },
+    "register": {
+      "title": "Create account",
+      "inviteCode": "Invite code",
+      "username": "Username",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Create account",
+      "submitting": "Creating account…",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "errorMinUsername": "Username must be at least 3 characters.",
+      "errorMinPassword": "Password must be at least 8 characters.",
+      "errorNoInvite": "An invite code is required to register."
+    }
+  },
+
+  "collection": {
+    "title": "My Collection",
+    "addCard": "Add card",
+    "bulkImport": "Bulk import",
+    "loading": "Loading your collection…",
+    "empty": "No cards yet — add one above!",
+    "columns": {
+      "name": "Name",
+      "set": "Set",
+      "condition": "Condition",
+      "language": "Language",
+      "quantity": "Qty",
+      "foil": "Foil",
+      "available": "Available",
+      "actions": "Actions"
+    },
+    "foilYes": "Yes",
+    "foilNo": "No",
+    "availableYes": "Yes",
+    "availableNo": "No",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteConfirm": "Delete {{name}}?",
+    "cardInActiveOffer": "This card is in an active offer and cannot be changed.",
+    "subtitle_one": "{{count}} card",
+    "subtitle_other": "{{count}} cards",
+    "emptyTitle": "No cards yet",
+    "emptySubtitle": "Add your first card to start building your collection.",
+    "addFirstCard": "Add your first card",
+    "condition": {
+      "unused": "NM",
+      "played": "Played",
+      "damaged": "Damaged"
+    },
+    "confirmDelete": "Sure?",
+    "deleting": "Deleting…",
+    "errorLoading": "Failed to load collection.",
+    "retryLoad": "Try again"
+  },
+
+  "addCard": {
+    "title": "Add card",
+    "cardName": "Card name",
+    "cardNamePlaceholder": "e.g. Black Lotus",
+    "searching": "Searching…",
+    "setCode": "Set code",
+    "setCodeHint": "(optional — e.g. LEA)",
+    "setCodePlaceholder": "LEA",
+    "condition": "Condition",
+    "conditionUnused": "Unused / NM",
+    "conditionPlayed": "Played",
+    "conditionDamaged": "Damaged",
+    "quantity": "Quantity",
+    "language": "Language",
+    "foil": "Foil",
+    "submit": "Add to collection",
+    "submitting": "Adding…",
+    "errorFallback": "Failed to add card. Please try again."
+  },
+
+  "bulkImport": {
+    "title": "Bulk import",
+    "decklistLabel": "Decklist",
+    "decklistHint": "(Moxfield / MTG Arena format)",
+    "decklistPlaceholder": "4 Black Lotus\n3 Lightning Bolt\n1 Sol Ring (NEO)",
+    "decklistFormatHint": "One card per line: <1>4 Card Name</1> or <2>4 Card Name (SET)</2>. Unknown cards are skipped and reported after import.",
+    "batchNote": "These settings apply to all cards in this import.",
+    "condition": "Default condition",
+    "conditionUnused": "Unused / NM",
+    "conditionPlayed": "Played",
+    "conditionDamaged": "Damaged",
+    "language": "Default language",
+    "foil": "All foil",
+    "submit": "Import",
+    "submitting": "Importing…",
+    "importingNotice": "Importing cards…",
+    "results": {
+      "title": "Import results",
+      "imported": "{{count}} card imported",
+      "imported_other": "{{count}} cards imported",
+      "failed": "{{count}} skipped",
+      "close": "Done",
+      "importedLabel": "Imported",
+      "failedLabel": "Failed",
+      "status": {
+        "ok": "Added",
+        "skipped": "Skipped",
+        "error": "Error"
+      }
+    }
+  },
+
+  "editCard": {
+    "title": "Edit card",
+    "condition": "Condition",
+    "conditionUnused": "Unused / NM",
+    "conditionPlayed": "Played",
+    "conditionDamaged": "Damaged",
+    "quantity": "Quantity",
+    "language": "Language",
+    "foil": "Foil",
+    "available": "Available to swap",
+    "notes": "Notes",
+    "notesPlaceholder": "Any notes about condition, edition, etc.",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "error": "Failed to save changes."
+  },
+
+  "search": {
+    "title": "Search Cards",
+    "sub": "Find cards available for swap across all users.",
+    "resultCount_one": "{{count}} result",
+    "resultCount_other": "{{count}} results",
+    "placeholder": "Search for a card…",
+    "loading": "Searching…",
+    "noResults": "No cards found.",
+    "columns": {
+      "card": "Card",
+      "owner": "Owner",
+      "set": "Set",
+      "condition": "Condition",
+      "language": "Language",
+      "foil": "Foil",
+      "quantity": "Qty",
+      "actions": "Actions"
+    },
+    "foilYes": "Foil",
+    "makeOffer": "Make Offer",
+    "yourCard": "(yours)"
+  },
+
+  "offers": {
+    "title": "Offers",
+    "tabs": {
+      "all": "All",
+      "sent": "Sent",
+      "received": "Received"
+    },
+    "filter": {
+      "allStatuses": "All statuses"
+    },
+    "loading": "Loading offers…",
+    "empty": "No offers found.",
+    "columns": {
+      "with": "With",
+      "direction": "Direction",
+      "status": "Status",
+      "created": "Created",
+      "expires": "Expires",
+      "offered": "Offered",
+      "requested": "Requested",
+      "counteroffers": "Counters"
+    },
+    "viewDetail": "View →",
+    "direction": {
+      "sent": "→ Sent",
+      "received": "← Received"
+    },
+    "status": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "declined": "Declined",
+      "cancelled": "Cancelled",
+      "expired": "Expired",
+      "completed": "Completed"
+    }
+  },
+
+  "offerDetail": {
+    "loading": "Loading offer…",
+    "notFound": "Offer not found.",
+    "status": "Status",
+    "theyOffer": "They offer",
+    "youOffer": "You offer",
+    "theyWant": "They want",
+    "youWant": "You want",
+    "actions": {
+      "accept": "Accept",
+      "accepting": "Accepting…",
+      "decline": "Decline",
+      "declining": "Declining…",
+      "cancel": "Cancel offer",
+      "cancelling": "Cancelling…",
+      "counteroffer": "Counteroffer",
+      "rateUser": "Rate {{username}}"
+    },
+    "counterofferRoundsLeft": "{{n}} counteroffer round left",
+    "counterofferRoundsLeft_other": "{{n}} counteroffer rounds left",
+    "yourOffer": "Your offer",
+    "initiatorOffers": "{{username}} offers",
+    "initiatorWants": "{{username}} wants",
+    "backToOffers": "← Back to offers",
+    "expires": "Expires {{date}}",
+    "counterofferLine": "{{count}} / {{max}} counteroffers",
+    "none": "None",
+    "ratedNote": "✓ You've submitted your rating."
+  },
+
+  "createOffer": {
+    "title": "Offer to {{username}}",
+    "hint": "Select cards <1>you offer</1> on the left and cards <2>you want</2> from {{username}} on the right.",
+    "yourCards": "Your cards",
+    "theirCards": "{{username}}'s cards",
+    "filterPlaceholder": "Filter…",
+    "filterYourCards": "Filter your cards",
+    "filterTheirCards": "Filter {{username}}'s cards",
+    "loading": "Loading…",
+    "noAvailableCards": "No available cards.",
+    "noCardsMatch": "No cards match.",
+    "cancel": "Cancel",
+    "send": "Send Offer",
+    "sending": "Sending…",
+    "failedToCreate": "Failed to create offer.",
+    "close": "Close"
+  },
+
+  "messages": {
+    "title": "Messages",
+    "empty": "No messages yet. Start the conversation!",
+    "placeholder": "Type a message… (Ctrl+Enter to send)",
+    "send": "Send",
+    "sendError": "Failed to send message."
+  },
+
+  "swapCoordination": {
+    "title": "Swap Coordination",
+    "loading": "Loading coordination details…",
+    "modeQuestion": "How will you exchange the cards?",
+    "inPerson": "In-Person Meetup",
+    "mail": "Mail Swap",
+    "mode": "Mode",
+    "meetupDetails": "Meetup Details",
+    "location": "Location",
+    "locationPlaceholder": "e.g. Starbucks on 5th & Pike",
+    "dateTime": "Date & Time",
+    "submitProposal": "Submit Proposal",
+    "changeProposal": "Change proposal",
+    "proposeMeetup": "Propose meetup",
+    "bothConfirmed": "✓ Both parties confirmed",
+    "initiatorStatus": "Initiator",
+    "targetStatus": "Target",
+    "pending": "pending",
+    "confirmMeetup": "Confirm Meetup",
+    "noMeetupProposed": "No meetup proposed yet.",
+    "mailNote": "Mail swap selected. Use the message thread to coordinate shipping details.",
+    "completion": "Completion",
+    "markComplete": "Mark My Side Complete",
+    "youMarkedComplete": "✓ You've marked this swap as complete.",
+    "swapCompleted": "✓ Swap completed!"
+  },
+
+  "scan": {
+    "title": "Scan Cards",
+    "subtitle": "Point your camera at a card's name bar. Each scan adds one card to the staging list — review before saving.",
+    "scanning": "Scanning…",
+    "errorFallback": "Scan failed. Try better lighting or a closer shot.",
+    "capture": {
+      "takePhoto": "Take Photo / Upload Image",
+      "retake": "Retake Photo",
+      "clear": "Clear",
+      "preview": "Card preview"
+    },
+    "staging": {
+      "title": "Staged cards ({{count}})",
+      "hint": "Review names before adding — edit inline if OCR made a mistake.",
+      "addButton_one": "Add {{count}} card to my collection",
+      "addButton_other": "Add {{count}} cards to my collection",
+      "adding": "Adding…",
+      "ocrHint": "OCR read: \"{{text}}\"",
+      "removeCard": "Remove {{name}}"
+    },
+    "results": {
+      "added_one": "✓ {{count}} card added",
+      "added_other": "✓ {{count}} cards added",
+      "failed": "{{count}} failed — try adding manually",
+      "dismiss": "Dismiss"
+    }
+  },
+
+  "userProfile": {
+    "loading": "Loading profile…",
+    "notFound": "User not found.",
+    "totalSwaps": "{{count}} swap",
+    "totalSwaps_other": "{{count}} swaps",
+    "noRating": "No ratings yet",
+    "makeOffer": "Make Offer",
+    "availableCards": "Available cards",
+    "filterPlaceholder": "Filter cards…",
+    "noCards": "No available cards.",
+    "ratingsTitle": "Ratings",
+    "noRatings": "No ratings yet.",
+    "locationNotSet": "Location not set",
+    "memberSince": "Member since {{date}}",
+    "swapsLabel": "Swaps",
+    "loadingCards": "Loading cards…",
+    "noCardsAvailable": "This user has no cards available for swap.",
+    "noCardsMatch": "No cards match.",
+    "errorLoadingCards": "Could not load cards.",
+    "columns": {
+      "card": "Card",
+      "set": "Set",
+      "condition": "Condition",
+      "language": "Language",
+      "foil": "Foil",
+      "quantity": "Qty"
+    }
+  },
+
+  "rating": {
+    "title": "Rate {{username}}",
+    "starLabel": "{{count}} star",
+    "starLabel_other": "{{count}} stars",
+    "starRating": "Star rating",
+    "labels": {
+      "1": "Poor",
+      "2": "Fair",
+      "3": "Good",
+      "4": "Great",
+      "5": "Excellent"
+    },
+    "comment": "Comment",
+    "commentOptional": "(optional)",
+    "commentPlaceholder": "How was your swap with {{username}}?",
+    "cancel": "Cancel",
+    "submit": "Submit Rating",
+    "submitting": "Submitting…",
+    "error": "Could not submit rating."
+  },
+
+  "common": {
+    "close": "Close",
+    "cancel": "Cancel",
+    "loading": "Loading…",
+    "error": "Something went wrong.",
+    "yes": "Yes",
+    "no": "No"
+  },
+
+  "notFound": {
+    "title": "Page not found",
+    "message": "The page you're looking for doesn't exist or may have been moved.",
+    "homeLink": "← Back to my collection"
+  }
+}

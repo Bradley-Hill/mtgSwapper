@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { globalSearch } from "@/api/cards";
 import { useAuth } from "@/context";
 import { CreateOfferModal } from "@/components";
-import { useDebounce } from "@/hooks";
+import { useDebounce, usePageTitle } from "@/hooks";
 import type { GlobalSearchResult } from "@/types";
 import styles from "./SearchPage.module.scss";
 
@@ -18,6 +19,8 @@ export function SearchPage() {
   const [query, setQuery] = useState("");
   const [offerTarget, setOfferTarget] = useState<OfferTarget | null>(null);
   const debouncedQuery = useDebounce(query, 350);
+  const { t } = useTranslation();
+  usePageTitle(t('search.title'));
 
   const { data, isLoading, isFetching, isError } = useQuery({
     queryKey: ["globalSearch", debouncedQuery],
@@ -32,53 +35,47 @@ export function SearchPage() {
   return (
     <>
       <main className={styles.page}>
-        <h1 className={styles.heading}>Search Cards</h1>
-        <p className={styles.sub}>
-          Find cards available for swap across all users.
-        </p>
+        <h1 className={styles.heading}>{t("search.title")}</h1>
+        <p className={styles.sub}>{t("search.sub")}</p>
 
         <div className={styles.searchBar}>
           <input
             type="search"
             className={styles.input}
-            placeholder="Card name…"
+            placeholder={t("search.placeholder")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             autoFocus
-            aria-label="Search for a card"
+            aria-label={t("search.title")}
           />
           {isFetching && <span className={styles.spinner} aria-hidden="true" />}
         </div>
 
         {/* ── Results ─────────────────────────────────────────── */}
-        {isError && (
-          <p className={styles.error}>
-            Something went wrong. Please try again.
-          </p>
-        )}
+        {isError && <p className={styles.error}>{t("common.error")}</p>}
 
         {hasSearched && !isLoading && !isError && results.length === 0 && (
           <p className={styles.empty}>
-            No cards found for &ldquo;{debouncedQuery}&rdquo;.
+            {t("search.noResults")} &ldquo;{debouncedQuery}&rdquo;
           </p>
         )}
 
         {results.length > 0 && (
           <>
             <p className={styles.count}>
-              {data!.count} result{data!.count !== 1 ? "s" : ""}
+              {t("search.resultCount", { count: data!.count })}
             </p>
             <div className={styles.tableWrapper}>
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    <th>Card</th>
-                    <th>Set</th>
-                    <th>Condition</th>
-                    <th>Language</th>
-                    <th>Foil</th>
-                    <th>Qty</th>
-                    <th>Owner</th>
+                    <th>{t("search.columns.card")}</th>
+                    <th>{t("search.columns.set")}</th>
+                    <th>{t("search.columns.condition")}</th>
+                    <th>{t("search.columns.language")}</th>
+                    <th>{t("search.columns.foil")}</th>
+                    <th>{t("search.columns.quantity")}</th>
+                    <th>{t("search.columns.owner")}</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -93,7 +90,7 @@ export function SearchPage() {
                         <span
                           className={`${styles.badge} ${styles[card.condition]}`}
                         >
-                          {card.condition}
+                          {t(`collection.condition.${card.condition}`)}
                         </span>
                       </td>
                       <td>{card.language}</td>
@@ -118,7 +115,7 @@ export function SearchPage() {
                               })
                             }
                           >
-                            Make Offer
+                            {t("search.makeOffer")}
                           </button>
                         )}
                       </td>

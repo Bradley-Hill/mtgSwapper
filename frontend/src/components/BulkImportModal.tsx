@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Trans } from "react-i18next";
 import { useBulkImport } from "@/hooks";
 import { ApiError } from "@/api/client";
 import type {
@@ -28,6 +30,7 @@ export function BulkImportModal({ onClose }: BulkImportModalProps) {
   const [isFoil, setIsFoil] = useState(false);
 
   const { mutate: runImport } = useBulkImport();
+  const { t } = useTranslation();
 
   // Close on Escape (only when not loading — prevent accidental dismissal mid-import)
   useEffect(() => {
@@ -81,12 +84,12 @@ export function BulkImportModal({ onClose }: BulkImportModalProps) {
     >
       <div className={styles.panel}>
         <div className={styles.header}>
-          <h2 className={styles.title}>Bulk import</h2>
+          <h2 className={styles.title}>{t("bulkImport.title")}</h2>
           {canDismiss && (
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={t("common.close")}
               className={styles.closeBtn}
             >
               ×
@@ -99,9 +102,9 @@ export function BulkImportModal({ onClose }: BulkImportModalProps) {
           <form onSubmit={handleSubmit} className={styles.form}>
             <div className={styles.field}>
               <label htmlFor="decklist" className={styles.label}>
-                Decklist{" "}
+                {t("bulkImport.decklistLabel")}{" "}
                 <span className={styles.labelHint}>
-                  (Moxfield / MTG Arena format)
+                  {t("bulkImport.decklistHint")}
                 </span>
               </label>
               <textarea
@@ -110,24 +113,23 @@ export function BulkImportModal({ onClose }: BulkImportModalProps) {
                 rows={10}
                 value={decklist}
                 onChange={(e) => setDecklist(e.target.value)}
-                placeholder={`4 Black Lotus\n3 Lightning Bolt\n1 Sol Ring (NEO)`}
+                placeholder={t("bulkImport.decklistPlaceholder")}
                 className={styles.textarea}
               />
               <p className={styles.hint}>
-                One card per line: <code>4 Card Name</code> or{" "}
-                <code>4 Card Name (SET)</code>. Unknown cards are skipped and
-                reported after import.
+                <Trans
+                  i18nKey="bulkImport.decklistFormatHint"
+                  components={{ 1: <code />, 2: <code /> }}
+                />
               </p>
             </div>
 
-            <p className={styles.batchNote}>
-              These settings apply to all cards in this import.
-            </p>
+            <p className={styles.batchNote}>{t("bulkImport.batchNote")}</p>
 
             <div className={styles.grid2}>
               <div className={styles.field}>
                 <label htmlFor="bulk-condition" className={styles.label}>
-                  Condition
+                  {t("bulkImport.condition")}
                 </label>
                 <select
                   id="bulk-condition"
@@ -137,14 +139,20 @@ export function BulkImportModal({ onClose }: BulkImportModalProps) {
                   }
                   className={styles.select}
                 >
-                  <option value="unused">Unused / NM</option>
-                  <option value="played">Played</option>
-                  <option value="damaged">Damaged</option>
+                  <option value="unused">
+                    {t("bulkImport.conditionUnused")}
+                  </option>
+                  <option value="played">
+                    {t("bulkImport.conditionPlayed")}
+                  </option>
+                  <option value="damaged">
+                    {t("bulkImport.conditionDamaged")}
+                  </option>
                 </select>
               </div>
               <div className={styles.field}>
                 <label htmlFor="bulk-language" className={styles.label}>
-                  Language
+                  {t("bulkImport.language")}
                 </label>
                 <select
                   id="bulk-language"
@@ -174,7 +182,9 @@ export function BulkImportModal({ onClose }: BulkImportModalProps) {
                 onChange={(e) => setIsFoil(e.target.checked)}
                 className={styles.checkbox}
               />
-              <span className={styles.checkboxText}>All cards are foil</span>
+              <span className={styles.checkboxText}>
+                {t("bulkImport.foil")}
+              </span>
             </label>
 
             <button
@@ -182,7 +192,7 @@ export function BulkImportModal({ onClose }: BulkImportModalProps) {
               disabled={!decklist.trim()}
               className={styles.submitBtn}
             >
-              Import
+              {t("bulkImport.submit")}
             </button>
           </form>
         )}
@@ -191,10 +201,12 @@ export function BulkImportModal({ onClose }: BulkImportModalProps) {
         {modalState.stage === "loading" && (
           <div className={styles.loadingStage}>
             <div className={styles.spinner} />
-            <p className={styles.loadingText}>Importing cards…</p>
+            <p className={styles.loadingText}>
+              {t("bulkImport.importingNotice")}
+            </p>
             <p className={styles.loadingSubtext}>
-              This can take a moment — the backend looks up each card on
-              Scryfall.
+              {t("bulkImport.loadingSubtext") ||
+                "This can take a moment — the backend looks up each card on Scryfall."}
             </p>
           </div>
         )}
@@ -205,7 +217,9 @@ export function BulkImportModal({ onClose }: BulkImportModalProps) {
             <div className={styles.summaryGrid}>
               <div className={styles.summaryCardImported}>
                 <p className={styles.summaryCount}>{modalState.imported}</p>
-                <p className={styles.summaryLabel}>Imported</p>
+                <p className={styles.summaryLabel}>
+                  {t("bulkImport.results.importedLabel")}
+                </p>
               </div>
               <div
                 className={
@@ -215,7 +229,9 @@ export function BulkImportModal({ onClose }: BulkImportModalProps) {
                 }
               >
                 <p className={styles.summaryCount}>{modalState.failed}</p>
-                <p className={styles.summaryLabel}>Failed</p>
+                <p className={styles.summaryLabel}>
+                  {t("bulkImport.results.failedLabel")}
+                </p>
               </div>
             </div>
 
@@ -226,7 +242,7 @@ export function BulkImportModal({ onClose }: BulkImportModalProps) {
             </div>
 
             <button type="button" onClick={onClose} className={styles.doneBtn}>
-              Done
+              {t("bulkImport.results.close")}
             </button>
           </div>
         )}

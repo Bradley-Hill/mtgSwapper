@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { usePageTitle } from '@/hooks';
 import { useAuth } from '@/context';
 import { ApiError } from '@/api/client';
 import styles from './RegisterPage.module.scss';
@@ -8,7 +10,8 @@ export function RegisterPage() {
   const { user, isLoading, signup } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
+  const { t } = useTranslation();
+  usePageTitle(t('auth.register.title'));
   // Pre-fill invite code from the ?code= URL param (invite links look like /register?code=abc123)
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -28,15 +31,15 @@ export function RegisterPage() {
     setError(null);
 
     if (username.length < 3) {
-      setError('Username must be at least 3 characters.');
+      setError(t('auth.register.errorMinUsername'));
       return;
     }
     if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
+      setError(t('auth.register.errorMinPassword'));
       return;
     }
     if (!inviteCode.trim()) {
-      setError('An invite code is required to register.');
+      setError(t('auth.register.errorNoInvite'));
       return;
     }
 
@@ -48,7 +51,7 @@ export function RegisterPage() {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError('Something went wrong. Please try again.');
+        setError(t('common.error'));
       }
     } finally {
       setIsSubmitting(false);
@@ -67,7 +70,7 @@ export function RegisterPage() {
           className={styles.form}
           noValidate
         >
-          <h2 className={styles.formTitle}>Create account</h2>
+          <h2 className={styles.formTitle}>{t("auth.register.title")}</h2>
 
           {error && (
             <p role="alert" className={styles.errorAlert}>
@@ -76,7 +79,7 @@ export function RegisterPage() {
           )}
 
           <div className={styles.field}>
-            <label htmlFor="username" className={styles.label}>Username</label>
+            <label htmlFor="username" className={styles.label}>{t("auth.register.username")}</label>
             <input
               id="username"
               type="text"
@@ -90,7 +93,7 @@ export function RegisterPage() {
           </div>
 
           <div className={styles.field}>
-            <label htmlFor="email" className={styles.label}>Email</label>
+            <label htmlFor="email" className={styles.label}>{t("auth.register.email")}</label>
             <input
               id="email"
               type="email"
@@ -103,7 +106,7 @@ export function RegisterPage() {
           </div>
 
           <div className={styles.field}>
-            <label htmlFor="password" className={styles.label}>Password</label>
+            <label htmlFor="password" className={styles.label}>{t("auth.register.password")}</label>
             <input
               id="password"
               type="password"
@@ -114,11 +117,10 @@ export function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               className={styles.input}
             />
-            <p className={styles.fieldHint}>At least 8 characters</p>
           </div>
 
           <div className={styles.field}>
-            <label htmlFor="invite-code" className={styles.label}>Invite code</label>
+            <label htmlFor="invite-code" className={styles.label}>{t("auth.register.inviteCode")}</label>
             <input
               id="invite-code"
               type="text"
@@ -135,13 +137,13 @@ export function RegisterPage() {
             disabled={isSubmitting}
             className={styles.submitBtn}
           >
-            {isSubmitting ? 'Creating account…' : 'Create account'}
+            {isSubmitting ? t("auth.register.submitting") : t("auth.register.submit")}
           </button>
         </form>
 
         <p className={styles.footer}>
-          Already have an account?{' '}
-          <Link to="/login">Sign in</Link>
+          {t("auth.register.haveAccount")}{' '}
+          <Link to="/login">{t("auth.register.signIn")}</Link>
         </p>
       </div>
     </main>

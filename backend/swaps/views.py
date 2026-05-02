@@ -13,8 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from cards.models import Card
-from .models import Offer, OfferItem, SwapDetails
-from ratings.models import Message
+from .models import Message, Offer, OfferItem, SwapDetails
 from .serializers import (
     CounterOfferSerializer,
     CreateOfferSerializer,
