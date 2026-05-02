@@ -1,8 +1,8 @@
 # ── Stage: base Python image ──────────────────────────────────────────────────
-# python:3.11-slim is a minimal Debian-based image with Python pre-installed.
-# We pin to 3.11 (not 3.14) because psycopg2-binary wheels are reliably
-# available for 3.11 on Linux/amd64. Slim saves ~200MB vs the full image.
-FROM python:3.11-slim
+# python:3.12-slim is a minimal Debian-based image with Python pre-installed.
+# Must be 3.12+ — Django 6.0.4 requires Python >=3.12.
+# Slim saves ~200MB vs the full image.
+FROM python:3.12-slim
 
 # ── System dependencies ───────────────────────────────────────────────────────
 # tesseract-ocr: OCR engine for the card scanning feature.
