@@ -22,6 +22,45 @@ from .serializers import (
 )
 
 
+def _get_cookie_kwargs(name, value, days=7):
+    """
+    Build cookie kwargs appropriate for environment.
+    
+    In production (not DEBUG):
+    - secure=True (HTTPS only)
+    - samesite='None' (cross-domain cookies needed)
+    - partitioned=True (Privacy Sandbox compliance)
+    
+    In development (DEBUG=True):
+    - secure=False (HTTP allowed)
+    - samesite='Lax' (simpler, works with HTTP)
+    - no partitioned (not supported, and not needed locally)
+    """
+    max_age = 3600 if name == 'access_token' else (604800 if name == 'refresh_token' else 0)
+    
+    if settings.DEBUG:
+        # Development: standard secure cookie
+        return {
+            'key': name,
+            'value': value,
+            'max_age': max_age,
+            'httponly': True,
+            'secure': False,
+            'samesite': 'Lax',
+        }
+    else:
+        # Production: cross-domain with Privacy Sandbox compliance
+        return {
+            'key': name,
+            'value': value,
+            'max_age': max_age,
+            'httponly': True,
+            'secure': True,
+            'samesite': 'None',
+            'partitioned': True,
+        }
+
+
 class AuthViewSet(viewsets.ViewSet):
     """
     API endpoints for authentication (signup, login, logout, refresh).
@@ -73,24 +112,8 @@ class AuthViewSet(viewsets.ViewSet):
             }, status=status.HTTP_201_CREATED)
             
             # Set tokens as httpOnly cookies
-            response.set_cookie(
-                key='access_token',
-                value=str(refresh.access_token),
-                max_age=3600,  # 1 hour
-                httponly=True,
-                secure=not settings.DEBUG,  # True in production, False in dev
-                samesite='None',
-                partitioned=not settings.DEBUG,
-            )
-            response.set_cookie(
-                key='refresh_token',
-                value=str(refresh),
-                max_age=604800,  # 7 days
-                httponly=True,
-                secure=not settings.DEBUG,
-                samesite='None',
-                partitioned=not settings.DEBUG,
-            )
+            response.set_cookie(**_get_cookie_kwargs('access_token', str(refresh.access_token)))
+            response.set_cookie(**_get_cookie_kwargs('refresh_token', str(refresh)))
             
             return response
         
@@ -126,24 +149,8 @@ class AuthViewSet(viewsets.ViewSet):
             }, status=status.HTTP_200_OK)
             
             # Set tokens as httpOnly cookies
-            response.set_cookie(
-                key='access_token',
-                value=str(refresh.access_token),
-                max_age=3600,  # 1 hour
-                httponly=True,
-                secure=not settings.DEBUG,  # True in production, False in dev
-                samesite='None',
-                partitioned=not settings.DEBUG,
-            )
-            response.set_cookie(
-                key='refresh_token',
-                value=str(refresh),
-                max_age=604800,  # 7 days
-                httponly=True,
-                secure=not settings.DEBUG,
-                samesite='None',
-                partitioned=not settings.DEBUG,
-            )
+            response.set_cookie(**_get_cookie_kwargs('access_token', str(refresh.access_token)))
+            response.set_cookie(**_get_cookie_kwargs('refresh_token', str(refresh)))
             
             return response
         
@@ -197,15 +204,7 @@ class AuthViewSet(viewsets.ViewSet):
             }, status=status.HTTP_200_OK)
             
             # Set new access token cookie
-            response.set_cookie(
-                key='access_token',
-                value=str(new_access),
-                max_age=3600,  # 1 hour
-                httponly=True,
-                secure=not settings.DEBUG,  # True in production, False in dev
-                samesite='None',
-                partitioned=not settings.DEBUG,
-            )
+            response.set_cookie(**_get_cookie_kwargs('access_token', str(new_access)))
             
             return response
         

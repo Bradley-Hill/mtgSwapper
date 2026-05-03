@@ -4,11 +4,11 @@
     "search": "Search",
     "scan": "Scan",
     "offers": "Offers",
+    "about": "About",
     "logOut": "Log out",
     "openMenu": "Open menu",
     "closeMenu": "Close menu"
   },
-
   "auth": {
     "login": {
       "title": "Sign in",
@@ -34,7 +34,6 @@
       "errorNoInvite": "An invite code is required to register."
     }
   },
-
   "collection": {
     "title": "My Collection",
     "addCard": "Add card",
@@ -74,7 +73,6 @@
     "errorLoading": "Failed to load collection.",
     "retryLoad": "Try again"
   },
-
   "addCard": {
     "title": "Add card",
     "cardName": "Card name",
@@ -94,7 +92,6 @@
     "submitting": "Adding…",
     "errorFallback": "Failed to add card. Please try again."
   },
-
   "bulkImport": {
     "title": "Bulk import",
     "decklistLabel": "Decklist",
@@ -126,7 +123,6 @@
       }
     }
   },
-
   "editCard": {
     "title": "Edit card",
     "condition": "Condition",
@@ -144,7 +140,6 @@
     "cancel": "Cancel",
     "error": "Failed to save changes."
   },
-
   "search": {
     "title": "Search Cards",
     "sub": "Find cards available for swap across all users.",
@@ -167,7 +162,6 @@
     "makeOffer": "Make Offer",
     "yourCard": "(yours)"
   },
-
   "offers": {
     "title": "Offers",
     "tabs": {
@@ -204,7 +198,6 @@
       "completed": "Completed"
     }
   },
-
   "offerDetail": {
     "loading": "Loading offer…",
     "notFound": "Offer not found.",
@@ -234,7 +227,6 @@
     "none": "None",
     "ratedNote": "✓ You've submitted your rating."
   },
-
   "createOffer": {
     "title": "Offer to {{username}}",
     "hint": "Select cards <1>you offer</1> on the left and cards <2>you want</2> from {{username}} on the right.",
@@ -252,7 +244,6 @@
     "failedToCreate": "Failed to create offer.",
     "close": "Close"
   },
-
   "messages": {
     "title": "Messages",
     "empty": "No messages yet. Start the conversation!",
@@ -260,7 +251,6 @@
     "send": "Send",
     "sendError": "Failed to send message."
   },
-
   "swapCoordination": {
     "title": "Swap Coordination",
     "loading": "Loading coordination details…",
@@ -287,7 +277,6 @@
     "youMarkedComplete": "✓ You've marked this swap as complete.",
     "swapCompleted": "✓ Swap completed!"
   },
-
   "scan": {
     "title": "Scan Cards",
     "subtitle": "Point your camera at a card's name bar. Each scan adds one card to the staging list — review before saving.",
@@ -315,7 +304,6 @@
       "dismiss": "Dismiss"
     }
   },
-
   "userProfile": {
     "loading": "Loading profile…",
     "notFound": "User not found.",
@@ -344,7 +332,6 @@
       "quantity": "Qty"
     }
   },
-
   "rating": {
     "title": "Rate {{username}}",
     "starLabel": "{{count}} star",
@@ -365,7 +352,6 @@
     "submitting": "Submitting…",
     "error": "Could not submit rating."
   },
-
   "common": {
     "close": "Close",
     "cancel": "Cancel",
@@ -374,10 +360,35 @@
     "yes": "Yes",
     "no": "No"
   },
-
   "notFound": {
     "title": "Page not found",
     "message": "The page you're looking for doesn't exist or may have been moved.",
+    "homeLink": "← Back to my collection"
+  },
+  "about": {
+    "title": "About MTG Swapper",
+    "intro": "MTG Swapper is a community-driven platform for Magic: The Gathering players to swap cards directly with each other. Whether you're trading a single card or an entire deck, we make it easy to find new homes for your cards and discover ones you need.",
+    "section1Title": "Getting Started: Upload Your Collection",
+    "section1Intro": "Start by building your card collection in three simple ways:",
+    "section1Step1": "Add cards one by one using the Scryfall search autocomplete",
+    "section1Step2": "Bulk import from Moxfield or MTG Arena using plain-text format (one card per line, e.g. '4 Black Lotus')",
+    "section1Step3": "Scan real cards with your phone camera (experimental feature — requires good lighting)",
+    "section2Title": "Finding Cards: Search & Browse",
+    "section2Intro": "Once your collection is ready, start exploring what other players have available:",
+    "section2Step1": "Use the Search tab to find any card by name — results show all players who have it",
+    "section2Step2": "Click on a player to view their complete available collection",
+    "section2Step3": "See player reputation (average rating and total completed swaps) to build trust",
+    "section3Title": "Making an Offer: The Swap Process",
+    "section3Intro": "When you find cards you want, initiate a swap with this flow:",
+    "section3Step1": "Select cards you want to offer and cards you want in return — create and send your offer",
+    "section3Step2": "The other player can accept, decline, or make a counteroffer (max 4 rounds of negotiation)",
+    "section3Step3": "Once accepted, coordinate how you'll exchange: in-person meetup or arrange details in the message thread",
+    "section3Step4": "After swapping, both players mark complete and rate each other 1-5 stars to build community trust",
+    "section4Title": "Current Limitations",
+    "section4Intro": "Please note these constraints in our closed beta:",
+    "section4Point1": "Invite-only access — you received an invite code from a friend to join",
+    "section4Point2": "In-person swaps only right now (mail swaps coming soon) — coordinate location and time in the message thread",
+    "section4Point3": "Closed beta features limited to English and French UI languages for now",
     "homeLink": "← Back to my collection"
   }
 }

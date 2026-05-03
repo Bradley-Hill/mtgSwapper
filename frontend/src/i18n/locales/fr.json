@@ -4,6 +4,7 @@
         "search": "Rechercher",
         "scan": "Scanner",
         "offers": "Échanges",
+        "about": "À propos",
         "logOut": "Déconnexion",
         "openMenu": "Ouvrir le menu",
         "closeMenu": "Fermer le menu"
@@ -359,10 +360,35 @@
         "yes": "Oui",
         "no": "Non"
     },
-
     "notFound": {
         "title": "Page introuvable",
         "message": "La page que vous recherchez n'existe pas ou a peut-être été déplacée.",
+        "homeLink": "← Retour à ma collection"
+    },
+    "about": {
+        "title": "À propos de MTG Swapper",
+        "intro": "MTG Swapper est une plateforme communautaire pour les joueurs de Magic: The Gathering pour échanger des cartes directement entre eux. Qu'il s'agisse de trader une seule carte ou un deck complet, nous rendons facile de trouver des nouvelles maisons pour vos cartes et découvrir celles dont vous avez besoin.",
+        "section1Title": "Commencer : Téléchargez votre collection",
+        "section1Intro": "Commencez à constituer votre collection de cartes de trois manières simples :",
+        "section1Step1": "Ajoutez des cartes une par une en utilisant l'autocomplétion Scryfall",
+        "section1Step2": "Importez en masse depuis Moxfield ou MTG Arena au format texte brut (une carte par ligne, par exemple '4 Black Lotus')",
+        "section1Step3": "Scannez de vraies cartes avec votre caméra téléphone (fonction expérimentale — nécessite un bon éclairage)",
+        "section2Title": "Trouver des cartes : Recherche et navigation",
+        "section2Intro": "Une fois votre collection prête, commencez à explorer ce que les autres joueurs ont disponible :",
+        "section2Step1": "Utilisez l'onglet Rechercher pour trouver n'importe quelle carte par nom — les résultats affichent tous les joueurs qui l'ont",
+        "section2Step2": "Cliquez sur un joueur pour voir sa collection complète disponible",
+        "section2Step3": "Voir la réputation du joueur (note moyenne et échanges complétés) pour établir la confiance",
+        "section3Title": "Faire une offre : Le processus d'échange",
+        "section3Intro": "Quand vous trouvez les cartes que vous voulez, lancez un échange avec ce flux :",
+        "section3Step1": "Sélectionnez les cartes que vous voulez offrir et celles que vous voulez en retour — créez et envoyez votre offre",
+        "section3Step2": "L'autre joueur peut accepter, refuser ou faire une contre-offre (max 4 tours de négociation)",
+        "section3Step3": "Une fois acceptée, coordonnez comment vous allez échanger : rencontre en personne ou arrangez les détails dans le fil de messages",
+        "section3Step4": "Après l'échange, les deux joueurs marquent comme terminé et s'évaluent 1-5 étoiles pour renforcer la confiance communautaire",
+        "section4Title": "Limitations actuelles",
+        "section4Intro": "Veuillez noter ces contraintes dans notre bêta fermée :",
+        "section4Point1": "Accès réservé aux invités — vous avez reçu un code d'invitation d'un ami pour rejoindre",
+        "section4Point2": "Échanges en personne uniquement pour l'instant (les échanges par courrier arrivent bientôt) — coordonnez le lieu et l'heure dans le fil de messages",
+        "section4Point3": "Les fonctionnalités bêta fermée se limitent actuellement à l'anglais et au français pour l'interface utilisateur",
         "homeLink": "← Retour à ma collection"
     }
 }

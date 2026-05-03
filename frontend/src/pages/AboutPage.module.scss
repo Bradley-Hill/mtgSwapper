@@ -1,0 +1,118 @@
+@use "../styles/variables" as *;
+
+.page {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 100vh;
+  padding: $space-6;
+  background: linear-gradient(
+    135deg,
+    rgba($accent, 0.05) 0%,
+    rgba($accent-hover, 0.05) 100%
+  );
+}
+
+.container {
+  max-width: 760px;
+  width: 100%;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: $space-8;
+  padding-bottom: $space-6;
+  border-bottom: 2px solid rgba($accent, 0.2);
+}
+
+.title {
+  font-size: $text-2xl;
+  font-weight: 700;
+  color: $text-primary;
+  margin: 0 0 $space-2;
+}
+
+.intro {
+  font-size: $text-base;
+  color: $text-muted;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: $space-8;
+  margin-bottom: $space-8;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  padding: $space-4;
+  background: rgba($text-primary, 0.02);
+  border-left: 4px solid $accent;
+  border-radius: $radius-md;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba($text-primary, 0.04);
+  }
+}
+
+.sectionTitle {
+  font-size: $text-lg;
+  font-weight: 600;
+  color: $accent;
+  margin: 0;
+}
+
+.sectionText {
+  font-size: $text-sm;
+  color: $text-muted;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+
+  li {
+    font-size: $text-sm;
+    color: $text-secondary;
+    line-height: 1.5;
+    padding-left: $space-4;
+    position: relative;
+
+    &::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: $accent;
+      font-weight: 600;
+    }
+  }
+}
+
+.homeLink {
+  display: inline-block;
+  padding: $space-3 $space-6;
+  background: $accent;
+  color: $text-primary;
+  border-radius: $radius-md;
+  font-size: $text-sm;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s;
+  align-self: flex-start;
+
+  &:hover {
+    background: $accent-hover;
+  }
+}

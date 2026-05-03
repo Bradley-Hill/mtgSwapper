@@ -16,7 +16,7 @@
   height: 3.5rem;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: $space-4;
 }
 
 // ── Logo / brand ──────────────────────────────────────────────────────────────
@@ -38,6 +38,7 @@
   align-items: center;
   gap: $space-1;
   list-style: none;
+  margin: 0 auto;  // Center links between brand and userSection
 
   // Hidden below 768px; hamburger menu takes over
   @media (max-width: 767px) {
@@ -70,6 +71,7 @@
   display: flex;
   align-items: center;
   gap: $space-3;
+  margin-left: auto;  // Push to right side
 
   @media (max-width: 767px) {
     display: none;

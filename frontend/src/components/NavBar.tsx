@@ -63,6 +63,11 @@ export function NavBar() {
                 {t("nav.offers")}
               </NavLink>
             </li>
+            <li>
+              <NavLink to="/about" className={navLinkClass}>
+                {t("nav.about")}
+              </NavLink>
+            </li>
           </ul>
 
           <div className={styles.userSection}>
@@ -71,7 +76,9 @@ export function NavBar() {
               onClick={toggleLanguage}
               className={styles.langToggle}
               aria-label={
-                currentLang === "en" ? "Switch to French" : "Passer en anglais"
+                currentLang === "en"
+                  ? "Switch to French"
+                  : "Passer en anglais"
               }
             >
               {currentLang === "en" ? "FR" : "EN"}
@@ -115,30 +122,31 @@ export function NavBar() {
           <NavLink to="/offers" className={mobileNavLinkClass} onClick={close}>
             {t("nav.offers")}
           </NavLink>
-
-          <div className={styles.mobileUser}>
-            {user && (
-              <span className={styles.mobileUsername}>{user.username}</span>
-            )}
-            <button
-              type="button"
-              onClick={toggleLanguage}
-              className={styles.langToggle}
-              aria-label={
-                currentLang === "en" ? "Switch to French" : "Passer en anglais"
-              }
-            >
-              {currentLang === "en" ? "FR" : "EN"}
-            </button>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className={styles.mobileLogoutBtn}
-            >
-              {t("nav.logOut")}
-            </button>
-          </div>
+          <NavLink to="/about" className={mobileNavLinkClass} onClick={close}>
+            {t("nav.about")}
+          </NavLink>
+          {user && (
+            <span className={styles.mobileUsername}>{user.username}</span>
+          )}
+          <button
+            type="button"
+            onClick={toggleLanguage}
+            className={styles.langToggle}
+            aria-label={
+              currentLang === "en" ? "Switch to French" : "Passer en anglais"
+            }
+          >
+            {currentLang === "en" ? "FR" : "EN"}
+          </button>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className={styles.mobileLogoutBtn}
+          >
+            {t("nav.logOut")}
+          </button>
         </div>
+        // </div>
       )}
     </header>
   );
