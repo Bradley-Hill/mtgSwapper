@@ -5,14 +5,18 @@
 FROM python:3.12-slim
 
 # ── System dependencies ───────────────────────────────────────────────────────
-# tesseract-ocr: OCR engine for the card scanning feature.
 # libpq-dev / gcc: needed to compile psycopg2 from source if the binary wheel
 #   isn't available for the exact platform (belt-and-suspenders).
+# libgl1 / libglib2.0-0 / libsm6 / libxext6: required by OpenCV (used by PaddleOCR)
+#   PaddleOCR is our OCR engine for card scanning, and it depends on cv2.
 # We clean up the apt cache immediately to keep the image layer small.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    tesseract-ocr \
     libpq-dev \
     gcc \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Working directory ─────────────────────────────────────────────────────────

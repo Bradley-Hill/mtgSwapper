@@ -6,7 +6,7 @@ import io
 import re
 import time
 
-import pytesseract
+from paddleocr import PaddleOCR
 from PIL import Image, ImageFilter, ImageEnhance, ImageOps
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -31,49 +31,100 @@ from .scryfall_service import ScryfallService
 # Group 1 → quantity, Group 2 → card name (everything up to optional set code in parens)
 _DECKLIST_LINE_RE = re.compile(r'^(\d+)\s+([^(]+?)(?:\s*\(.*)?$')
 
+# Global OCR instance — initialized lazily on first use
+_OCR = None
 
-def _preprocess_card_image(image_bytes: bytes) -> Image.Image:
+
+def _get_ocr():
     """
-    Prepare a card image for OCR.
-
-    Steps:
-    1. Handle EXIF rotation — mobile devices store orientation metadata that
-       PIL doesn't auto-apply. Without this, portrait-mode captures get misaligned.
-    2. Crop to the top 25% of the image — that's where the card name lives.
-       MTG cards have a consistent layout: name bar sits at the top, roughly
-       10-15% of the total card height. Using 25% gives extra safety margin
-       for angled shots without pulling in the art (which confuses OCR badly).
-       Increased from 20% to handle more aggressive mobile angles.
-    3. Convert to greyscale — colour information is noise for text recognition.
-    4. Boost contrast (factor 3.5) — increases the ink-to-paper ratio so
-       Tesseract's binarization step produces cleaner black/white pixels.
-       Increased from 2.0 to 3.5 for better results in poor/fluorescent lighting
-       (common in casual card-scanning scenarios).
-    5. Sharpen — reduces blur from camera shake, improving character edge clarity.
-
-    Why not deskew or perspective-correct?
-    That requires more complex affine transforms (e.g. OpenCV). The accuracy
-    improvement for typical handheld card shots doesn't justify the dependency.
-    Tesseract handles mild skew reasonably well on its own.
+    Get the PaddleOCR instance, initializing it lazily on first use.
+    
+    This avoids initializing the heavy OCR models at module import time,
+    which would block startup for all requests (even non-scan requests).
+    Instead, models are downloaded/initialized only when /api/cards/scan/
+    is first called.
     """
+    global _OCR
+    if _OCR is None:
+        _OCR = PaddleOCR(use_angle_cls=True, lang=['en', 'fr'])
+    return _OCR
+
+
+def _save_image_temp(image_bytes: bytes) -> str:
+    """
+    Save image bytes to a temporary file for PaddleOCR processing.
+    PaddleOCR works best with file paths; we save the uploaded bytes temporarily.
+
+    Args:
+        image_bytes: Raw image bytes
+
+    Returns:
+        Path to the temporary image file
+    """
+    import tempfile
+    
+    # PaddleOCR handles EXIF rotation automatically, so we just save as-is
     img = Image.open(io.BytesIO(image_bytes))
-    
-    # Apply EXIF rotation — critical for mobile device captures
-    img = ImageOps.exif_transpose(img)
-    
+    img = ImageOps.exif_transpose(img)  # Auto-correct orientation
     img = img.convert("RGB")
-    width, height = img.size
+    
+    # Save to a temp file
+    temp_file = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
+    img.save(temp_file.name, format="JPEG", quality=95)
+    temp_file.close()
+    
+    return temp_file.name
 
-    # Crop: top 25% (increased from 20% for angled mobile captures)
-    crop_bottom = int(height * 0.25)
-    img = img.crop((0, 0, width, crop_bottom))
 
-    # Greyscale → contrast boost → sharpen
-    img = img.convert("L")
-    img = ImageEnhance.Contrast(img).enhance(3.5)
-    img = img.filter(ImageFilter.SHARPEN)
+def _extract_card_name_from_ocr(image_path: str) -> str:
+    """
+    Extract the card name from an MTG card image using PaddleOCR.
 
-    return img
+    PaddleOCR detects all text regions and returns them with bounding boxes.
+    The card name is almost always the topmost text on the card.
+
+    Strategy:
+    1. Run OCR on the image
+    2. Sort detected text regions by vertical position (top to bottom)
+    3. Filter out very small/noisy regions (less than 5 characters)
+    4. Take the first (topmost) region — that's the card name
+
+    Args:
+        image_path: Path to the image file (or file-like object)
+
+    Returns:
+        Extracted card name text, or empty string if nothing detected
+    """
+    try:
+        ocr = _get_ocr()
+        results = ocr.ocr(image_path, cls=True)
+    except Exception:
+        return ""
+
+    if not results or not results[0]:
+        return ""
+
+    # Extract text regions with their positions
+    # results[0] is a list of: [[bbox], [text, confidence]]
+    text_regions = []
+    for line in results[0]:
+        if len(line) >= 2:
+            bbox = line[0]  # [[x1, y1], [x2, y2], [x3, y3], [x4, y4]]
+            text, confidence = line[1]
+            if text.strip():  # Only non-empty text
+                # Calculate top-left y position to sort top-to-bottom
+                y_min = min(point[1] for point in bbox)
+                text_regions.append((y_min, text, confidence))
+
+    if not text_regions:
+        return ""
+
+    # Sort by vertical position (top to bottom)
+    text_regions.sort(key=lambda x: x[0])
+
+    # Return the topmost text (card name)
+    topmost_text = text_regions[0][1]
+    return topmost_text.strip()
 
 
 def _parse_decklist(text):
@@ -429,8 +480,15 @@ class CardViewSet(viewsets.ModelViewSet):
         Content-Type: multipart/form-data
         Body field: image (JPEG or PNG)
 
-        Accepts a photo of an MTG card, runs Tesseract OCR on the top 20%
-        (where the card name lives), then does a fuzzy Scryfall lookup.
+        Accepts a photo of an MTG card, runs PaddleOCR to detect all text regions,
+        extracts the topmost text (card name), then does a fuzzy Scryfall lookup.
+
+        Why PaddleOCR instead of Tesseract?
+        - PaddleOCR is a deep-learning OCR engine optimized for document/card scanning
+        - Automatically detects and corrects text orientation (handles rotated cards)
+        - Returns bounding boxes for each text region (lets us extract just the name)
+        - More robust to poor lighting, angles, and multilingual text
+        - No external system dependency (unlike Tesseract)
 
         Returns card metadata for the caller to review before adding to their
         collection — this endpoint NEVER creates a Card row itself. The caller
@@ -465,18 +523,26 @@ class CardViewSet(viewsets.ModelViewSet):
 
         image_bytes = image_file.read()
 
+        # Save image to temp file for PaddleOCR
         try:
-            processed = _preprocess_card_image(image_bytes)
+            import os
+            temp_image_path = _save_image_temp(image_bytes)
         except Exception:
             return Response(
                 {'error': 'Could not decode the uploaded image. Use JPEG or PNG.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Run OCR — Tesseract returns a multi-line string; collapse it to one line
-        raw_text = pytesseract.image_to_string(processed, config='--psm 6 -l eng+fra').strip()
-        # --psm 6: treat as a uniform block of text (more forgiving than PSM 7)
-        # -l eng+fra: recognize both English and French card names
+        try:
+            # Extract card name using PaddleOCR
+            # PaddleOCR detects all text regions and returns them with bounding boxes.
+            # We take the topmost region (card name) and filter out noise.
+            raw_text = _extract_card_name_from_ocr(temp_image_path)
+        finally:
+            # Clean up temp file
+            import os
+            if os.path.exists(temp_image_path):
+                os.remove(temp_image_path)
 
         if not raw_text:
             return Response(
@@ -505,5 +571,5 @@ class CardViewSet(viewsets.ModelViewSet):
             'card_type':   metadata.get('card_type', ''),
             'mana_cost':   metadata.get('mana_cost', ''),
             'scryfall_id': metadata['scryfall_id'],
-            'raw_ocr_text': raw_text,
+            'raw_ocr_text': raw_text,  # PaddleOCR-extracted text (top text region)
         }, status=status.HTTP_200_OK)
