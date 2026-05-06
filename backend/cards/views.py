@@ -7,7 +7,7 @@ import re
 import time
 
 import pytesseract
-from PIL import Image, ImageFilter, ImageEnhance
+from PIL import Image, ImageFilter, ImageEnhance, ImageOps
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
@@ -37,30 +37,40 @@ def _preprocess_card_image(image_bytes: bytes) -> Image.Image:
     Prepare a card image for OCR.
 
     Steps:
-    1. Crop to the top 20% of the image — that's where the card name lives.
+    1. Handle EXIF rotation — mobile devices store orientation metadata that
+       PIL doesn't auto-apply. Without this, portrait-mode captures get misaligned.
+    2. Crop to the top 25% of the image — that's where the card name lives.
        MTG cards have a consistent layout: name bar sits at the top, roughly
-       10-15% of the total card height. Using 20% gives a small safety margin
+       10-15% of the total card height. Using 25% gives extra safety margin
        for angled shots without pulling in the art (which confuses OCR badly).
-    2. Convert to greyscale — colour information is noise for text recognition.
-    3. Boost contrast (factor 2.0) — increases the ink-to-paper ratio so
+       Increased from 20% to handle more aggressive mobile angles.
+    3. Convert to greyscale — colour information is noise for text recognition.
+    4. Boost contrast (factor 3.5) — increases the ink-to-paper ratio so
        Tesseract's binarization step produces cleaner black/white pixels.
-    4. Sharpen — reduces blur from camera shake, improving character edge clarity.
+       Increased from 2.0 to 3.5 for better results in poor/fluorescent lighting
+       (common in casual card-scanning scenarios).
+    5. Sharpen — reduces blur from camera shake, improving character edge clarity.
 
     Why not deskew or perspective-correct?
     That requires more complex affine transforms (e.g. OpenCV). The accuracy
     improvement for typical handheld card shots doesn't justify the dependency.
     Tesseract handles mild skew reasonably well on its own.
     """
-    img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    img = Image.open(io.BytesIO(image_bytes))
+    
+    # Apply EXIF rotation — critical for mobile device captures
+    img = ImageOps.exif_transpose(img)
+    
+    img = img.convert("RGB")
     width, height = img.size
 
-    # Crop: top 20%
-    crop_bottom = int(height * 0.20)
+    # Crop: top 25% (increased from 20% for angled mobile captures)
+    crop_bottom = int(height * 0.25)
     img = img.crop((0, 0, width, crop_bottom))
 
     # Greyscale → contrast boost → sharpen
     img = img.convert("L")
-    img = ImageEnhance.Contrast(img).enhance(2.0)
+    img = ImageEnhance.Contrast(img).enhance(3.5)
     img = img.filter(ImageFilter.SHARPEN)
 
     return img
@@ -464,8 +474,9 @@ class CardViewSet(viewsets.ModelViewSet):
             )
 
         # Run OCR — Tesseract returns a multi-line string; collapse it to one line
-        raw_text = pytesseract.image_to_string(processed, config='--psm 7').strip()
-        # --psm 7: treat the image as a single text line (suits a cropped name bar)
+        raw_text = pytesseract.image_to_string(processed, config='--psm 6 -l eng+fra').strip()
+        # --psm 6: treat as a uniform block of text (more forgiving than PSM 7)
+        # -l eng+fra: recognize both English and French card names
 
         if not raw_text:
             return Response(
