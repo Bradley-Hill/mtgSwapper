@@ -134,25 +134,32 @@ class AuthViewSet(viewsets.ViewSet):
         
         if serializer.is_valid():
             user = serializer.validated_data['user']
-            
-            # Generate JWT tokens
-            refresh = RefreshToken.for_user(user)
-            
-            # Update last login
-            user.last_login_at = timezone.now()
-            user.save(update_fields=['last_login_at'])
-            
-            # Build response
-            response = Response({
-                'user': UserSerializer(user).data,
-                'message': 'Logged in successfully!'
-            }, status=status.HTTP_200_OK)
-            
-            # Set tokens as httpOnly cookies
-            response.set_cookie(**_get_cookie_kwargs('access_token', str(refresh.access_token)))
-            response.set_cookie(**_get_cookie_kwargs('refresh_token', str(refresh)))
-            
-            return response
+
+            try:
+                # Generate JWT tokens
+                refresh = RefreshToken.for_user(user)
+                
+                # Update last login
+                user.last_login_at = timezone.now()
+                user.save(update_fields=['last_login_at'])
+                
+                # Build response
+                response = Response({
+                    'user': UserSerializer(user).data,
+                    'message': 'Logged in successfully!'
+                }, status=status.HTTP_200_OK)
+                
+                # Set tokens as httpOnly cookies
+                response.set_cookie(**_get_cookie_kwargs('access_token', str(refresh.access_token)))
+                response.set_cookie(**_get_cookie_kwargs('refresh_token', str(refresh)))
+                
+                return response
+            except Exception as e:
+                import traceback
+                return Response({
+                    'debug_error': str(e),
+                    'debug_traceback': traceback.format_exc(),
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         return Response(serializer.errors, status=status.HTTP_401_UNAUTHORIZED)
     
