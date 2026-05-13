@@ -11,6 +11,7 @@ FROM python:3.12-slim
 #   C binary (~10MB); it avoids the need for a Python ML runtime (PyTorch/
 #   PaddlePaddle) in the container, keeping RAM usage low on Render free tier.
 # We clean up the apt cache immediately to keep the image layer small.
+# force rebuild: 1
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     gcc \

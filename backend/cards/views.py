@@ -101,7 +101,7 @@ def _preprocess_and_extract_text(image_bytes: bytes) -> str:
         #          the combined mode (oem 3)
         raw_text = pytesseract.image_to_string(
             img,
-            config='--psm 6 --oem 1',
+            config='--psm 7 --oem 1',
         ).strip()
         logger.info("[scan] Tesseract output: %r", raw_text)
     except Exception as e:
