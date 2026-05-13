@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import styles from "./CameraCapture.module.scss";
 
@@ -14,52 +14,211 @@ interface Props {
  *
  * Two capture modes in one component:
  *
- * 1. File input with `capture="environment"` — on mobile this opens the rear
- *    camera directly. On desktop it opens a file picker as a fallback.
- *    This is the simplest possible approach: no getUserMedia, no canvas, no
- *    permission management. Works on every browser without extra setup.
+ * 1. getUserMedia live viewfinder (primary on mobile/desktop browsers that
+ *    support it). Shows a <video> element with a targeting guide box overlaid
+ *    at the card name bar position. When the user taps Capture, a canvas crops
+ *    the live frame to just the guide band and sends that narrow strip to the
+ *    backend. This means the server receives a pre-cropped name bar image
+ *    rather than a full card photo, which dramatically improves OCR accuracy.
  *
- * 2. Manual file picker — the same <input> without capture, so the user can
- *    also choose an existing photo from their gallery.
+ * 2. File input fallback (<input capture="environment">). Used automatically
+ *    when getUserMedia fails (e.g. permission denied, older browser). Opens the
+ *    native camera app or file picker. The full image is sent to the backend,
+ *    which uses its own card-detection (numpy row-brightness scan) to locate
+ *    and crop the name bar.
  *
- * Why not use MediaDevices.getUserMedia() with a live <video> preview?
- * That approach gives a live viewfinder and more control over resolution, but
- * it requires:
- *   - Explicit permission grant (extra UX friction on first use)
- *   - Canvas capture for the snapshot (more code, more surface area)
- *   - Safari quirks with getUserMedia constraints
+ * Guide box positioning:
+ *   GUIDE_TOP_PCT and GUIDE_BOTTOM_PCT define the guide band as a fraction of
+ *   viewfinder height. These same values are mirrored as CSS percentages in
+ *   CameraCapture.module.scss (.guideBox top / height). Both must stay in sync
+ *   so the visible guide and the canvas crop land on the same pixels.
  *
- * For a card scanner where the user is taking a deliberate photo, the native
- * camera-capture input is faster to implement, equally effective, and requires
- * zero permission handling. We can upgrade to getUserMedia in Phase 2 if users
- * want a live preview flow.
- *
- * Gotcha: `capture="environment"` is ignored on desktop browsers — they just
- * show a file picker. That's acceptable; desktop users can upload a photo.
+ *   The viewfinder uses `height: auto` (no object-fit) so its rendered height
+ *   equals the video's native aspect ratio scaled to the container width. This
+ *   means `GUIDE_TOP_PCT × videoHeight` (native pixels, used in canvas) and
+ *   `GUIDE_TOP_PCT × containerHeight` (CSS percentage) are exactly the same
+ *   fraction — no mapping correction needed.
  */
+
+// Guide band: 12% → 28% of the viewfinder height.
+// This covers the name bar for a card that fills ~80% of the frame,
+// accounting for a few percent of background above the card top.
+// IMPORTANT: mirror any change here in CameraCapture.module.scss .guideBox
+const GUIDE_TOP_PCT = 0.12;
+const GUIDE_BOTTOM_PCT = 0.28;
+
 export function CameraCapture({ onCapture, disabled = false }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  // streamRef avoids stale-closure issues in useEffect cleanup functions —
+  // a ref is always up-to-date even in closures that captured an old state.
+  const streamRef = useRef<MediaStream | null>(null);
+  const fallbackInputRef = useRef<HTMLInputElement>(null);
+
+  const [isLive, setIsLive] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [useFallback, setUseFallback] = useState(false);
   const { t } = useTranslation();
 
-  const handleChange = useCallback(
+  const stopCamera = useCallback(() => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    setIsLive(false);
+  }, []);
+
+  const startCamera = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment", width: { ideal: 1920 } },
+      });
+      streamRef.current = stream;
+      setIsLive(true);
+    } catch {
+      // Permission denied, device not found, or API not supported.
+      // Fall back to the native file input.
+      setUseFallback(true);
+    }
+  }, []);
+
+  // Attach stream to the video element once both are ready.
+  useEffect(() => {
+    if (isLive && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [isLive]);
+
+  // Start camera on mount; guarantee cleanup on unmount.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    startCamera();
+    return () => {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []); // deliberately empty — run only once on mount
+
+  const handleCapture = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+
+    // Crop to the guide band in native pixel coordinates.
+    // Because the viewfinder uses height:auto (no object-fit crop/stretch),
+    // CSS guide percentages and native pixel percentages are the same fraction.
+    const cropTop = Math.round(vh * GUIDE_TOP_PCT);
+    const cropHeight = Math.round(vh * (GUIDE_BOTTOM_PCT - GUIDE_TOP_PCT));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = vw;
+    canvas.height = cropHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Draw only the guide band region of the current video frame.
+    ctx.drawImage(video, 0, cropTop, vw, cropHeight, 0, 0, vw, cropHeight);
+
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return;
+        const file = new File([blob], "scan.jpg", { type: "image/jpeg" });
+        setPreview(URL.createObjectURL(blob));
+        stopCamera();
+        onCapture(file);
+      },
+      "image/jpeg",
+      0.92,
+    );
+  }, [onCapture, stopCamera]);
+
+  const handleRetake = useCallback(() => {
+    setPreview(null);
+    startCamera();
+  }, [startCamera]);
+
+  const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-
-      // Show a local preview so the user can see what they captured
-      const objectUrl = URL.createObjectURL(file);
-      setPreview(objectUrl);
+      setPreview(URL.createObjectURL(file));
       onCapture(file);
-
-      // Reset the input so the same file can be re-selected after an error
       e.target.value = "";
     },
     [onCapture],
   );
 
+  // ── Fallback: getUserMedia unavailable ────────────────────────────────────
+  if (useFallback) {
+    return (
+      <div className={styles.root}>
+        {preview && (
+          <div className={styles.preview}>
+            <img
+              src={preview}
+              alt={t("scan.capture.preview")}
+              className={styles.previewImg}
+            />
+          </div>
+        )}
+        <p className={styles.fallbackNote}>
+          {t("scan.capture.cameraUnavailable")}
+        </p>
+        <input
+          ref={fallbackInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          capture="environment"
+          className={styles.hiddenInput}
+          onChange={handleFileChange}
+          disabled={disabled}
+          aria-hidden="true"
+        />
+        <button
+          type="button"
+          className={styles.captureBtn}
+          onClick={() => fallbackInputRef.current?.click()}
+          disabled={disabled}
+        >
+          {disabled
+            ? t("scan.scanning")
+            : preview
+              ? t("scan.capture.retake")
+              : t("scan.capture.takePhoto")}
+        </button>
+        {preview && (
+          <button
+            type="button"
+            className={styles.clearBtn}
+            onClick={() => setPreview(null)}
+            disabled={disabled}
+          >
+            {t("scan.capture.clear")}
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // ── Live viewfinder ────────────────────────────────────────────────────────
   return (
     <div className={styles.root}>
+      {isLive && !preview && (
+        <div className={styles.viewfinder}>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className={styles.video}
+          />
+          {/* Guide overlay — must stay pointer-events:none so taps reach the button */}
+          <div className={styles.guideBox} aria-hidden="true">
+            <span className={styles.guideLabel}>
+              {t("scan.capture.alignGuide")}
+            </span>
+          </div>
+        </div>
+      )}
+
       {preview && (
         <div className={styles.preview}>
           <img
@@ -70,41 +229,38 @@ export function CameraCapture({ onCapture, disabled = false }: Props) {
         </div>
       )}
 
-      {/* Hidden file input — triggered by the button below */}
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        capture="environment"
-        className={styles.hiddenInput}
-        onChange={handleChange}
-        disabled={disabled}
-        aria-hidden="true"
-      />
-
-      <button
-        type="button"
-        className={styles.captureBtn}
-        onClick={() => inputRef.current?.click()}
-        disabled={disabled}
-      >
-        {disabled
-          ? t("scan.scanning")
-          : preview
-            ? t("scan.capture.retake")
-            : t("scan.capture.takePhoto")}
-      </button>
-
-      {preview && (
+      {isLive && !preview && (
         <button
           type="button"
-          className={styles.clearBtn}
-          onClick={() => setPreview(null)}
+          className={styles.captureBtn}
+          onClick={handleCapture}
           disabled={disabled}
         >
-          {t("scan.capture.clear")}
+          {disabled ? t("scan.scanning") : t("scan.capture.capture")}
         </button>
+      )}
+
+      {preview && (
+        <>
+          <button
+            type="button"
+            className={styles.captureBtn}
+            onClick={handleRetake}
+            disabled={disabled}
+          >
+            {t("scan.capture.retake")}
+          </button>
+          <button
+            type="button"
+            className={styles.clearBtn}
+            onClick={() => setPreview(null)}
+            disabled={disabled}
+          >
+            {t("scan.capture.clear")}
+          </button>
+        </>
       )}
     </div>
   );
 }
+

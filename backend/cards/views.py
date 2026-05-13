@@ -7,6 +7,7 @@ import logging
 import re
 import time
 
+import numpy as np
 import pytesseract
 from PIL import Image, ImageFilter, ImageEnhance, ImageOps
 from rest_framework import viewsets, status
@@ -35,23 +36,53 @@ logger = logging.getLogger(__name__)
 _DECKLIST_LINE_RE = re.compile(r"^(\d+)\s+([^(]+?)(?:\s*\(.*)?$")
 
 
+def _find_card_top(img: Image.Image) -> int:
+    """
+    Locate the y-coordinate where the card's bright interior begins.
+
+    MTG cards have a prominent black outer border (~20–40 greyscale). The card
+    interior (including the name bar background) is always significantly
+    brighter (>140). Scanning row means from the top of the image finds the
+    first row where the average pixel value crosses that threshold.
+
+    We only search the top third of the image: the card top can never be
+    further down than that in any reasonable hand-held photo.
+
+    Why numpy?
+    arr.mean(axis=1) computes all row means in a single vectorised C operation
+    (~0.5ms for a 4K image). The pure-Python equivalent — iterating rows with
+    PIL ImageStat — would take ~100ms due to Python loop overhead.
+    """
+    grey = np.array(img.convert("L"))
+    row_means = grey.mean(axis=1)  # shape: (height,)
+    search_limit = max(1, len(row_means) // 3)
+    for y in range(search_limit):
+        if row_means[y] > 140:
+            return y
+    return 0  # fallback: assume card starts at the very top
+
+
 def _preprocess_and_extract_text(image_bytes: bytes) -> str:
     """
     Preprocess card image and extract the card name using Tesseract OCR.
 
     Process:
     1. Load image from bytes and correct EXIF rotation (handles mobile photos)
-    2. Crop to the top 15% — the MTG card name bar sits in roughly the top
-       8-10% of the card; taking 15% allows for slight photo angle variance
-    3. Upsample small images — Tesseract accuracy drops significantly when
-       text is shorter than ~30px; LANCZOS upscaling keeps edges crisp
+    2. Crop to the name bar region — two paths depending on input:
+       a. Pre-cropped strip (height < width × 0.5): the frontend guide already
+          cropped to the name bar; use the full image as-is.
+       b. Full card photo: use _find_card_top() to locate the card's top edge
+          via row brightness scan, then crop to the top ~10% of card height.
     3. Normalise to 200px height — Tesseract LSTM works best when text is
-       30–80px tall. A 15% crop of a 4K phone photo is 600–700px tall, making
-       the card name text 150–200px tall — 2–4× too large for PSM 7 to treat
-       as a single text line. Scaling to 200px puts the name bar text at ~50px.
-    4. Greyscale + contrast ×1.5 + sharpen — removes colour noise and makes
-       the dark card name text pop against the lighter name bar background
-    5. Run Tesseract with --psm 7 (single text line) + --oem 1 (LSTM engine).
+       30–80px tall. Scaling ensures consistent input regardless of camera
+       resolution or how far away the card was when photographed.
+    4. Green channel extraction — replaces standard luminance greyscale.
+       Red card frames and coloured backgrounds have high R, low G values
+       and go very dark in the green channel. The cream name bar has high G
+       (~215) and stays bright. Black text has low G and stays dark. This
+       creates far cleaner contrast for Tesseract than a flat greyscale.
+    5. Contrast ×1.5 + sharpen — widens the histogram gap and sharpens edges.
+    6. Run Tesseract with --psm 7 (single text line) + --oem 1 (LSTM engine).
        Falls back to --psm 11 (sparse text) if psm 7 returns nothing.
 
     Why Tesseract instead of a deep-learning OCR engine?
@@ -77,24 +108,38 @@ def _preprocess_and_extract_text(image_bytes: bytes) -> str:
     width, height = img.size
     logger.info("[scan] Image loaded: size=%sx%s", width, height)
 
-    # Crop to the top 15% — covers the name bar with margin for slight tilt
-    name_bar_height = int(height * 0.15)
-    img = img.crop((0, 0, width, name_bar_height))
+    # Determine whether we have a pre-cropped strip or a full card photo.
+    #
+    # The frontend guide crops the canvas to just the name bar band before
+    # sending — that strip has height << width (typically height/width ≈ 0.16).
+    # A full card photo held in portrait has height > width (ratio ≈ 1.3).
+    # Threshold of 0.5 leaves comfortable separation between the two cases.
+    if height < width * 0.5:
+        # Already a name bar strip — no further cropping needed.
+        logger.info("[scan] Pre-cropped strip detected (%sx%s), skipping card detection", width, height)
+    else:
+        # Full photo: find where the card interior begins, then crop the
+        # top ~10% of the card (covers the name bar with some margin).
+        card_top = _find_card_top(img)
+        card_height = int(height * 0.80)  # card typically fills ~80% of frame
+        name_bar_bottom = min(card_top + int(card_height * 0.10), height)
+        img = img.crop((0, card_top, width, name_bar_bottom))
+        logger.info("[scan] Card top y=%s, name bar crop to y=%s", card_top, name_bar_bottom)
 
-    # Normalise crop to 200px height for consistent Tesseract input.
-    # Phone photos at 4K produce crops 3–7× too tall for PSM 7, which expects
-    # the image to closely match a single text line. 200px puts the name bar
-    # text at roughly 50px — well within Tesseract LSTM's optimal range.
-    # LANCZOS is used for both up and downscaling to preserve edge quality.
+    # Normalise to 200px height for consistent Tesseract input.
     crop_w, crop_h = img.size
     new_w = max(1, int(crop_w * 200 / crop_h))
     img = img.resize((new_w, 200), Image.LANCZOS)
-    logger.info("[scan] Resized crop: %sx200", new_w)
+    logger.info("[scan] Resized: %sx200", new_w)
 
-    # Greyscale → contrast ×1.5 → sharpen
-    img = img.convert("L")  # Remove colour noise
-    img = ImageEnhance.Contrast(img).enhance(1.5)  # Dark text on light bg
-    img = img.filter(ImageFilter.SHARPEN)  # Crisper edges for OCR
+    # Green channel — suppresses red card frames and coloured backgrounds.
+    # Red objects (card frame, fabric, hands) have high R, low G (~60–80) and
+    # appear very dark. The cream name bar has high G (~215) and stays bright.
+    # Black text has low G and stays dark. Result: the name bar is a bright
+    # horizontal band surrounded by dark regions — ideal for PSM 7.
+    img = img.split()[1]  # index 1 = Green channel of (R, G, B)
+    img = ImageEnhance.Contrast(img).enhance(1.5)
+    img = img.filter(ImageFilter.SHARPEN)
 
     logger.info("[scan] Preprocessing done, running Tesseract...")
 
@@ -118,6 +163,21 @@ def _preprocess_and_extract_text(image_bytes: bytes) -> str:
         return ""
 
     return raw_text
+
+
+def _filter_ocr_tokens(text: str) -> str:
+    """
+    Strip OCR noise tokens from extracted text.
+
+    PSM 11 (sparse text) often picks up mana cost digits and 1-2 character
+    frame decorations alongside the card name. Keeping only alphabetic tokens
+    of length >= 3 removes these while preserving every word of the actual
+    card name (the shortest meaningful part of any MTG card name is >= 3 chars).
+
+    Example: "Se ee Squawkroaster 3 e" → "Squawkroaster"
+    """
+    tokens = [t for t in text.split() if t.isalpha() and len(t) >= 3]
+    return " ".join(tokens)
 
 
 def _parse_decklist(text):
@@ -550,6 +610,21 @@ class CardViewSet(viewsets.ModelViewSet):
         cleaned = re.sub(r"[^\w\s\',\-]", "", raw_text).strip()
 
         card_data = ScryfallService.search(cleaned)
+        if card_data is None:
+            # If full string fails, strip noise tokens (numbers, 1-2 char fragments)
+            # and retry. PSM 11 commonly picks up mana cost digits and frame
+            # decorations alongside the name (e.g. "Se ee Squawkroaster 3 e").
+            filtered = _filter_ocr_tokens(cleaned)
+            if filtered and filtered != cleaned:
+                logger.info(
+                    "[scan] Fuzzy miss on %r, retrying with filtered tokens: %r",
+                    cleaned,
+                    filtered,
+                )
+                card_data = ScryfallService.search(filtered)
+                if card_data:
+                    cleaned = filtered
+
         if not card_data:
             return Response(
                 {

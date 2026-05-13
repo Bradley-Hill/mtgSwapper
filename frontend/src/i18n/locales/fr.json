@@ -284,9 +284,12 @@
         "errorFallback": "Échec du scan. Essayez avec un meilleur éclairage ou rapprochez-vous.",
         "capture": {
             "takePhoto": "Prendre une photo / Téléverser une image",
+            "capture": "Capturer",
             "retake": "Reprendre la photo",
             "clear": "Effacer",
-            "preview": "Aperçu de la carte"
+            "preview": "Aperçu de la carte",
+            "alignGuide": "Aligner la barre de nom ici",
+            "cameraUnavailable": "Caméra en direct indisponible — utilisez le bouton pour prendre une photo."
         },
         "staging": {
             "title": "Cartes en attente ({{count}})",

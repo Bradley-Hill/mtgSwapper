@@ -11,6 +11,57 @@
   display: none;
 }
 
+// ── Live viewfinder ──────────────────────────────────────────────────────────
+
+.viewfinder {
+  position: relative;
+  width: 100%;
+  max-width: 20rem;
+  border-radius: $radius-md;
+  overflow: hidden; // clips the guide box's box-shadow to the viewfinder bounds
+  background: #000;
+  // Height is driven by the <video> natural aspect ratio (height:auto).
+  // Do NOT add object-fit:cover or a fixed aspect-ratio here — the guide
+  // CSS percentages must equal the GUIDE_TOP_PCT / GUIDE_BOTTOM_PCT constants
+  // in CameraCapture.tsx so the canvas crop lands on the same pixels shown.
+}
+
+.video {
+  width: 100%;
+  height: auto; // preserve native aspect ratio — keeps CSS guide aligned with canvas crop
+  display: block;
+}
+
+// Guide box — a transparent window at the name bar position.
+// box-shadow: 0 0 0 9999px dims everything outside the box while keeping
+// the box itself transparent (you see the live video through it).
+// top / height mirror GUIDE_TOP_PCT=0.12 and (GUIDE_BOTTOM_PCT-GUIDE_TOP_PCT)=0.16
+.guideBox {
+  position: absolute;
+  top: 12%;    // = GUIDE_TOP_PCT × 100
+  left: 5%;
+  right: 5%;
+  height: 16%; // = (GUIDE_BOTTOM_PCT - GUIDE_TOP_PCT) × 100
+  border: 2px solid $accent;
+  border-radius: $radius-sm;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.guideLabel {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: $text-xs;
+  color: $accent;
+  // Double text-shadow so the label is legible over any card/background colour
+  text-shadow: 0 0 4px #000, 0 0 8px #000;
+}
+
+// ── Shared preview (post-capture strip preview) ──────────────────────────────
+
 .preview {
   width: 100%;
   max-width: 20rem;
@@ -24,6 +75,17 @@
   height: auto;
   display: block;
 }
+
+// ── Fallback note (shown when getUserMedia is unavailable) ───────────────────
+
+.fallbackNote {
+  font-size: $text-sm;
+  color: $text-muted;
+  text-align: center;
+  max-width: 20rem;
+}
+
+// ── Buttons ──────────────────────────────────────────────────────────────────
 
 %btn-base {
   padding: $space-2 $space-5;
@@ -60,3 +122,4 @@
     background: $bg-hover;
   }
 }
+

@@ -284,9 +284,12 @@
     "errorFallback": "Scan failed. Try better lighting or a closer shot.",
     "capture": {
       "takePhoto": "Take Photo / Upload Image",
+      "capture": "Capture",
       "retake": "Retake Photo",
       "clear": "Clear",
-      "preview": "Card preview"
+      "preview": "Card preview",
+      "alignGuide": "Align name bar here",
+      "cameraUnavailable": "Live camera unavailable — use the button to take a photo instead."
     },
     "staging": {
       "title": "Staged cards ({{count}})",
