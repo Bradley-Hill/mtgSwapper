@@ -3,6 +3,7 @@ Views for Card management (CRUD + Scryfall integration).
 """
 
 import io
+import logging
 import re
 import time
 
@@ -27,6 +28,8 @@ from .serializers import (
 )
 from .scryfall_service import ScryfallService
 
+logger = logging.getLogger(__name__)
+
 
 # Matches: "4 Black Lotus" or "4 Black Lotus (VMA)" or "4 Black Lotus (VMA) 123"
 # Group 1 → quantity, Group 2 → card name (everything up to optional set code in parens)
@@ -39,15 +42,25 @@ _OCR = None
 def _get_ocr():
     """
     Get the PaddleOCR instance, initializing it lazily on first use.
-    
-    This avoids initializing the heavy OCR models at module import time,
-    which would block startup for all requests (even non-scan requests).
-    Instead, models are downloaded/initialized only when /api/cards/scan/
-    is first called.
+
+    Uses PaddleOCR 3.x API with the 'transformers' inference engine.
+    The transformers engine avoids the need to install PaddlePaddle
+    separately, keeping the Docker image lightweight for Render free tier.
+
+    Models are downloaded from HuggingFace Hub on the first scan request
+    and cached to disk. Subsequent requests reuse the cached weights.
     """
     global _OCR
     if _OCR is None:
-        _OCR = PaddleOCR(use_angle_cls=True, lang=['en', 'fr'])
+        logger.info("[scan] Initialising PaddleOCR 3.x (transformers engine)...")
+        _OCR = PaddleOCR(
+            lang='en',
+            engine='transformers',
+            use_doc_orientation_classify=False,
+            use_doc_unwarping=False,
+            use_textline_orientation=False,
+        )
+        logger.info("[scan] PaddleOCR initialised successfully.")
     return _OCR
 
 
@@ -79,35 +92,44 @@ def _preprocess_and_extract_text(image_bytes: bytes) -> str:
     img = ImageOps.exif_transpose(img)  # Auto-correct mobile orientation
     img = img.convert("RGB")
 
-    # PaddleOCR does not accept PIL Image objects — it needs a NumPy array.
-    # np.array(img) produces an (H, W, 3) uint8 array of the RGB pixels,
-    # preserving full quality with no re-compression.
+    # PaddleOCR needs a NumPy (H, W, 3) uint8 array — no re-compression.
     img_array = np.array(img)
+    logger.info("[scan] Image prepared: shape=%s", img_array.shape)
 
     try:
-        # OCR errors (model loading, inference) are caught here and treated
-        # as "no text found" so a transient GPU/model issue doesn't crash.
+        # OCR errors (model loading, inference) are caught here so a
+        # transient failure doesn't surface as a 500 to the client.
         ocr = _get_ocr()
-        results = ocr.ocr(img_array, cls=True)
-    except Exception:
+        # PaddleOCR 3.x uses predict() — returns a generator, one item per
+        # input image. list() materialises it so we can inspect the results.
+        results = list(ocr.predict(img_array))
+        logger.info("[scan] OCR returned %d result set(s)", len(results))
+    except Exception as e:
+        logger.error("[scan] OCR predict() raised: %s", e, exc_info=True)
         return ""
 
-    if not results or not results[0]:
+    if not results:
+        logger.warning("[scan] Empty results from predict()")
         return ""
 
-    # Extract text regions with their positions
-    # results[0] is a list of: [[bbox], [text, confidence]]
+    # PaddleOCR 3.x result format (per image):
+    #   res.res['rec_texts']  → list of recognised strings
+    #   res.res['dt_polys']   → numpy array (N, 4, 2) of bounding polygons
+    # We find the region with the smallest y-coordinate (topmost on card)
+    # because card names always appear at the top of the card layout.
     text_regions = []
-    for line in results[0]:
-        if len(line) >= 2:
-            bbox = line[0]  # [[x1, y1], [x2, y2], [x3, y3], [x4, y4]]
-            text, confidence = line[1]
-            if text.strip():  # Only non-empty text
-                # Calculate top-left y position to sort top-to-bottom
-                y_min = min(point[1] for point in bbox)
-                text_regions.append((y_min, text, confidence))
+    for res in results:
+        data = res.res
+        rec_texts = data.get('rec_texts', [])
+        dt_polys  = data.get('dt_polys', [])
+        logger.info("[scan] Detected regions: %s", rec_texts)
+        for text, poly in zip(rec_texts, dt_polys):
+            if text and text.strip():
+                y_min = float(min(point[1] for point in poly))
+                text_regions.append((y_min, text))
 
     if not text_regions:
+        logger.warning("[scan] No non-empty text regions found")
         return ""
 
     # Sort by vertical position (top to bottom)
@@ -115,6 +137,7 @@ def _preprocess_and_extract_text(image_bytes: bytes) -> str:
 
     # Return the topmost text (card name)
     topmost_text = text_regions[0][1]
+    logger.info("[scan] Selected card name candidate: %r", topmost_text)
     return topmost_text.strip()
 
 
