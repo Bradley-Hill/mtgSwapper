@@ -32,8 +32,7 @@ logger = logging.getLogger(__name__)
 
 # Matches: "4 Black Lotus" or "4 Black Lotus (VMA)" or "4 Black Lotus (VMA) 123"
 # Group 1 → quantity, Group 2 → card name (everything up to optional set code in parens)
-_DECKLIST_LINE_RE = re.compile(r'^(\d+)\s+([^(]+?)(?:\s*\(.*)?$')
-
+_DECKLIST_LINE_RE = re.compile(r"^(\d+)\s+([^(]+?)(?:\s*\(.*)?$")
 
 
 def _preprocess_and_extract_text(image_bytes: bytes) -> str:
@@ -46,9 +45,14 @@ def _preprocess_and_extract_text(image_bytes: bytes) -> str:
        8-10% of the card; taking 15% allows for slight photo angle variance
     3. Upsample small images — Tesseract accuracy drops significantly when
        text is shorter than ~30px; LANCZOS upscaling keeps edges crisp
-    4. Greyscale + contrast ×2 + sharpen — removes colour noise and makes
+    3. Normalise to 200px height — Tesseract LSTM works best when text is
+       30–80px tall. A 15% crop of a 4K phone photo is 600–700px tall, making
+       the card name text 150–200px tall — 2–4× too large for PSM 7 to treat
+       as a single text line. Scaling to 200px puts the name bar text at ~50px.
+    4. Greyscale + contrast ×1.5 + sharpen — removes colour noise and makes
        the dark card name text pop against the lighter name bar background
-    5. Run Tesseract with --psm 7 (single text line) + --oem 1 (LSTM engine)
+    5. Run Tesseract with --psm 7 (single text line) + --oem 1 (LSTM engine).
+       Falls back to --psm 11 (sparse text) if psm 7 returns nothing.
 
     Why Tesseract instead of a deep-learning OCR engine?
     PaddleOCR 3.x (transformers engine) requires PyTorch + Torchvision
@@ -77,33 +81,38 @@ def _preprocess_and_extract_text(image_bytes: bytes) -> str:
     name_bar_height = int(height * 0.15)
     img = img.crop((0, 0, width, name_bar_height))
 
-    # Upsample if the cropped strip is too short for accurate OCR.
-    # A 15% crop of a 480px-tall photo is only 72px. Upsampling 3× gives
-    # Tesseract much more edge detail while LANCZOS avoids blocky artifacts.
+    # Normalise crop to 200px height for consistent Tesseract input.
+    # Phone photos at 4K produce crops 3–7× too tall for PSM 7, which expects
+    # the image to closely match a single text line. 200px puts the name bar
+    # text at roughly 50px — well within Tesseract LSTM's optimal range.
+    # LANCZOS is used for both up and downscaling to preserve edge quality.
     crop_w, crop_h = img.size
-    if crop_h < 100:
-        scale = 3
-        img = img.resize((crop_w * scale, crop_h * scale), Image.LANCZOS)
-        logger.info("[scan] Upsampled %sx: now %sx%s", scale, img.width, img.height)
+    new_w = max(1, int(crop_w * 200 / crop_h))
+    img = img.resize((new_w, 200), Image.LANCZOS)
+    logger.info("[scan] Resized crop: %sx200", new_w)
 
-    # Greyscale → contrast ×2 → sharpen
-    img = img.convert("L")                      # Remove colour noise
-    img = ImageEnhance.Contrast(img).enhance(2.0)  # Dark text on light bg
-    img = img.filter(ImageFilter.SHARPEN)       # Crisper edges for OCR
+    # Greyscale → contrast ×1.5 → sharpen
+    img = img.convert("L")  # Remove colour noise
+    img = ImageEnhance.Contrast(img).enhance(1.5)  # Dark text on light bg
+    img = img.filter(ImageFilter.SHARPEN)  # Crisper edges for OCR
 
     logger.info("[scan] Preprocessing done, running Tesseract...")
 
     try:
-        # --psm 7: treat the image as a single text line (the name bar
-        #          contains exactly one line of text — the card name)
-        # --oem 1: use only the LSTM neural net engine, which is more
-        #          accurate than the legacy Tesseract engine (oem 0) or
-        #          the combined mode (oem 3)
-        raw_text = pytesseract.image_to_string(
-            img,
-            config='--psm 7 --oem 1',
-        ).strip()
-        logger.info("[scan] Tesseract output: %r", raw_text)
+        # --psm 7: single text line mode — finds the most prominent line in
+        #          the crop, which should be the card name bar.
+        # --oem 1: LSTM engine only (more accurate than legacy oem 0).
+        raw_text = pytesseract.image_to_string(img, config="--psm 7 --oem 1").strip()
+        logger.info("[scan] PSM 7 output: %r", raw_text)
+
+        if not raw_text:
+            # PSM 11 (sparse text) finds text regardless of layout — useful
+            # for cards with ornate name bars (e.g. Mystical Archive series)
+            # where PSM 7's strict single-line assumption fails.
+            raw_text = pytesseract.image_to_string(
+                img, config="--psm 11 --oem 1"
+            ).strip()
+            logger.info("[scan] PSM 11 fallback: %r", raw_text)
     except Exception as e:
         logger.error("[scan] Tesseract raised: %s", e, exc_info=True)
         return ""
@@ -126,7 +135,7 @@ def _parse_decklist(text):
     entries = []
     for raw_line in text.splitlines():
         line = raw_line.strip()
-        if not line or line.startswith('//'):
+        if not line or line.startswith("//"):
             continue
         match = _DECKLIST_LINE_RE.match(line)
         if match:
@@ -140,7 +149,7 @@ def _parse_decklist(text):
 class CardViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing cards in a user's collection.
-    
+
     Endpoints:
     - POST   /api/cards/                    → Create card (add to collection)
     - GET    /api/cards/                    → List user's cards
@@ -152,33 +161,33 @@ class CardViewSet(viewsets.ModelViewSet):
     - POST   /api/cards/add_from_scryfall/    → Create card from Scryfall search
     - POST   /api/cards/bulk_import/          → Import a full decklist at once
     """
-    
+
     permission_classes = [IsAuthenticated]
     serializer_class = CardSerializer
-    
+
     def get_queryset(self):
         """
         Return only cards belonging to the authenticated user.
-        
+
         Security: Users can only see and modify their own cards.
         """
         return Card.objects.filter(user=self.request.user)
-    
+
     def get_serializer_class(self):
         """
         Use different serializers for different actions.
         """
-        if self.action == 'list':
+        if self.action == "list":
             return CardListSerializer
-        elif self.action == 'add_from_scryfall':
+        elif self.action == "add_from_scryfall":
             return CardCreateFromScryfallSerializer
-        elif self.action == 'autocomplete':
+        elif self.action == "autocomplete":
             return CardAutocompleteSerializer
-        elif self.action == 'bulk_import':
+        elif self.action == "bulk_import":
             return DecklistImportSerializer
 
         return CardSerializer
-    
+
     def perform_create(self, serializer):
         """
         Save the card with the authenticated user as the owner.
@@ -197,9 +206,10 @@ class CardViewSet(viewsets.ModelViewSet):
         cross-app references.
         """
         from swaps.models import Offer
+
         return Offer.objects.filter(
             items__card=card,
-            status__in=['pending', 'accepted'],
+            status__in=["pending", "accepted"],
         ).exists()
 
     def destroy(self, request, *args, **kwargs):
@@ -207,32 +217,34 @@ class CardViewSet(viewsets.ModelViewSet):
         card = self.get_object()
         if self._card_in_active_offer(card):
             return Response(
-                {'error': 'Cannot delete a card that is part of an active offer.'},
+                {"error": "Cannot delete a card that is part of an active offer."},
                 status=status.HTTP_409_CONFLICT,
             )
         return super().destroy(request, *args, **kwargs)
 
     def partial_update(self, request, *args, **kwargs):
         """Block marking a card unavailable if it is in an active offer."""
-        if request.data.get('is_available') is False:
+        if request.data.get("is_available") is False:
             card = self.get_object()
             if self._card_in_active_offer(card):
                 return Response(
-                    {'error': 'Cannot mark a card unavailable while it is part of an active offer.'},
+                    {
+                        "error": "Cannot mark a card unavailable while it is part of an active offer."
+                    },
                     status=status.HTTP_409_CONFLICT,
                 )
         return super().partial_update(request, *args, **kwargs)
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=["post"])
     def autocomplete(self, request):
         """
         Get card name autocomplete suggestions from Scryfall.
-        
+
         POST /api/cards/autocomplete/
         {
             "query": "black"
         }
-        
+
         Response:
         {
             "suggestions": ["Black Lotus", "Black Vise", "Blackcleave Cliffs", ...]
@@ -240,22 +252,20 @@ class CardViewSet(viewsets.ModelViewSet):
         """
         serializer = CardAutocompleteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
-        query = serializer.validated_data['query']
+
+        query = serializer.validated_data["query"]
         suggestions = ScryfallService.autocomplete(query)
-        
-        return Response({
-            'suggestions': suggestions
-        }, status=status.HTTP_200_OK)
-    
-    @action(detail=False, methods=['post'])
+
+        return Response({"suggestions": suggestions}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["post"])
     def add_from_scryfall(self, request):
         """
         Create a card by searching Scryfall.
-        
+
         Accepts a card name and optional attributes,
         looks up the card on Scryfall, and adds it to the user's collection.
-        
+
         POST /api/cards/add_from_scryfall/
         {
             "card_name": "Black Lotus",
@@ -265,7 +275,7 @@ class CardViewSet(viewsets.ModelViewSet):
             "language": "English",
             "quantity": 1
         }
-        
+
         Response:
         {
             "id": "...",
@@ -276,46 +286,46 @@ class CardViewSet(viewsets.ModelViewSet):
         }
         """
         serializer = CardCreateFromScryfallSerializer(
-            data=request.data,
-            context={'request': request}
+            data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
-        
+
         card = serializer.save()
-        
+
         # Return full card details
         return_serializer = CardSerializer(card)
         return Response(return_serializer.data, status=status.HTTP_201_CREATED)
-    
-    @action(detail=False, methods=['get'])
+
+    @action(detail=False, methods=["get"])
     def search(self, request):
         """
         Search user's collection by card name.
-        
+
         GET /api/cards/search/?q=black
-        
+
         Returns a list of cards matching the search query.
         """
-        query = request.query_params.get('q', '')
-        
+        query = request.query_params.get("q", "")
+
         if not query or len(query) < 2:
-            return Response({
-                'error': 'Query must be at least 2 characters.'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response(
+                {"error": "Query must be at least 2 characters."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         # Case-insensitive search on card_name
-        cards = self.get_queryset().filter(
-            card_name__icontains=query
-        ).order_by('card_name')
-        
+        cards = (
+            self.get_queryset().filter(card_name__icontains=query).order_by("card_name")
+        )
+
         serializer = CardListSerializer(cards, many=True)
 
-        return Response({
-            'count': cards.count(),
-            'results': serializer.data
-        }, status=status.HTTP_200_OK)
+        return Response(
+            {"count": cards.count(), "results": serializer.data},
+            status=status.HTTP_200_OK,
+        )
 
-    @action(detail=False, methods=['get'], url_path='global_search')
+    @action(detail=False, methods=["get"], url_path="global_search")
     def global_search(self, request):
         """
         Search cards across ALL users' collections.
@@ -327,28 +337,30 @@ class CardViewSet(viewsets.ModelViewSet):
         select_related('user') avoids N+1 queries: one JOIN fetches owner
         username alongside every card row.
         """
-        query = request.query_params.get('q', '').strip()
+        query = request.query_params.get("q", "").strip()
 
         if len(query) < 2:
             return Response(
-                {'error': 'Query must be at least 2 characters.'},
+                {"error": "Query must be at least 2 characters."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         cards = (
-            Card.objects
-            .select_related('user')
+            Card.objects.select_related("user")
             .filter(card_name__icontains=query, is_available=True)
-            .order_by('card_name', 'user__username')
+            .order_by("card_name", "user__username")
         )
 
         serializer = CardGlobalSearchSerializer(cards, many=True)
-        return Response({
-            'count': cards.count(),
-            'results': serializer.data,
-        }, status=status.HTTP_200_OK)
+        return Response(
+            {
+                "count": cards.count(),
+                "results": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=["post"])
     def bulk_import(self, request):
         """
         Import a collection from a plain-text decklist.
@@ -383,10 +395,10 @@ class CardViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        entries = _parse_decklist(data['decklist'])
+        entries = _parse_decklist(data["decklist"])
         if not entries:
             return Response(
-                {'error': 'No valid lines found. Expected format: "4 Card Name"'},
+                {"error": 'No valid lines found. Expected format: "4 Card Name"'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -402,61 +414,70 @@ class CardViewSet(viewsets.ModelViewSet):
 
             if not scryfall_card:
                 failed_count += 1
-                results.append({
-                    'card_name': card_name,
-                    'quantity': quantity,
-                    'status': 'error',
-                    'reason': f"'{card_name}' not found on Scryfall.",
-                })
+                results.append(
+                    {
+                        "card_name": card_name,
+                        "quantity": quantity,
+                        "status": "error",
+                        "reason": f"'{card_name}' not found on Scryfall.",
+                    }
+                )
                 continue
 
             metadata = ScryfallService.extract_card_metadata(scryfall_card)
             Card.objects.create(
                 user=request.user,
                 quantity=quantity,
-                condition=data['condition'],
-                language=data['language'],
-                is_foil=data['is_foil'],
+                condition=data["condition"],
+                language=data["language"],
+                is_foil=data["is_foil"],
                 **metadata,
             )
             imported_count += 1
-            results.append({
-                'card_name': metadata['card_name'],
-                'quantity': quantity,
-                'status': 'ok',
-            })
+            results.append(
+                {
+                    "card_name": metadata["card_name"],
+                    "quantity": quantity,
+                    "status": "ok",
+                }
+            )
 
-        response_status = status.HTTP_200_OK if imported_count > 0 else status.HTTP_400_BAD_REQUEST
-        return Response({
-            'imported': imported_count,
-            'failed': failed_count,
-            'results': results,
-        }, status=response_status)
+        response_status = (
+            status.HTTP_200_OK if imported_count > 0 else status.HTTP_400_BAD_REQUEST
+        )
+        return Response(
+            {
+                "imported": imported_count,
+                "failed": failed_count,
+                "results": results,
+            },
+            status=response_status,
+        )
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def available(self, request):
         """
         Get only available cards (for swapping).
-        
+
         GET /api/cards/available/
-        
+
         Returns cards marked as is_available=True.
         """
         cards = self.get_queryset().filter(is_available=True)
         serializer = CardListSerializer(cards, many=True)
-        
-        return Response({
-            'count': cards.count(),
-            'results': serializer.data
-        }, status=status.HTTP_200_OK)
+
+        return Response(
+            {"count": cards.count(), "results": serializer.data},
+            status=status.HTTP_200_OK,
+        )
 
     # ── Image Scan ────────────────────────────────────────────────────────────
 
     @action(
         detail=False,
-        methods=['post'],
+        methods=["post"],
         parser_classes=[MultiPartParser],
-        url_path='scan',
+        url_path="scan",
     )
     def scan(self, request):
         """
@@ -464,15 +485,14 @@ class CardViewSet(viewsets.ModelViewSet):
         Content-Type: multipart/form-data
         Body field: image (JPEG or PNG)
 
-        Accepts a photo of an MTG card, runs PaddleOCR to detect all text regions,
-        extracts the topmost text (card name), then does a fuzzy Scryfall lookup.
+        Accepts a photo of an MTG card, runs Tesseract OCR on the name bar region,
+        then does a fuzzy Scryfall lookup on the extracted text.
 
-        Why PaddleOCR instead of Tesseract?
-        - PaddleOCR is a deep-learning OCR engine optimized for document/card scanning
-        - Automatically detects and corrects text orientation (handles rotated cards)
-        - Returns bounding boxes for each text region (lets us extract just the name)
-        - More robust to poor lighting, angles, and multilingual text
-        - No external system dependency (unlike Tesseract)
+        Why Tesseract instead of a deep-learning OCR engine?
+        - Lightweight C binary (~10MB apt package, ~50MB RAM at runtime)
+        - No model downloads on cold start (critical for Render free tier)
+        - MTG card names use a clean, consistent printed font Tesseract handles well
+        - PaddleOCR 3.x requires PyTorch/Torchvision (400MB+, unavailable on Render)
 
         Returns card metadata for the caller to review before adding to their
         collection — this endpoint NEVER creates a Card row itself. The caller
@@ -498,51 +518,57 @@ class CardViewSet(viewsets.ModelViewSet):
             400 — no image uploaded, or no text detected
             404 — Scryfall couldn't match the OCR text to any card
         """
-        image_file = request.FILES.get('image')
+        image_file = request.FILES.get("image")
         if not image_file:
             return Response(
-                {'error': 'No image uploaded. Send a JPEG or PNG as the "image" field.'},
+                {
+                    "error": 'No image uploaded. Send a JPEG or PNG as the "image" field.'
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         image_bytes = image_file.read()
 
-        # Extract card name using PaddleOCR directly from bytes
-        # Passing PIL Image directly avoids temp file I/O which degrades quality
+        # Preprocess and OCR the image to extract the card name
         try:
             raw_text = _preprocess_and_extract_text(image_bytes)
         except Exception:
             return Response(
-                {'error': 'Could not decode the uploaded image. Use JPEG or PNG.'},
+                {"error": "Could not decode the uploaded image. Use JPEG or PNG."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if not raw_text:
             return Response(
-                {'error': 'No text detected in the image. Try better lighting or a closer shot.'},
+                {
+                    "error": "No text detected in the image. Try better lighting or a closer shot."
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Clean up common OCR noise (leading/trailing punctuation, extra spaces)
-        cleaned = re.sub(r'[^\w\s\',\-]', '', raw_text).strip()
+        cleaned = re.sub(r"[^\w\s\',\-]", "", raw_text).strip()
 
         card_data = ScryfallService.search(cleaned)
         if not card_data:
             return Response(
                 {
-                    'error': f'No card found matching "{cleaned}". Try retaking the photo.',
-                    'raw_ocr_text': raw_text,
+                    "error": f'No card found matching "{cleaned}". Try retaking the photo.',
+                    "raw_ocr_text": raw_text,
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
 
         metadata = ScryfallService.extract_card_metadata(card_data)
-        return Response({
-            'card_name':   metadata['card_name'],
-            'set_name':    metadata.get('set_name', ''),
-            'set_code':    metadata.get('set_code', ''),
-            'card_type':   metadata.get('card_type', ''),
-            'mana_cost':   metadata.get('mana_cost', ''),
-            'scryfall_id': metadata['scryfall_id'],
-            'raw_ocr_text': raw_text,  # PaddleOCR-extracted text (top text region)
-        }, status=status.HTTP_200_OK)
+        return Response(
+            {
+                "card_name": metadata["card_name"],
+                "set_name": metadata.get("set_name", ""),
+                "set_code": metadata.get("set_code", ""),
+                "card_type": metadata.get("card_type", ""),
+                "mana_cost": metadata.get("mana_cost", ""),
+                "scryfall_id": metadata["scryfall_id"],
+                "raw_ocr_text": raw_text,
+            },
+            status=status.HTTP_200_OK,
+        )
