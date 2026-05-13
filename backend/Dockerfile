@@ -7,16 +7,15 @@ FROM python:3.12-slim
 # ── System dependencies ───────────────────────────────────────────────────────
 # libpq-dev / gcc: needed to compile psycopg2 from source if the binary wheel
 #   isn't available for the exact platform (belt-and-suspenders).
-# libgl1 / libglib2.0-0 / libsm6 / libxext6: required by OpenCV (used by PaddleOCR)
-#   PaddleOCR is our OCR engine for card scanning, and it depends on cv2.
+# tesseract-ocr: the OCR engine used for card name scanning. This is a small
+#   C binary (~10MB); it avoids the need for a Python ML runtime (PyTorch/
+#   PaddlePaddle) in the container, keeping RAM usage low on Render free tier.
 # We clean up the apt cache immediately to keep the image layer small.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     gcc \
-    libgl1 \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
+    tesseract-ocr \
+    tesseract-ocr-eng \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Working directory ─────────────────────────────────────────────────────────

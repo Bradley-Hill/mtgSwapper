@@ -7,8 +7,7 @@ import logging
 import re
 import time
 
-import numpy as np
-from paddleocr import PaddleOCR
+import pytesseract
 from PIL import Image, ImageFilter, ImageEnhance, ImageOps
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -35,110 +34,81 @@ logger = logging.getLogger(__name__)
 # Group 1 → quantity, Group 2 → card name (everything up to optional set code in parens)
 _DECKLIST_LINE_RE = re.compile(r'^(\d+)\s+([^(]+?)(?:\s*\(.*)?$')
 
-# Global OCR instance — initialized lazily on first use
-_OCR = None
-
-
-def _get_ocr():
-    """
-    Get the PaddleOCR instance, initializing it lazily on first use.
-
-    Uses PaddleOCR 3.x API with the 'transformers' inference engine.
-    The transformers engine avoids the need to install PaddlePaddle
-    separately, keeping the Docker image lightweight for Render free tier.
-
-    Models are downloaded from HuggingFace Hub on the first scan request
-    and cached to disk. Subsequent requests reuse the cached weights.
-    """
-    global _OCR
-    if _OCR is None:
-        logger.info("[scan] Initialising PaddleOCR 3.x (transformers engine)...")
-        _OCR = PaddleOCR(
-            lang='en',
-            engine='transformers',
-            use_doc_orientation_classify=False,
-            use_doc_unwarping=False,
-            use_textline_orientation=False,
-        )
-        logger.info("[scan] PaddleOCR initialised successfully.")
-    return _OCR
 
 
 def _preprocess_and_extract_text(image_bytes: bytes) -> str:
     """
-    Preprocess card image and extract the card name using PaddleOCR.
+    Preprocess card image and extract the card name using Tesseract OCR.
 
     Process:
-    1. Load image from bytes and handle EXIF rotation
-    2. Convert to RGB (PaddleOCR needs RGB)
-    3. Pass directly to PaddleOCR (avoids file I/O quality loss)
-    4. Extract topmost text region (card name)
+    1. Load image from bytes and correct EXIF rotation (handles mobile photos)
+    2. Crop to the top 15% — the MTG card name bar sits in roughly the top
+       8-10% of the card; taking 15% allows for slight photo angle variance
+    3. Upsample small images — Tesseract accuracy drops significantly when
+       text is shorter than ~30px; LANCZOS upscaling keeps edges crisp
+    4. Greyscale + contrast ×2 + sharpen — removes colour noise and makes
+       the dark card name text pop against the lighter name bar background
+    5. Run Tesseract with --psm 7 (single text line) + --oem 1 (LSTM engine)
 
-    Why not save to temp file?
-    Temp file save/load cycle causes JPEG re-compression losses that degrade
-    text clarity. By passing PIL Image directly to PaddleOCR, we preserve
-    the original image quality.
+    Why Tesseract instead of a deep-learning OCR engine?
+    PaddleOCR 3.x (transformers engine) requires PyTorch + Torchvision
+    at inference time. Neither is installed on Render free tier (512MB RAM).
+    Tesseract is a C binary (~10MB apt package) that runs in ~50MB RAM,
+    with no model downloads on cold start. MTG card names use a clean,
+    consistent printed font — exactly the use case Tesseract excels at.
 
     Args:
-        image_bytes: Raw image bytes from upload
+        image_bytes: Raw image bytes from the uploaded photo
 
     Returns:
         Extracted card name text, or empty string if nothing detected
     """
-    # PIL decode errors are intentionally NOT caught here.
-    # If the bytes aren't a valid image, Image.open() raises and the
-    # exception propagates up to scan(), which returns "Could not decode".
+    # PIL decode errors are intentionally NOT caught here — if the bytes
+    # aren't a valid image, Image.open() raises and the exception propagates
+    # up to scan(), which returns "Could not decode the uploaded image".
     img = Image.open(io.BytesIO(image_bytes))
-    img = ImageOps.exif_transpose(img)  # Auto-correct mobile orientation
+    img = ImageOps.exif_transpose(img)  # Auto-correct mobile EXIF rotation
     img = img.convert("RGB")
 
-    # PaddleOCR needs a NumPy (H, W, 3) uint8 array — no re-compression.
-    img_array = np.array(img)
-    logger.info("[scan] Image prepared: shape=%s", img_array.shape)
+    width, height = img.size
+    logger.info("[scan] Image loaded: size=%sx%s", width, height)
+
+    # Crop to the top 15% — covers the name bar with margin for slight tilt
+    name_bar_height = int(height * 0.15)
+    img = img.crop((0, 0, width, name_bar_height))
+
+    # Upsample if the cropped strip is too short for accurate OCR.
+    # A 15% crop of a 480px-tall photo is only 72px. Upsampling 3× gives
+    # Tesseract much more edge detail while LANCZOS avoids blocky artifacts.
+    crop_w, crop_h = img.size
+    if crop_h < 100:
+        scale = 3
+        img = img.resize((crop_w * scale, crop_h * scale), Image.LANCZOS)
+        logger.info("[scan] Upsampled %sx: now %sx%s", scale, img.width, img.height)
+
+    # Greyscale → contrast ×2 → sharpen
+    img = img.convert("L")                      # Remove colour noise
+    img = ImageEnhance.Contrast(img).enhance(2.0)  # Dark text on light bg
+    img = img.filter(ImageFilter.SHARPEN)       # Crisper edges for OCR
+
+    logger.info("[scan] Preprocessing done, running Tesseract...")
 
     try:
-        # OCR errors (model loading, inference) are caught here so a
-        # transient failure doesn't surface as a 500 to the client.
-        ocr = _get_ocr()
-        # PaddleOCR 3.x uses predict() — returns a generator, one item per
-        # input image. list() materialises it so we can inspect the results.
-        results = list(ocr.predict(img_array))
-        logger.info("[scan] OCR returned %d result set(s)", len(results))
+        # --psm 7: treat the image as a single text line (the name bar
+        #          contains exactly one line of text — the card name)
+        # --oem 1: use only the LSTM neural net engine, which is more
+        #          accurate than the legacy Tesseract engine (oem 0) or
+        #          the combined mode (oem 3)
+        raw_text = pytesseract.image_to_string(
+            img,
+            config='--psm 6 --oem 1',
+        ).strip()
+        logger.info("[scan] Tesseract output: %r", raw_text)
     except Exception as e:
-        logger.error("[scan] OCR predict() raised: %s", e, exc_info=True)
+        logger.error("[scan] Tesseract raised: %s", e, exc_info=True)
         return ""
 
-    if not results:
-        logger.warning("[scan] Empty results from predict()")
-        return ""
-
-    # PaddleOCR 3.x result format (per image):
-    #   res.res['rec_texts']  → list of recognised strings
-    #   res.res['dt_polys']   → numpy array (N, 4, 2) of bounding polygons
-    # We find the region with the smallest y-coordinate (topmost on card)
-    # because card names always appear at the top of the card layout.
-    text_regions = []
-    for res in results:
-        data = res.res
-        rec_texts = data.get('rec_texts', [])
-        dt_polys  = data.get('dt_polys', [])
-        logger.info("[scan] Detected regions: %s", rec_texts)
-        for text, poly in zip(rec_texts, dt_polys):
-            if text and text.strip():
-                y_min = float(min(point[1] for point in poly))
-                text_regions.append((y_min, text))
-
-    if not text_regions:
-        logger.warning("[scan] No non-empty text regions found")
-        return ""
-
-    # Sort by vertical position (top to bottom)
-    text_regions.sort(key=lambda x: x[0])
-
-    # Return the topmost text (card name)
-    topmost_text = text_regions[0][1]
-    logger.info("[scan] Selected card name candidate: %r", topmost_text)
-    return topmost_text.strip()
+    return raw_text
 
 
 def _parse_decklist(text):

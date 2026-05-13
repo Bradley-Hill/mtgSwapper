@@ -87,5 +87,12 @@ export async function scanCard(imageFile: File): Promise<ScanResult> {
     body: form,
     credentials: "include",
   });
+  // Unlike apiFetch, this uses raw fetch — so we must check res.ok ourselves.
+  // Without this, a 400/404 error body gets spread into StagedCard as if it
+  // were a successful result, producing an empty card in the staging list.
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(err.error ?? "Scan failed");
+  }
   return (await res.json()) as ScanResult;
 }
