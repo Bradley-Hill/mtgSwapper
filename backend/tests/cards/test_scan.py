@@ -1,12 +1,12 @@
 """
 Tests for POST /api/cards/scan/
 
-Strategy: mock both _extract_card_name_from_ocr (our PaddleOCR wrapper) and
+Strategy: mock both _preprocess_and_extract_text (our PaddleOCR wrapper) and
 ScryfallService.search so tests run deterministically without needing a GPU
 or network access.
 
 Why mock at these two boundaries?
-- _extract_card_name_from_ocr: the PaddleOCR call — we can't control what
+- _preprocess_and_extract_text: the PaddleOCR call — we can't control what
   the OCR engine returns without real card images. Mocking lets us test every
   code path (no text, bad text, good text) deterministically.
 - ScryfallService.search: already tested in its own unit tests. Mocking here
@@ -86,7 +86,7 @@ class ScanEndpointOCRTests(APITestCase):
         self.client.force_authenticate(user=self.user)
         self.jpeg = _make_jpeg_bytes()
 
-    @patch("cards.views._extract_card_name_from_ocr", return_value="")
+    @patch("cards.views._preprocess_and_extract_text", return_value="")
     def test_empty_ocr_output_returns_400(self, _mock_ocr):
         """PaddleOCR finds nothing → 400 with helpful message."""
         f = io.BytesIO(self.jpeg)
@@ -96,7 +96,7 @@ class ScanEndpointOCRTests(APITestCase):
         self.assertIn("No text detected", resp.data["error"])
 
     @patch("cards.views.ScryfallService.search", return_value=None)
-    @patch("cards.views._extract_card_name_from_ocr", return_value="Blacc Lotuz")
+    @patch("cards.views._preprocess_and_extract_text", return_value="Blacc Lotuz")
     def test_ocr_text_not_on_scryfall_returns_404(self, _mock_ocr, _mock_search):
         """OCR returns something but Scryfall fuzzy search finds nothing → 404."""
         f = io.BytesIO(self.jpeg)
@@ -120,7 +120,7 @@ class ScanEndpointOCRTests(APITestCase):
             "mana_cost": "{0}",
         },
     )
-    @patch("cards.views._extract_card_name_from_ocr", return_value="Black Lotus")
+    @patch("cards.views._preprocess_and_extract_text", return_value="Black Lotus")
     def test_successful_scan_returns_200_and_no_card_created(
         self, _mock_ocr, _mock_meta, _mock_search
     ):
@@ -159,7 +159,7 @@ class ScanEndpointOCRTests(APITestCase):
             "mana_cost": "{0}",
         },
     )
-    @patch("cards.views._extract_card_name_from_ocr", return_value="  Black Lotus!  ")
+    @patch("cards.views._preprocess_and_extract_text", return_value="  Black Lotus!  ")
     def test_ocr_noise_is_stripped_before_scryfall_lookup(
         self, _mock_ocr, _mock_meta, mock_search
     ):

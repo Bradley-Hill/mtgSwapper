@@ -6,6 +6,7 @@ import io
 import re
 import time
 
+import numpy as np
 from paddleocr import PaddleOCR
 from PIL import Image, ImageFilter, ImageEnhance, ImageOps
 from rest_framework import viewsets, status
@@ -50,54 +51,44 @@ def _get_ocr():
     return _OCR
 
 
-def _save_image_temp(image_bytes: bytes) -> str:
+def _preprocess_and_extract_text(image_bytes: bytes) -> str:
     """
-    Save image bytes to a temporary file for PaddleOCR processing.
-    PaddleOCR works best with file paths; we save the uploaded bytes temporarily.
+    Preprocess card image and extract the card name using PaddleOCR.
+
+    Process:
+    1. Load image from bytes and handle EXIF rotation
+    2. Convert to RGB (PaddleOCR needs RGB)
+    3. Pass directly to PaddleOCR (avoids file I/O quality loss)
+    4. Extract topmost text region (card name)
+
+    Why not save to temp file?
+    Temp file save/load cycle causes JPEG re-compression losses that degrade
+    text clarity. By passing PIL Image directly to PaddleOCR, we preserve
+    the original image quality.
 
     Args:
-        image_bytes: Raw image bytes
-
-    Returns:
-        Path to the temporary image file
-    """
-    import tempfile
-    
-    # PaddleOCR handles EXIF rotation automatically, so we just save as-is
-    img = Image.open(io.BytesIO(image_bytes))
-    img = ImageOps.exif_transpose(img)  # Auto-correct orientation
-    img = img.convert("RGB")
-    
-    # Save to a temp file
-    temp_file = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
-    img.save(temp_file.name, format="JPEG", quality=95)
-    temp_file.close()
-    
-    return temp_file.name
-
-
-def _extract_card_name_from_ocr(image_path: str) -> str:
-    """
-    Extract the card name from an MTG card image using PaddleOCR.
-
-    PaddleOCR detects all text regions and returns them with bounding boxes.
-    The card name is almost always the topmost text on the card.
-
-    Strategy:
-    1. Run OCR on the image
-    2. Sort detected text regions by vertical position (top to bottom)
-    3. Filter out very small/noisy regions (less than 5 characters)
-    4. Take the first (topmost) region — that's the card name
-
-    Args:
-        image_path: Path to the image file (or file-like object)
+        image_bytes: Raw image bytes from upload
 
     Returns:
         Extracted card name text, or empty string if nothing detected
     """
+    # PIL decode errors are intentionally NOT caught here.
+    # If the bytes aren't a valid image, Image.open() raises and the
+    # exception propagates up to scan(), which returns "Could not decode".
+    img = Image.open(io.BytesIO(image_bytes))
+    img = ImageOps.exif_transpose(img)  # Auto-correct mobile orientation
+    img = img.convert("RGB")
+
+    # PaddleOCR does not accept PIL Image objects — it needs a NumPy array.
+    # np.array(img) produces an (H, W, 3) uint8 array of the RGB pixels,
+    # preserving full quality with no re-compression.
+    img_array = np.array(img)
+
     try:
+        # OCR errors (model loading, inference) are caught here and treated
+        # as "no text found" so a transient GPU/model issue doesn't crash.
         ocr = _get_ocr()
-        results = ocr.ocr(image_path, cls=True)
+        results = ocr.ocr(img_array, cls=True)
     except Exception:
         return ""
 
@@ -523,26 +514,15 @@ class CardViewSet(viewsets.ModelViewSet):
 
         image_bytes = image_file.read()
 
-        # Save image to temp file for PaddleOCR
+        # Extract card name using PaddleOCR directly from bytes
+        # Passing PIL Image directly avoids temp file I/O which degrades quality
         try:
-            import os
-            temp_image_path = _save_image_temp(image_bytes)
+            raw_text = _preprocess_and_extract_text(image_bytes)
         except Exception:
             return Response(
                 {'error': 'Could not decode the uploaded image. Use JPEG or PNG.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        try:
-            # Extract card name using PaddleOCR
-            # PaddleOCR detects all text regions and returns them with bounding boxes.
-            # We take the topmost region (card name) and filter out noise.
-            raw_text = _extract_card_name_from_ocr(temp_image_path)
-        finally:
-            # Clean up temp file
-            import os
-            if os.path.exists(temp_image_path):
-                os.remove(temp_image_path)
 
         if not raw_text:
             return Response(
