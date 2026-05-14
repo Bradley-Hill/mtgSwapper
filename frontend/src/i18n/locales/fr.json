@@ -108,6 +108,7 @@
         "submit": "Importer",
         "submitting": "Importation…",
         "importingNotice": "Importation des cartes…",
+        "loadingSubtext": "Cela peut prendre un moment — le serveur recherche chaque carte sur Scryfall.",
         "results": {
             "title": "Résultats de l'importation",
             "imported": "{{count}} carte importée",
@@ -279,7 +280,7 @@
     },
     "scan": {
         "title": "Scanner des cartes",
-        "subtitle": "Pointez l'appareil photo vers la barre de nom de la carte. Chaque scan ajoute une carte à la liste de validation — vérifiez avant d'enregistrer.",
+        "subtitle": "Cadrez la carte entière de sorte que la barre de nom s'aligne avec le bandeau vert, puis appuyez pour capturer. Chaque scan est ajouté à la liste de validation.",
         "scanning": "Analyse en cours…",
         "errorFallback": "Échec du scan. Essayez avec un meilleur éclairage ou rapprochez-vous.",
         "capture": {
@@ -288,7 +289,7 @@
             "retake": "Reprendre la photo",
             "clear": "Effacer",
             "preview": "Aperçu de la carte",
-            "alignGuide": "Aligner la barre de nom ici",
+            "alignGuide": "Barre de nom",
             "cameraUnavailable": "Caméra en direct indisponible — utilisez le bouton pour prendre une photo."
         },
         "staging": {

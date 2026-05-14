@@ -202,7 +202,20 @@ export function CameraCapture({ onCapture, disabled = false }: Props) {
   return (
     <div className={styles.root}>
       {isLive && !preview && (
-        <div className={styles.viewfinder}>
+        // The entire viewfinder is a tap target (role="button" + onClick).
+        // The floating button inside is a visual affordance for sighted users;
+        // it uses stopPropagation + tabIndex=-1 so keyboard navigation goes
+        // through the outer div only, avoiding a duplicate tab stop.
+        <div
+          className={styles.viewfinder}
+          onClick={!disabled ? handleCapture : undefined}
+          role="button"
+          aria-label={t("scan.capture.capture")}
+          tabIndex={disabled ? -1 : 0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") handleCapture();
+          }}
+        >
           <video
             ref={videoRef}
             autoPlay
@@ -210,12 +223,32 @@ export function CameraCapture({ onCapture, disabled = false }: Props) {
             muted
             className={styles.video}
           />
-          {/* Guide overlay — must stay pointer-events:none so taps reach the button */}
+          {/* Card outline — shows where to position the whole card in the frame.
+               Uses the standard MTG card aspect ratio (63:88 mm) so the outline
+               matches what a real card looks like held up to the camera.
+               When the card fills this outline, the name bar lands inside the
+               green guide band below. Purely visual — aria-hidden. */}
+          <div className={styles.cardOutline} aria-hidden="true" />
+          {/* Guide overlay — pointer-events:none so taps fall through to the viewfinder div */}
           <div className={styles.guideBox} aria-hidden="true">
             <span className={styles.guideLabel}>
               {t("scan.capture.alignGuide")}
             </span>
           </div>
+          {/* Floating button — visual affordance only; stopPropagation prevents double-fire */}
+          <button
+            type="button"
+            className={styles.floatingCaptureBtn}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCapture();
+            }}
+            disabled={disabled}
+            tabIndex={-1}
+            aria-hidden="true"
+          >
+            {disabled ? t("scan.scanning") : t("scan.capture.capture")}
+          </button>
         </div>
       )}
 
@@ -227,17 +260,6 @@ export function CameraCapture({ onCapture, disabled = false }: Props) {
             className={styles.previewImg}
           />
         </div>
-      )}
-
-      {isLive && !preview && (
-        <button
-          type="button"
-          className={styles.captureBtn}
-          onClick={handleCapture}
-          disabled={disabled}
-        >
-          {disabled ? t("scan.scanning") : t("scan.capture.capture")}
-        </button>
       )}
 
       {preview && (
@@ -263,4 +285,3 @@ export function CameraCapture({ onCapture, disabled = false }: Props) {
     </div>
   );
 }
-

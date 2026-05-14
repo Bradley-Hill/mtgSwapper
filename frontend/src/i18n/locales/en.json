@@ -108,6 +108,7 @@
     "submit": "Import",
     "submitting": "Importing…",
     "importingNotice": "Importing cards…",
+    "loadingSubtext": "This can take a moment — the backend looks up each card on Scryfall.",
     "results": {
       "title": "Import results",
       "imported": "{{count}} card imported",
@@ -279,7 +280,7 @@
   },
   "scan": {
     "title": "Scan Cards",
-    "subtitle": "Point your camera at a card's name bar. Each scan adds one card to the staging list — review before saving.",
+    "subtitle": "Frame the whole card so the name bar aligns with the green band, then tap to capture. Each scan goes to the staging list for review.",
     "scanning": "Scanning…",
     "errorFallback": "Scan failed. Try better lighting or a closer shot.",
     "capture": {
@@ -288,7 +289,7 @@
       "retake": "Retake Photo",
       "clear": "Clear",
       "preview": "Card preview",
-      "alignGuide": "Align name bar here",
+      "alignGuide": "Name bar",
       "cameraUnavailable": "Live camera unavailable — use the button to take a photo instead."
     },
     "staging": {

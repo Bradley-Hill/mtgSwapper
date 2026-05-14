@@ -2,6 +2,7 @@
 Views for Card management (CRUD + Scryfall integration).
 """
 
+import base64
 import io
 import logging
 import re
@@ -60,6 +61,50 @@ def _find_card_top(img: Image.Image) -> int:
         if row_means[y] > 140:
             return y
     return 0  # fallback: assume card starts at the very top
+
+
+def _extract_confident_words(img, config: str) -> str:
+    """
+    Run Tesseract via image_to_data and return only the words Tesseract
+    is confident about (confidence score >= 40).
+
+    image_to_data performs the exact same OCR pass as image_to_string —
+    Tesseract already computes a per-word confidence score internally as part
+    of the LSTM decode step. image_to_string simply discards those scores
+    before returning. image_to_data exposes them, so there is zero extra
+    compute cost: we get smarter filtering for free.
+
+    Confidence scale:
+      -1  : whitespace / block separator (never real text)
+       0–39: Tesseract is guessing — typically frame decorations, mana cost
+             symbols, noise artifacts that happen to look vaguely letter-shaped
+      40–100: Tesseract saw clear glyph evidence — almost always real text
+
+    Why 40 as the threshold?
+    Empirically, card name characters read from a properly preprocessed strip
+    score 60–99. Noise tokens from the green-channel preprocessed image score
+    0–30. The gap between 30 and 60 is wide enough that 40 cleanly separates
+    them without needing fine-tuning.
+
+    Args:
+        img: preprocessed PIL Image (green channel, contrast-enhanced, sharpened)
+        config: Tesseract CLI flags string (e.g. "--psm 7 --oem 1")
+
+    Returns:
+        Space-joined string of high-confidence words only
+    """
+    data = pytesseract.image_to_data(
+        img, config=config, output_type=pytesseract.Output.DICT
+    )
+    all_words = list(zip(data["text"], data["conf"]))
+    logger.debug("[scan] %s all words+conf: %r", config, all_words)
+
+    words = [
+        text
+        for text, conf in all_words
+        if int(conf) >= 40 and text.strip()
+    ]
+    return " ".join(words)
 
 
 def _preprocess_and_extract_text(image_bytes: bytes) -> str:
@@ -132,6 +177,25 @@ def _preprocess_and_extract_text(image_bytes: bytes) -> str:
     img = img.resize((new_w, 200), Image.LANCZOS)
     logger.info("[scan] Resized: %sx200", new_w)
 
+    # Trim left border decoration (~4%) and right mana cost symbol (~16%).
+    #
+    # On a standard MTG card the name text occupies the middle ~80% of the
+    # name bar. The leftmost strip is the coloured frame corner arc; the
+    # rightmost strip is the mana cost circle(s). Both appear as bright
+    # coloured blobs in the green channel and are the two most common sources
+    # of false-positive OCR tokens ('W', '{3}', decorative glyphs, etc.).
+    #
+    # Doing this after the resize-to-200px step means the crop coordinates
+    # are consistent regardless of the source photo resolution or aspect ratio.
+    trim_l = int(new_w * 0.04)
+    trim_r = int(new_w * 0.84)
+    if trim_r > trim_l:
+        img = img.crop((trim_l, 0, trim_r, 200))
+        logger.info(
+            "[scan] Horizontal trim: x=%s\u2013%s (width %spx \u2192 %spx)",
+            trim_l, trim_r, new_w, trim_r - trim_l,
+        )
+
     # Green channel — suppresses red card frames and coloured backgrounds.
     # Red objects (card frame, fabric, hands) have high R, low G (~60–80) and
     # appear very dark. The cream name bar has high G (~215) and stays bright.
@@ -141,23 +205,35 @@ def _preprocess_and_extract_text(image_bytes: bytes) -> str:
     img = ImageEnhance.Contrast(img).enhance(1.5)
     img = img.filter(ImageFilter.SHARPEN)
 
+    # Emit the exact pixel data being fed to Tesseract so you can inspect it
+    # during a tuning session. Gated on DEBUG level — costs nothing in
+    # production (isEnabledFor is a single integer comparison).
+    # To enable: temporarily set 'level': 'DEBUG' for cards.views in settings.py
+    # LOGGING config, then paste the logged data: URI into any browser address bar.
+    if logger.isEnabledFor(logging.DEBUG):
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        logger.debug(
+            "[scan] preprocessed image: data:image/png;base64,%s",
+            base64.b64encode(buf.getvalue()).decode(),
+        )
+
     logger.info("[scan] Preprocessing done, running Tesseract...")
 
     try:
-        # --psm 7: single text line mode — finds the most prominent line in
-        #          the crop, which should be the card name bar.
-        # --oem 1: LSTM engine only (more accurate than legacy oem 0).
-        raw_text = pytesseract.image_to_string(img, config="--psm 7 --oem 1").strip()
-        logger.info("[scan] PSM 7 output: %r", raw_text)
+        # _extract_confident_words uses image_to_data instead of image_to_string.
+        # Same OCR computation, but filters to words with confidence >= 40,
+        # discarding noise tokens (frame decorations, mana symbols) that
+        # Tesseract itself is uncertain about.
+        raw_text = _extract_confident_words(img, "--psm 7 --oem 1")
+        logger.info("[scan] PSM 7 confident words: %r", raw_text)
 
         if not raw_text:
             # PSM 11 (sparse text) finds text regardless of layout — useful
             # for cards with ornate name bars (e.g. Mystical Archive series)
             # where PSM 7's strict single-line assumption fails.
-            raw_text = pytesseract.image_to_string(
-                img, config="--psm 11 --oem 1"
-            ).strip()
-            logger.info("[scan] PSM 11 fallback: %r", raw_text)
+            raw_text = _extract_confident_words(img, "--psm 11 --oem 1")
+            logger.info("[scan] PSM 11 fallback confident words: %r", raw_text)
     except Exception as e:
         logger.error("[scan] Tesseract raised: %s", e, exc_info=True)
         return ""
@@ -176,7 +252,7 @@ def _filter_ocr_tokens(text: str) -> str:
 
     Example: "Se ee Squawkroaster 3 e" → "Squawkroaster"
     """
-    tokens = [t for t in text.split() if t.isalpha() and len(t) >= 3]
+    tokens = [t for t in text.split() if re.match(r"^[A-Za-z''\-\.]{3,}$", t)]
     return " ".join(tokens)
 
 
@@ -611,9 +687,10 @@ class CardViewSet(viewsets.ModelViewSet):
 
         card_data = ScryfallService.search(cleaned)
         if card_data is None:
-            # If full string fails, strip noise tokens (numbers, 1-2 char fragments)
-            # and retry. PSM 11 commonly picks up mana cost digits and frame
-            # decorations alongside the name (e.g. "Se ee Squawkroaster 3 e").
+            # Pass 2 — strip noise tokens and retry.
+            # Confidence filtering already removed most low-conf tokens, but
+            # _filter_ocr_tokens catches any alphabetic-but-short fragments
+            # that still slipped through (e.g. frame corner decorations).
             filtered = _filter_ocr_tokens(cleaned)
             if filtered and filtered != cleaned:
                 logger.info(
@@ -624,6 +701,36 @@ class CardViewSet(viewsets.ModelViewSet):
                 card_data = ScryfallService.search(filtered)
                 if card_data:
                     cleaned = filtered
+
+            # Pass 3 — autocomplete on the longest confident token.
+            #
+            # Handles partial OCR reads: if Tesseract read "Squawkroaste"
+            # (confident but clipped at the edge), passes 1 and 2 both miss
+            # because neither fuzzy nor token-filtered search can match a
+            # non-existent truncated name. Autocomplete can match on a prefix.
+            #
+            # Why exactly-one guard?
+            # A short token like "Fire" autocompletes to dozens of cards —
+            # picking one arbitrarily would give a wrong result. We only
+            # act when the token unambiguously resolves to a single card name.
+            #
+            # Why len >= 4?
+            # Prevents firing off network requests for very short tokens
+            # where we know the result set will be huge. Autocomplete is
+            # cached, but the guard keeps the logic intentional.
+            if card_data is None and filtered:
+                longest = max(filtered.split(), key=len, default="")
+                if len(longest) >= 4:
+                    suggestions = ScryfallService.autocomplete(longest)
+                    if len(suggestions) == 1:
+                        logger.info(
+                            "[scan] Autocomplete resolved %r → %r",
+                            longest,
+                            suggestions[0],
+                        )
+                        card_data = ScryfallService.search(suggestions[0])
+                        if card_data:
+                            cleaned = suggestions[0]
 
         if not card_data:
             return Response(

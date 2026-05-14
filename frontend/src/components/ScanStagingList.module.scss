@@ -55,4 +55,10 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
+
+  // Full-width on mobile — easier to tap and visually clearer as a primary action.
+  @media (max-width: 480px) {
+    align-self: stretch;
+    text-align: center;
+  }
 }
