@@ -6,7 +6,7 @@ import { usePageTitle } from "@/hooks";
 import { getUserProfile, getUserCards } from "@/api/users";
 import { getUserRatings } from "@/api/ratings";
 import { useAuth } from "@/context";
-import { CreateOfferModal, RatingStars } from "@/components";
+import { CreateOfferModal, RatingStars, CardImageTooltip } from "@/components";
 import type { GlobalSearchResult } from "@/types";
 import styles from "./UserProfilePage.module.scss";
 
@@ -147,8 +147,12 @@ export function UserProfilePage() {
             )}
           </h2>
 
-          {cardsLoading && <p className={styles.muted}>{t("userProfile.loadingCards")}</p>}
-          {cardsError && <p className={styles.error}>{t("userProfile.errorLoadingCards")}</p>}
+          {cardsLoading && (
+            <p className={styles.muted}>{t("userProfile.loadingCards")}</p>
+          )}
+          {cardsError && (
+            <p className={styles.error}>{t("userProfile.errorLoadingCards")}</p>
+          )}
 
           {!cardsLoading && !cardsError && cardList.length === 0 && (
             <p className={styles.muted}>{t("userProfile.noCardsAvailable")}</p>
@@ -173,7 +177,9 @@ export function UserProfilePage() {
                     )
                   : cardList;
                 return filtered.length === 0 ? (
-                  <p className={styles.muted}>{t("userProfile.noCardsMatch")}</p>
+                  <p className={styles.muted}>
+                    {t("userProfile.noCardsMatch")}
+                  </p>
                 ) : (
                   <div className={styles.tableWrapper}>
                     <table className={styles.table}>
@@ -191,7 +197,9 @@ export function UserProfilePage() {
                         {filtered.map((card: GlobalSearchResult) => (
                           <tr key={card.id}>
                             <td className={styles.cardName}>
-                              {card.card_name}
+                              <CardImageTooltip scryfallId={card.scryfall_id}>
+                                {card.card_name}
+                              </CardImageTooltip>
                             </td>
                             <td className={styles.mono}>
                               {card.set_code.toUpperCase()}

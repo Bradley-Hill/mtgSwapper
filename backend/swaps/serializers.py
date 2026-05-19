@@ -39,7 +39,7 @@ class OfferItemCardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Card
-        fields = ['id', 'card_name', 'set_code', 'condition', 'is_foil', 'language', 'quantity']
+        fields = ['id', 'scryfall_id', 'card_name', 'set_code', 'condition', 'is_foil', 'language', 'quantity']
 
 
 class OfferItemSerializer(serializers.ModelSerializer):

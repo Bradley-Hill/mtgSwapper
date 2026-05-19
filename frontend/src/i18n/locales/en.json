@@ -151,17 +151,17 @@
     "noResults": "No cards found.",
     "tabs": {
       "cards": "Cards",
-      "traders": "Traders"
+      "traders": "Swappers"
     },
     "traders": {
-      "sub": "Browse traders and explore their available collections.",
+      "sub": "Browse swappers and explore their available collections.",
       "filterPlaceholder": "Filter by username…",
-      "loading": "Loading traders…",
-      "empty": "No traders found.",
+      "loading": "Loading swappers…",
+      "empty": "No swappers found.",
       "noLocation": "—",
       "viewCollection": "View Collection",
       "columns": {
-        "username": "Trader",
+        "username": "Swapper",
         "location": "Location",
         "cards": "Cards Available",
         "reputation": "Reputation",

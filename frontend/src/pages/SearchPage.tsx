@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { globalSearch } from "@/api/cards";
 import { listUsers } from "@/api/users";
 import { useAuth } from "@/context";
-import { CreateOfferModal } from "@/components";
+import { CreateOfferModal, CardImageTooltip } from "@/components";
 import { useDebounce, usePageTitle } from "@/hooks";
 import type { GlobalSearchResult, UserListItem } from "@/types";
 import styles from "./SearchPage.module.scss";
@@ -25,7 +25,7 @@ export function SearchPage() {
   const [offerTarget, setOfferTarget] = useState<OfferTarget | null>(null);
   const debouncedQuery = useDebounce(query, 350);
   const { t } = useTranslation();
-  usePageTitle(t('search.title'));
+  usePageTitle(t("search.title"));
 
   // ── Cards tab query ────────────────────────────────────────────────────────
   const { data, isLoading, isFetching, isError } = useQuery({
@@ -56,7 +56,7 @@ export function SearchPage() {
   const traders: UserListItem[] = tradersData ?? [];
   const filteredTraders = traderFilter.trim()
     ? traders.filter((u) =>
-        u.username.toLowerCase().includes(traderFilter.toLowerCase())
+        u.username.toLowerCase().includes(traderFilter.toLowerCase()),
       )
     : traders;
 
@@ -100,7 +100,9 @@ export function SearchPage() {
                 autoFocus
                 aria-label={t("search.title")}
               />
-              {isFetching && <span className={styles.spinner} aria-hidden="true" />}
+              {isFetching && (
+                <span className={styles.spinner} aria-hidden="true" />
+              )}
             </div>
 
             {isError && <p className={styles.error}>{t("common.error")}</p>}
@@ -133,7 +135,11 @@ export function SearchPage() {
                     <tbody>
                       {results.map((card) => (
                         <tr key={card.id}>
-                          <td className={styles.cardName}>{card.card_name}</td>
+                          <td className={styles.cardName}>
+                            <CardImageTooltip scryfallId={card.scryfall_id}>
+                              {card.card_name}
+                            </CardImageTooltip>
+                          </td>
                           <td className={styles.mono}>
                             {card.set_code.toUpperCase()}
                           </td>
@@ -156,19 +162,20 @@ export function SearchPage() {
                             </Link>
                           </td>
                           <td>
-                            {currentUser && card.owner_id !== currentUser.id && (
-                              <button
-                                className={styles.offerBtn}
-                                onClick={() =>
-                                  setOfferTarget({
-                                    userId: card.owner_id,
-                                    username: card.owner_username,
-                                  })
-                                }
-                              >
-                                {t("search.makeOffer")}
-                              </button>
-                            )}
+                            {currentUser &&
+                              card.owner_id !== currentUser.id && (
+                                <button
+                                  className={styles.offerBtn}
+                                  onClick={() =>
+                                    setOfferTarget({
+                                      userId: card.owner_id,
+                                      username: card.owner_username,
+                                    })
+                                  }
+                                >
+                                  {t("search.makeOffer")}
+                                </button>
+                              )}
                           </td>
                         </tr>
                       ))}
@@ -197,13 +204,17 @@ export function SearchPage() {
               />
             </div>
 
-            {tradersError && <p className={styles.error}>{t("common.error")}</p>}
+            {tradersError && (
+              <p className={styles.error}>{t("common.error")}</p>
+            )}
             {tradersLoading && (
               <p className={styles.empty}>{t("search.traders.loading")}</p>
             )}
-            {!tradersLoading && !tradersError && filteredTraders.length === 0 && (
-              <p className={styles.empty}>{t("search.traders.empty")}</p>
-            )}
+            {!tradersLoading &&
+              !tradersError &&
+              filteredTraders.length === 0 && (
+                <p className={styles.empty}>{t("search.traders.empty")}</p>
+              )}
 
             {filteredTraders.length > 0 && (
               <div className={styles.tableWrapper}>

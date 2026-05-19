@@ -37,10 +37,21 @@
   font-weight: 500;
   cursor: pointer;
   margin-bottom: -1px; // sit on top of the border-bottom of .tabs
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
 
   &:hover {
     color: $text-secondary;
+  }
+
+  // On mobile, stretch tabs to share the full container width evenly.
+  // This prevents a narrow left-aligned cluster of buttons that looks
+  // unfinished and is harder to tap on small screens.
+  @media (max-width: 480px) {
+    flex: 1;
+    text-align: center;
+    padding: 0.625rem 0.5rem;
   }
 }
 

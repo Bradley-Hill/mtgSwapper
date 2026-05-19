@@ -18,6 +18,7 @@ class CardSerializer(serializers.ModelSerializer):
         model = Card
         fields = [
             'id',
+            'scryfall_id',
             'card_name',
             'set_code',
             'set_name',
@@ -128,6 +129,7 @@ class CardGlobalSearchSerializer(serializers.ModelSerializer):
         model = Card
         fields = [
             'id',
+            'scryfall_id',
             'card_name',
             'set_code',
             'set_name',
@@ -198,6 +200,7 @@ class CardListSerializer(serializers.ModelSerializer):
         model = Card
         fields = [
             'id',
+            'scryfall_id',
             'card_name',
             'set_code',
             'set_name',

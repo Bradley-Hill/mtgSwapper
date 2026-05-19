@@ -9,6 +9,7 @@ import {
   MessageThread,
   SwapCoordinationPanel,
   SubmitRatingModal,
+  CardImageTooltip,
 } from "@/components";
 import type { OfferItem } from "@/types";
 import styles from "./OfferDetailPage.module.scss";
@@ -257,7 +258,11 @@ function CardList({ items }: { items: OfferItem[] }) {
     <ul className={styles.cardList}>
       {items.map((item) => (
         <li key={item.id} className={styles.cardRow}>
-          <span className={styles.cardName}>{item.card.card_name}</span>
+          <span className={styles.cardName}>
+            <CardImageTooltip scryfallId={item.card.scryfall_id}>
+              {item.card.card_name}
+            </CardImageTooltip>
+          </span>
           <span className={styles.cardMeta}>
             {item.card.set_code.toUpperCase()} · {item.card.condition}
             {item.card.is_foil && " · ✦"}

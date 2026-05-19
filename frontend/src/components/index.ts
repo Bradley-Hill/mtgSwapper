@@ -13,3 +13,4 @@ export { SubmitRatingModal } from "./SubmitRatingModal";
 export { CameraCapture } from "./CameraCapture";
 export { ScanCardItem } from "./ScanCardItem";
 export { ScanStagingList } from "./ScanStagingList";
+export { CardImageTooltip } from "./CardImageTooltip";

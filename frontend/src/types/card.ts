@@ -1,8 +1,9 @@
-export type CardCondition = 'unused' | 'played' | 'damaged';
+export type CardCondition = "unused" | "played" | "damaged";
 
 // Matches CardSerializer fields exactly.
 export interface Card {
   id: string;
+  scryfall_id: string;
   card_name: string;
   set_code: string;
   set_name: string | null;
@@ -28,7 +29,10 @@ export interface AddFromScryfallPayload {
 }
 
 export type UpdateCardPayload = Partial<
-  Pick<Card, 'condition' | 'is_foil' | 'language' | 'quantity' | 'is_available' | 'notes'>
+  Pick<
+    Card,
+    "condition" | "is_foil" | "language" | "quantity" | "is_available" | "notes"
+  >
 >;
 
 export interface BulkImportPayload {
@@ -42,6 +46,7 @@ export interface BulkImportPayload {
 // Subset of Card fields + owner info for linking to their profile page.
 export interface GlobalSearchResult {
   id: string;
+  scryfall_id: string;
   card_name: string;
   set_code: string;
   set_name: string | null;

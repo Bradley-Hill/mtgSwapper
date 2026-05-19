@@ -15,6 +15,7 @@ export interface OfferParticipant {
 
 export interface OfferItemCard {
   id: string;
+  scryfall_id: string;
   card_name: string;
   set_code: string;
   condition: string;
