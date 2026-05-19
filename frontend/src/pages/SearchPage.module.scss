@@ -217,6 +217,96 @@
   }
 }
 
+// ── Swappers card layout (mobile) ─────────────────────────────────────────────
+// Below 640 px the table is replaced by stacked cards. Each <tr> becomes a
+// rounded card block; the header row is hidden; and the stats cells (cards,
+// reputation, swaps) collapse into a single inline chip line.
+// Location is omitted on mobile — it's visible on the profile page the user
+// reaches by tapping View Collection.
+@media (max-width: 640px) {
+  .tradersWrapper {
+    border: none;
+    border-radius: 0;
+    overflow-x: visible;
+    background: transparent;
+  }
+
+  .tradersTable {
+    display: block;
+
+    thead {
+      display: none;
+    }
+
+    tbody {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    tr {
+      display: block;
+      padding: 0.875rem 1rem;
+      border: 1px solid $border-default;
+      border-radius: 0.75rem;
+      background: $bg-surface;
+    }
+
+    td {
+      padding: 0;
+      border: none;
+    }
+
+    // 1 — Username: large and prominent
+    td:nth-child(1) {
+      display: block;
+      font-size: 1rem;
+      font-weight: 600;
+      color: $text-primary;
+      margin-bottom: 0.25rem;
+    }
+
+    // 2 — Location: hide on mobile (shown on profile page)
+    td:nth-child(2) {
+      display: none;
+    }
+
+    // 3–5 — Cards · Rep · Swaps: inline chip row
+    td:nth-child(3),
+    td:nth-child(4),
+    td:nth-child(5) {
+      display: inline;
+      font-size: 0.8125rem;
+      color: $text-muted;
+    }
+
+    td:nth-child(3)::after {
+      content: " cards";
+    }
+    td:nth-child(4)::before {
+      content: " · \2605 ";
+    } // · ★
+    td:nth-child(5)::before {
+      content: " · ";
+    }
+    td:nth-child(5)::after {
+      content: " swaps";
+    }
+
+    // 6 — View Collection: full-width tappable button
+    td:nth-child(6) {
+      display: block;
+      margin-top: 0.75rem;
+
+      a {
+        display: block;
+        text-align: center;
+        padding: 0.5rem 0.875rem;
+      }
+    }
+  }
+}
+
 .offerBtn {
   padding: 0.25rem 0.625rem;
   background: transparent;

@@ -217,8 +217,10 @@ export function SearchPage() {
               )}
 
             {filteredTraders.length > 0 && (
-              <div className={styles.tableWrapper}>
-                <table className={styles.table}>
+              <div
+                className={`${styles.tableWrapper} ${styles.tradersWrapper}`}
+              >
+                <table className={`${styles.table} ${styles.tradersTable}`}>
                   <thead>
                     <tr>
                       <th>{t("search.traders.columns.username")}</th>
