@@ -360,24 +360,22 @@ FAKE_LIGHTNING_BOLT = {
 class CardBulkImportTests(CardTestBase):
     """Tests for the plain-text decklist bulk import endpoint."""
 
-    @patch("cards.views.time.sleep")  # suppress real sleep in tests
-    @patch("cards.scryfall_service.ScryfallService.search")
-    def test_import_creates_all_cards(self, mock_search, mock_sleep):
+    @patch("cards.scryfall_service.ScryfallService.collection_search")
+    def test_import_creates_all_cards(self, mock_collection_search):
         """
         A valid two-card decklist creates two Card rows and returns a summary.
 
-        We mock ScryfallService.search to return different cards based on the
-        name argument, avoiding real HTTP calls while still exercising the
-        full import loop.
+        We mock ScryfallService.collection_search to return a pre-built dict
+        instead of hitting the network, while still exercising the full import
+        loop and DB writes.
         """
-        def scryfall_side_effect(name):
-            if "Black Lotus" in name:
-                return FAKE_SCRYFALL_CARD
-            if "Lightning Bolt" in name:
-                return FAKE_LIGHTNING_BOLT
-            return None
-
-        mock_search.side_effect = scryfall_side_effect
+        mock_collection_search.return_value = (
+            {
+                "black lotus": FAKE_SCRYFALL_CARD,
+                "lightning bolt": FAKE_LIGHTNING_BOLT,
+            },
+            [],
+        )
 
         decklist = "4 Black Lotus\n3 Lightning Bolt"
         response = self.client.post(
@@ -394,20 +392,19 @@ class CardBulkImportTests(CardTestBase):
         self.assertEqual(Card.objects.filter(user=self.user, card_name="Black Lotus").count(), 2)  # 1 from setUp + 1 imported
         self.assertTrue(Card.objects.filter(user=self.user, card_name="Lightning Bolt").exists())
 
-        # Scryfall was called once per card
-        self.assertEqual(mock_search.call_count, 2)
+        # collection_search is called exactly once (batch, not per-card)
+        mock_collection_search.assert_called_once()
 
-    @patch("cards.views.time.sleep")
-    @patch("cards.scryfall_service.ScryfallService.search")
-    def test_import_skips_unknown_cards(self, mock_search, mock_sleep):
+    @patch("cards.scryfall_service.ScryfallService.collection_search")
+    def test_import_skips_unknown_cards(self, mock_collection_search):
         """
-        Lines where Scryfall returns None are recorded as failures.
+        Lines where Scryfall returns no match are recorded as failures.
         The rest of the decklist is still imported (partial import).
         """
-        def scryfall_side_effect(name):
-            return FAKE_SCRYFALL_CARD if "Black Lotus" in name else None
-
-        mock_search.side_effect = scryfall_side_effect
+        mock_collection_search.return_value = (
+            {"black lotus": FAKE_SCRYFALL_CARD},
+            ["totally fake card xyz"],
+        )
 
         decklist = "2 Black Lotus\n1 Totally Fake Card XYZ"
         response = self.client.post(
@@ -424,11 +421,10 @@ class CardBulkImportTests(CardTestBase):
         self.assertEqual(failed[0]["card_name"], "Totally Fake Card XYZ")
         self.assertIn("reason", failed[0])
 
-    @patch("cards.views.time.sleep")
-    @patch("cards.scryfall_service.ScryfallService.search")
-    def test_import_all_fail_returns_400(self, mock_search, mock_sleep):
+    @patch("cards.scryfall_service.ScryfallService.collection_search")
+    def test_import_all_fail_returns_400(self, mock_collection_search):
         """If every card fails Scryfall lookup, the response is 400."""
-        mock_search.return_value = None
+        mock_collection_search.return_value = ({}, ["fake card a", "fake card b"])
 
         response = self.client.post(
             "/api/cards/bulk_import/",
@@ -439,15 +435,13 @@ class CardBulkImportTests(CardTestBase):
         self.assertEqual(response.data["imported"], 0)
         self.assertEqual(response.data["failed"], 2)
 
-    @patch("cards.views.time.sleep")
-    @patch("cards.scryfall_service.ScryfallService.search")
-    def test_import_strips_set_code_from_line(self, mock_search, mock_sleep):
+    @patch("cards.scryfall_service.ScryfallService.collection_search")
+    def test_import_strips_set_code_from_line(self, mock_collection_search):
         """
         Lines like "4 Black Lotus (VMA)" have the set code stripped before
-        the Scryfall lookup, so the search receives "Black Lotus" not
-        "Black Lotus (VMA)".
+        the Scryfall lookup, so collection_search receives "Black Lotus".
         """
-        mock_search.return_value = FAKE_SCRYFALL_CARD
+        mock_collection_search.return_value = ({"black lotus": FAKE_SCRYFALL_CARD}, [])
 
         response = self.client.post(
             "/api/cards/bulk_import/",
@@ -455,16 +449,17 @@ class CardBulkImportTests(CardTestBase):
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        mock_search.assert_called_once_with("Black Lotus")
+        # The name list passed to collection_search must not include "(VMA)"
+        called_names = mock_collection_search.call_args[0][0]
+        self.assertEqual(called_names, ["Black Lotus"])
 
-    @patch("cards.views.time.sleep")
-    @patch("cards.scryfall_service.ScryfallService.search")
-    def test_import_skips_blank_lines_and_headers(self, mock_search, mock_sleep):
+    @patch("cards.scryfall_service.ScryfallService.collection_search")
+    def test_import_skips_blank_lines_and_headers(self, mock_collection_search):
         """
         Blank lines and Moxfield section headers like 'Deck' or 'Sideboard'
         don't trigger Scryfall lookups.
         """
-        mock_search.return_value = FAKE_SCRYFALL_CARD
+        mock_collection_search.return_value = ({"black lotus": FAKE_SCRYFALL_CARD}, [])
 
         decklist = "\nDeck\n4 Black Lotus\n\nSideboard\n"
         response = self.client.post(
@@ -473,8 +468,9 @@ class CardBulkImportTests(CardTestBase):
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Only one real card line was present
-        mock_search.assert_called_once_with("Black Lotus")
+        # Only one real card line — collection_search receives only that name
+        called_names = mock_collection_search.call_args[0][0]
+        self.assertEqual(called_names, ["Black Lotus"])
 
     def test_import_empty_decklist_returns_400(self):
         """An empty decklist string is rejected before any Scryfall calls."""

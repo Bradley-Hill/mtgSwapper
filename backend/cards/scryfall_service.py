@@ -7,9 +7,11 @@ Scryfall is the authoritative source for MTG card information.
 Reference: https://scryfall.com/docs/api
 """
 
+import time
+
 import requests
 from django.core.cache import cache
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 
 
 class ScryfallService:
@@ -17,7 +19,10 @@ class ScryfallService:
     
     BASE_URL = "https://api.scryfall.com"
     TIMEOUT = 5  # seconds
-    
+    COLLECTION_TIMEOUT = 30  # /cards/collection may return up to 75 cards; give it more time
+    COLLECTION_BATCH_SIZE = 75  # Scryfall hard limit per /cards/collection request
+    COLLECTION_RATE_LIMIT_DELAY = 0.11  # Scryfall asks for 50–100ms between requests
+
     # Cache durations
     CARD_CACHE_TTL = 86400  # 24 hours (card data rarely changes)
     SEARCH_CACHE_TTL = 3600  # 1 hour (search results can vary)
@@ -178,3 +183,104 @@ class ScryfallService:
             "card_type": scryfall_card.get("type_line"),
             "mana_cost": scryfall_card.get("mana_cost"),
         }
+
+    @classmethod
+    def collection_search(cls, names: List[str]) -> Tuple[Dict[str, Dict[str, Any]], List[str]]:
+        """
+        Fetch multiple cards by exact name in bulk using /cards/collection.
+
+        This is the correct endpoint for bulk imports. Instead of making one
+        HTTP request per card (which quickly hits rate limits), it batches up
+        to 75 identifiers per request. 
+
+        How it works:
+        1. Check the Django cache for each name — already-cached cards skip
+           the network entirely.
+        2. Group the remaining names into batches of 75 (Scryfall's hard limit).
+        3. POST each batch to /cards/collection with a short delay between
+           batches to respect Scryfall's rate limit policy.
+        4. Cache every returned card for 24 h so repeated imports are free.
+
+        Name matching: /cards/collection uses *exact* name matching (not fuzzy).
+        This is fine for Moxfield/Arena decklist exports, where names are
+        already canonical. If you need fuzzy matching use search() instead.
+
+        Args:
+            names: List of card names to look up (may contain duplicates).
+
+        Returns:
+            Tuple of:
+            - found: dict keyed by lowercased card name → full Scryfall card object
+            - not_found_names: list of lowercased names Scryfall could not match
+        """
+        found: Dict[str, Dict[str, Any]] = {}
+        not_found_names: List[str] = []
+
+        # Deduplicate preserving the first-seen casing, but key everything
+        # by lowercase so lookups are case-insensitive.
+        seen: Dict[str, str] = {}
+        for name in names:
+            key = name.lower()
+            if key not in seen:
+                seen[key] = name
+
+        # Serve hits from the Django cache; collect misses for the network.
+        to_fetch: List[str] = []
+        for key, original_name in seen.items():
+            cache_key = f"scryfall:search:{key}"
+            cached = cache.get(cache_key)
+            if cached is not None:
+                found[key] = cached
+            else:
+                to_fetch.append(original_name)
+
+        if not to_fetch:
+            return found, not_found_names
+
+        # Split into batches of 75 and POST each one.
+        batches = [
+            to_fetch[i : i + cls.COLLECTION_BATCH_SIZE]
+            for i in range(0, len(to_fetch), cls.COLLECTION_BATCH_SIZE)
+        ]
+
+        for batch_index, batch in enumerate(batches):
+            if batch_index > 0:
+                # Brief pause between batches — Scryfall asks for at least
+                # 50–100 ms between requests. Two batches means one pause.
+                time.sleep(cls.COLLECTION_RATE_LIMIT_DELAY)
+
+            identifiers = [{"name": name} for name in batch]
+            try:
+                response = requests.post(
+                    f"{cls.BASE_URL}/cards/collection",
+                    json={"identifiers": identifiers},
+                    timeout=cls.COLLECTION_TIMEOUT,
+                )
+                response.raise_for_status()
+                data = response.json()
+            except requests.RequestException as e:
+                print(f"Scryfall collection search error (batch {batch_index}): {e}")
+                # Treat the whole batch as not found so the view can report
+                # individual failures rather than crashing the whole import.
+                for name in batch:
+                    not_found_names.append(name.lower())
+                continue
+
+            # Map each returned card by its canonical lowercased name.
+            for card in data.get("data", []):
+                card_name_lower = card.get("name", "").lower()
+                found[card_name_lower] = card
+                cache.set(
+                    f"scryfall:search:{card_name_lower}",
+                    card,
+                    cls.CARD_CACHE_TTL,
+                )
+
+            # The not_found list contains the original identifier objects
+            # we sent, e.g. {"name": "Mispelled Card"}.
+            for identifier in data.get("not_found", []):
+                nf_name = identifier.get("name", "").lower()
+                if nf_name:
+                    not_found_names.append(nf_name)
+
+        return found, not_found_names

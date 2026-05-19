@@ -6,7 +6,6 @@ import base64
 import io
 import logging
 import re
-import time
 
 import numpy as np
 import pytesseract
@@ -538,15 +537,19 @@ class CardViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # --- Batch lookup via /cards/collection (up to 75 per request) ---
+        # Extract unique names from all parsed lines and fetch them all at
+        # once rather than making one HTTP round trip per card.  For a typical
+        # 100-card decklist this is 2 request instead of 100.
+        unique_names = list({name for _, name in entries})
+        found_cards, _ = ScryfallService.collection_search(unique_names)
+
         results = []
         imported_count = 0
         failed_count = 0
 
         for quantity, card_name in entries:
-            # Respect Scryfall's rate limit (max 10 req/s)
-            time.sleep(0.1)
-
-            scryfall_card = ScryfallService.search(card_name)
+            scryfall_card = found_cards.get(card_name.lower())
 
             if not scryfall_card:
                 failed_count += 1
