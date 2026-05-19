@@ -16,3 +16,15 @@ export interface UserPublicProfile {
   total_swaps_completed: number;
   created_at: string;
 }
+
+// Matches UserListSerializer — used on the Traders tab of the Search page.
+// available_card_count is an annotated field computed by the backend.
+export interface UserListItem {
+  id: string;
+  username: string;
+  city: string | null;
+  country: string | null;
+  reputation_avg: string;
+  total_swaps_completed: number;
+  available_card_count: number;
+}

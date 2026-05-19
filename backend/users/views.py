@@ -6,6 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 from django.utils import timezone
 from django.conf import settings
+from django.db.models import Count, Q
 
 from .models import User, InviteCode
 from cards.models import Card
@@ -17,6 +18,7 @@ from .serializers import (
     LoginSerializer,
     UserSerializer,
     UserPublicProfileSerializer,
+    UserListSerializer,
     InviteCodeSerializer,
     CreateInviteCodeSerializer,
 )
@@ -313,6 +315,37 @@ class UserViewSet(viewsets.GenericViewSet):
     queryset = User.objects.all()
     serializer_class = UserPublicProfileSerializer
     permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        """
+        GET /api/users/
+        Returns all users (excluding the requester) who have at least one
+        card marked available for swapping, ordered by most cards first.
+
+        Why annotate instead of a separate count query?
+        - A single SQL query with COUNT(*) + GROUP BY is far cheaper than
+          N+1 queries (one User fetch + one Card.objects.count() per user).
+        - Django's Count() with a filter translates to a conditional aggregate:
+          COUNT(*) FILTER (WHERE is_available = true) in PostgreSQL.
+        - The annotated value shows up as `user.available_card_count` on each
+          instance, which UserListSerializer reads as a plain IntegerField.
+
+        Why exclude the requester?
+        - You cannot make an offer to yourself, so appearing in your own
+          trader list would only cause confusion.
+        """
+        qs = (
+            User.objects.annotate(
+                available_card_count=Count(
+                    'cards', filter=Q(cards__is_available=True)
+                )
+            )
+            .filter(available_card_count__gt=0)
+            .exclude(id=request.user.id)
+            .order_by('-available_card_count', 'username')
+        )
+        serializer = UserListSerializer(qs, many=True)
+        return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
         """

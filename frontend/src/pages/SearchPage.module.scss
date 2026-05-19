@@ -19,6 +19,36 @@
   margin: 0 0 1.5rem;
 }
 
+// ── Tab bar ───────────────────────────────────────────────────────────────────
+.tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid $border-default;
+}
+
+.tab {
+  padding: 0.5rem 1.125rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: $text-muted;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: -1px; // sit on top of the border-bottom of .tabs
+  transition: color 0.15s, border-color 0.15s;
+
+  &:hover {
+    color: $text-secondary;
+  }
+}
+
+.tabActive {
+  color: $accent;
+  border-bottom-color: $accent;
+}
+
 // ── Search bar ────────────────────────────────────────────────────────────────
 .searchBar {
   position: relative;
@@ -134,6 +164,11 @@
   font-family: monospace;
   font-size: 0.8125rem;
   color: $text-muted;
+}
+
+.location {
+  color: $text-muted;
+  font-size: 0.8125rem;
 }
 
 // Condition badges — reusing the same colours as CollectionPage

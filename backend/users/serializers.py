@@ -87,6 +87,38 @@ class UserPublicProfileSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class UserListSerializer(serializers.ModelSerializer):
+    """
+    Lightweight serializer for the user directory listing (GET /api/users/).
+
+    The extra `available_card_count` field is NOT a model field — it is injected
+    by the queryset annotation in UserViewSet.list() using Django's Count().
+    DRF's IntegerField with read_only=True will happily read it off the annotated
+    instance without complaining that it doesn't exist on the model itself.
+
+    Why a separate serializer instead of reusing UserPublicProfileSerializer?
+    - We don't need `created_at` here (saves bandwidth).
+    - We DO need `available_card_count`, which is only meaningful in a list
+      context where we've done the annotation — adding it to the profile
+      serializer would break the retrieve endpoint (no annotation there).
+    """
+
+    available_card_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'username',
+            'city',
+            'country',
+            'reputation_avg',
+            'total_swaps_completed',
+            'available_card_count',
+        ]
+        read_only_fields = fields
+
+
 class SignupSerializer(serializers.Serializer):
     """Serializer for user registration with invite code."""
     

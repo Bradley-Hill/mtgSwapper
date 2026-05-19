@@ -149,6 +149,25 @@
     "placeholder": "Search for a card…",
     "loading": "Searching…",
     "noResults": "No cards found.",
+    "tabs": {
+      "cards": "Cards",
+      "traders": "Traders"
+    },
+    "traders": {
+      "sub": "Browse traders and explore their available collections.",
+      "filterPlaceholder": "Filter by username…",
+      "loading": "Loading traders…",
+      "empty": "No traders found.",
+      "noLocation": "—",
+      "viewCollection": "View Collection",
+      "columns": {
+        "username": "Trader",
+        "location": "Location",
+        "cards": "Cards Available",
+        "reputation": "Reputation",
+        "swaps": "Swaps"
+      }
+    },
     "columns": {
       "card": "Card",
       "owner": "Owner",

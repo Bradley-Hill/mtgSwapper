@@ -1,5 +1,5 @@
 // Barrel — add a new export line here each time a new types file is created.
-export type { User, UserPublicProfile } from "./user";
+export type { User, UserPublicProfile, UserListItem } from "./user";
 export type { AuthContextValue } from "./auth";
 export type {
   Card,

@@ -149,6 +149,25 @@
         "placeholder": "Rechercher une carte…",
         "loading": "Recherche…",
         "noResults": "Aucune carte trouvée.",
+        "tabs": {
+            "cards": "Cartes",
+            "traders": "Échangeurs"
+        },
+        "traders": {
+            "sub": "Parcourez les échangeurs et explorez leurs collections disponibles.",
+            "filterPlaceholder": "Filtrer par nom d'utilisateur…",
+            "loading": "Chargement des échangeurs…",
+            "empty": "Aucun échangeur trouvé.",
+            "noLocation": "—",
+            "viewCollection": "Voir la collection",
+            "columns": {
+                "username": "Échangeur",
+                "location": "Localisation",
+                "cards": "Cartes disponibles",
+                "reputation": "Réputation",
+                "swaps": "Échanges"
+            }
+        },
         "columns": {
             "card": "Carte",
             "owner": "Propriétaire",
