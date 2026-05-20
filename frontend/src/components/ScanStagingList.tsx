@@ -1,16 +1,7 @@
 import { useTranslation } from "react-i18next";
-import type { StagedCard } from "@/types";
+import type { ScanStagingListProps } from "@/types";
 import { ScanCardItem } from "./ScanCardItem";
 import styles from "./ScanStagingList.module.scss";
-
-interface Props {
-  cards: StagedCard[];
-  onRemove: (stageId: string) => void;
-  onEditName: (stageId: string, newName: string) => void;
-  /** Called when the user clicks "Add X cards to my collection". */
-  onSubmit: (cards: StagedCard[]) => void;
-  isSubmitting: boolean;
-}
 
 /**
  * ScanStagingList
@@ -36,7 +27,7 @@ export function ScanStagingList({
   onEditName,
   onSubmit,
   isSubmitting,
-}: Props) {
+}: ScanStagingListProps) {
   const { t } = useTranslation();
   if (cards.length === 0) return null;
 

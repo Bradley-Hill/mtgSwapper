@@ -27,24 +27,18 @@
  *   </ErrorBoundary>
  */
 
-import { Component } from 'react';
-import type { ErrorInfo, ReactNode } from 'react';
-import styles from './ErrorBoundary.module.scss';
+import { Component } from "react";
+import type { ErrorInfo } from "react";
+import type { ErrorBoundaryProps, ErrorBoundaryState } from "@/types";
+import styles from "./ErrorBoundary.module.scss";
 
-interface Props {
-  children: ReactNode;
-  /** Optional custom fallback UI. Receives the caught error. */
-  fallback?: (error: Error) => ReactNode;
-}
+export class ErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
+  state: ErrorBoundaryState = { error: null };
 
-interface State {
-  error: Error | null;
-}
-
-export class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null };
-
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     // Called synchronously when a child throws. Return value merges into state.
     return { error };
   }
@@ -52,7 +46,7 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: ErrorInfo) {
     // Good place to send to an error-tracking service (Sentry, etc.).
     // For now we just log to console so developers can see stack traces.
-    console.error('[ErrorBoundary]', error, info.componentStack);
+    console.error("[ErrorBoundary]", error, info.componentStack);
   }
 
   handleReset = () => {
@@ -69,7 +63,9 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className={styles.container} role="alert">
           <div className={styles.card}>
-            <span className={styles.icon} aria-hidden="true">⚡</span>
+            <span className={styles.icon} aria-hidden="true">
+              ⚡
+            </span>
             <h2 className={styles.title}>Something went wrong</h2>
             <p className={styles.message}>
               An unexpected error occurred. You can try reloading the page or
@@ -84,7 +80,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </button>
               <button
                 className={styles.btnSecondary}
-                onClick={() => window.location.assign('/')}
+                onClick={() => window.location.assign("/")}
               >
                 Go home
               </button>

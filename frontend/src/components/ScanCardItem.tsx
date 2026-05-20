@@ -1,12 +1,6 @@
 import { useTranslation } from "react-i18next";
-import type { StagedCard } from "@/types";
+import type { ScanCardItemProps } from "@/types";
 import styles from "./ScanCardItem.module.scss";
-
-interface Props {
-  card: StagedCard;
-  onRemove: (stageId: string) => void;
-  onEditName: (stageId: string, newName: string) => void;
-}
 
 /**
  * ScanCardItem
@@ -24,7 +18,11 @@ interface Props {
  * read vs. what Scryfall matched — useful for spotting when the fuzzy search
  * picked the wrong card entirely.
  */
-export function ScanCardItem({ card, onRemove, onEditName }: Props) {
+export function ScanCardItem({
+  card,
+  onRemove,
+  onEditName,
+}: ScanCardItemProps) {
   const { t } = useTranslation();
   return (
     <div className={styles.row}>

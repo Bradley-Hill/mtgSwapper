@@ -71,7 +71,21 @@
     "confirmDelete": "Sure?",
     "deleting": "Deleting…",
     "errorLoading": "Failed to load collection.",
-    "retryLoad": "Try again"
+    "retryLoad": "Try again",
+    "bulk": {
+      "selectAll": "Select all cards",
+      "selected": "{{count}} of {{total}} selected",
+      "markAvailable": "Mark available",
+      "markUnavailable": "Mark unavailable",
+      "setLanguage": "Set language",
+      "setLanguageTitle": "Set language",
+      "setLanguageSubtitle": "Apply to {{count}} selected card(s).",
+      "applyLanguage": "Apply",
+      "applying": "Applying…",
+      "delete": "Delete selected",
+      "deleting": "Deleting…",
+      "clear": "Clear selection"
+    }
   },
   "addCard": {
     "title": "Add card",

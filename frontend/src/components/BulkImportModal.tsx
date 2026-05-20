@@ -5,23 +5,16 @@ import { useBulkImport } from "@/hooks";
 import { ApiError } from "@/api/client";
 import type {
   BulkImportModalProps,
+  BulkImportModalState,
   BulkImportResultRow,
   CardCondition,
 } from "@/types";
 import styles from "./BulkImportModal.module.scss";
 
-type ModalState =
-  | { stage: "form" }
-  | { stage: "loading" }
-  | {
-      stage: "results";
-      imported: number;
-      failed: number;
-      rows: BulkImportResultRow[];
-    };
-
 export function BulkImportModal({ onClose }: BulkImportModalProps) {
-  const [modalState, setModalState] = useState<ModalState>({ stage: "form" });
+  const [modalState, setModalState] = useState<BulkImportModalState>({
+    stage: "form",
+  });
 
   // Form field state
   const [decklist, setDecklist] = useState("");

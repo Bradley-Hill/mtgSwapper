@@ -8,15 +8,8 @@ import {
   confirmMeetup,
 } from "@/api/swapDetails";
 import { completeOffer } from "@/api/offers";
+import type { SwapCoordinationPanelProps } from "@/types";
 import styles from "./SwapCoordinationPanel.module.scss";
-
-interface SwapCoordinationPanelProps {
-  offerId: string;
-  /** Whether the current user is the offer initiator (affects confirmation labels). */
-  isInitiator: boolean;
-  offerStatus: "accepted" | "completed";
-  onOfferCompleted: () => void;
-}
 
 export function SwapCoordinationPanel({
   offerId,

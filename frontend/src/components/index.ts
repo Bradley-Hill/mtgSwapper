@@ -14,3 +14,5 @@ export { CameraCapture } from "./CameraCapture";
 export { ScanCardItem } from "./ScanCardItem";
 export { ScanStagingList } from "./ScanStagingList";
 export { CardImageTooltip } from "./CardImageTooltip";
+export { BulkActionBar } from "./BulkActionBar";
+export { BulkEditLanguageModal } from "./BulkEditLanguageModal";

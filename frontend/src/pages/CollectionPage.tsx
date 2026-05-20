@@ -1,8 +1,17 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useCards, useDeleteCard, usePageTitle } from "@/hooks";
+import {
+  useCards,
+  useDeleteCard,
+  usePageTitle,
+  useBulkDelete,
+  useBulkUpdateAvailability,
+  useBulkUpdateLanguage,
+} from "@/hooks";
 import {
   AddCardModal,
+  BulkActionBar,
+  BulkEditLanguageModal,
   BulkImportModal,
   EditCardModal,
   CardImageTooltip,
@@ -14,8 +23,73 @@ export function CollectionPage() {
   const { data: cards, isLoading, isError, error, refetch } = useCards();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [isBulkLanguageModalOpen, setIsBulkLanguageModalOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { t } = useTranslation();
   usePageTitle(t("collection.title"));
+
+  const bulkDelete = useBulkDelete();
+  const bulkAvailability = useBulkUpdateAvailability();
+  const bulkLanguage = useBulkUpdateLanguage();
+  const isBulkPending =
+    bulkDelete.isPending ||
+    bulkAvailability.isPending ||
+    bulkLanguage.isPending;
+
+  const isAllSelected = !!cards?.length && selectedIds.size === cards.length;
+  const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else if (cards) {
+      setSelectedIds(new Set(cards.map((card) => card.id)));
+    }
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleBulkDelete = () => {
+    bulkDelete.mutate([...selectedIds], { onSuccess: clearSelection });
+  };
+
+  const handleBulkMarkAvailable = () => {
+    bulkAvailability.mutate(
+      { ids: [...selectedIds], isAvailable: true },
+      { onSuccess: clearSelection },
+    );
+  };
+
+  const handleBulkMarkUnavailable = () => {
+    bulkAvailability.mutate(
+      { ids: [...selectedIds], isAvailable: false },
+      { onSuccess: clearSelection },
+    );
+  };
+
+  const handleBulkSetLanguage = (language: string) => {
+    bulkLanguage.mutate(
+      { ids: [...selectedIds], language },
+      {
+        onSuccess: () => {
+          setIsBulkLanguageModalOpen(false);
+          clearSelection();
+        },
+      },
+    );
+  };
 
   return (
     <div className={styles.page}>
@@ -93,6 +167,18 @@ export function CollectionPage() {
             <table className={styles.table}>
               <thead className={styles.tableHead}>
                 <tr>
+                  <th className={styles.checkboxCell}>
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={handleSelectAll}
+                      className={styles.checkbox}
+                      ref={(el) => {
+                        if (el) el.indeterminate = isSomeSelected;
+                      }}
+                      aria-label={t("collection.bulk.selectAll")}
+                    />
+                  </th>
                   <th>{t("collection.columns.name")}</th>
                   <th>{t("collection.columns.set")}</th>
                   <th>{t("collection.columns.condition")}</th>
@@ -108,7 +194,12 @@ export function CollectionPage() {
               </thead>
               <tbody>
                 {cards.map((card) => (
-                  <CardRow key={card.id} card={card} />
+                  <CardRow
+                    key={card.id}
+                    card={card}
+                    isSelected={selectedIds.has(card.id)}
+                    onToggleSelect={toggleSelect}
+                  />
                 ))}
               </tbody>
             </table>
@@ -122,13 +213,41 @@ export function CollectionPage() {
       {isBulkModalOpen && (
         <BulkImportModal onClose={() => setIsBulkModalOpen(false)} />
       )}
+      {selectedIds.size > 0 && (
+        <BulkActionBar
+          selectedCount={selectedIds.size}
+          totalCount={cards?.length ?? 0}
+          onDelete={handleBulkDelete}
+          onMarkAvailable={handleBulkMarkAvailable}
+          onMarkUnavailable={handleBulkMarkUnavailable}
+          onEditLanguage={() => setIsBulkLanguageModalOpen(true)}
+          onClear={clearSelection}
+          isPending={isBulkPending}
+        />
+      )}
+      {isBulkLanguageModalOpen && (
+        <BulkEditLanguageModal
+          selectedCount={selectedIds.size}
+          onConfirm={handleBulkSetLanguage}
+          onClose={() => setIsBulkLanguageModalOpen(false)}
+          isPending={bulkLanguage.isPending}
+        />
+      )}
     </div>
   );
 }
 
 // ── Private sub-component ────────────────────────────────────────────────────
 
-function CardRow({ card }: { card: Card }) {
+function CardRow({
+  card,
+  isSelected,
+  onToggleSelect,
+}: {
+  card: Card;
+  isSelected: boolean;
+  onToggleSelect: (id: string) => void;
+}) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const deleteCard = useDeleteCard();
@@ -136,7 +255,18 @@ function CardRow({ card }: { card: Card }) {
 
   return (
     <>
-      <tr className={styles.tableRow}>
+      <tr
+        className={`${styles.tableRow} ${isSelected ? styles.rowSelected : ""}`}
+      >
+        <td className={styles.checkboxCell}>
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onToggleSelect(card.id)}
+            className={styles.checkbox}
+            aria-label={`Select ${card.card_name}`}
+          />
+        </td>
         <td className={styles.cell}>
           <span className={styles.cardName}>
             <CardImageTooltip scryfallId={card.scryfall_id}>

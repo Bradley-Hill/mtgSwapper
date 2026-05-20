@@ -16,6 +16,17 @@ export type {
   BulkImportModalProps,
   EditCardModalProps,
   CreateOfferModalProps,
+  BulkActionBarProps,
+  BulkEditLanguageModalProps,
+  RatingStarsProps,
+  MessageThreadProps,
+  CardImageTooltipProps,
+  SwapCoordinationPanelProps,
+  SubmitRatingModalProps,
+  ErrorBoundaryProps,
+  ScanCardItemProps,
+  ScanStagingListProps,
+  CameraCaptureProps,
 } from "./props";
 export type {
   OfferStatus,
@@ -36,4 +47,11 @@ export type {
   ProposeMeetupPayload,
 } from "./swapDetails";
 export type { Rating, SubmitRatingPayload } from "./rating";
+export type {
+  SearchPageTab,
+  OfferTarget,
+  OffersDirection,
+  BulkImportModalState,
+  ErrorBoundaryState,
+} from "./ui";
 export type { ScanResult, StagedCard } from "./scan";

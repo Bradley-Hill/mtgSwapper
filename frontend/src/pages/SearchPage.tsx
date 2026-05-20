@@ -7,19 +7,17 @@ import { listUsers } from "@/api/users";
 import { useAuth } from "@/context";
 import { CreateOfferModal, CardImageTooltip } from "@/components";
 import { useDebounce, usePageTitle } from "@/hooks";
-import type { GlobalSearchResult, UserListItem } from "@/types";
+import type {
+  GlobalSearchResult,
+  UserListItem,
+  SearchPageTab,
+  OfferTarget,
+} from "@/types";
 import styles from "./SearchPage.module.scss";
-
-type Tab = "cards" | "traders";
-
-interface OfferTarget {
-  userId: string;
-  username: string;
-}
 
 export function SearchPage() {
   const { user: currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<Tab>("cards");
+  const [activeTab, setActiveTab] = useState<SearchPageTab>("cards");
   const [query, setQuery] = useState("");
   const [traderFilter, setTraderFilter] = useState("");
   const [offerTarget, setOfferTarget] = useState<OfferTarget | null>(null);

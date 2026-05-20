@@ -2,14 +2,8 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { submitRating } from "@/api/ratings";
+import type { SubmitRatingModalProps } from "@/types";
 import styles from "./SubmitRatingModal.module.scss";
-
-interface SubmitRatingModalProps {
-  offerId: string;
-  targetUsername: string;
-  onClose: () => void;
-  onSuccess: () => void;
-}
 
 /*
  * Why manage `selectedStars` as local state rather than a controlled form field?

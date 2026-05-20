@@ -71,7 +71,21 @@
         "confirmDelete": "Sûr ?",
         "deleting": "Suppression…",
         "errorLoading": "Impossible de charger la collection.",
-        "retryLoad": "Réessayer"
+        "retryLoad": "Réessayer",
+        "bulk": {
+            "selectAll": "Tout sélectionner",
+            "selected": "{{count}} sur {{total}} sélectionné(s)",
+            "markAvailable": "Marquer disponible",
+            "markUnavailable": "Marquer indisponible",
+            "setLanguage": "Définir la langue",
+            "setLanguageTitle": "Définir la langue",
+            "setLanguageSubtitle": "Appliquer à {{count}} carte(s) sélectionnée(s).",
+            "applyLanguage": "Appliquer",
+            "applying": "Application…",
+            "delete": "Supprimer la sélection",
+            "deleting": "Suppression…",
+            "clear": "Effacer la sélection"
+        }
     },
     "addCard": {
         "title": "Ajouter une carte",

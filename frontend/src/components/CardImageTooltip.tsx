@@ -1,13 +1,6 @@
 import { useState, useRef, useCallback } from "react";
+import type { CardImageTooltipProps } from "@/types";
 import styles from "./CardImageTooltip.module.scss";
-
-interface Props {
-  // Allow undefined: old API responses (before serializer was updated) or
-  // a temporarily stale TanStack Query cache may not carry scryfall_id yet.
-  // The component degrades gracefully — no tooltip, no crash.
-  scryfallId: string | undefined;
-  children: React.ReactNode;
-}
 
 /**
  * Wraps any element and shows a floating card image on hover.
@@ -28,7 +21,10 @@ interface Props {
  * Prevents a burst of image requests when the user's cursor sweeps across
  * many rows. The image only fetches if you actually pause over a row.
  */
-export function CardImageTooltip({ scryfallId, children }: Props) {
+export function CardImageTooltip({
+  scryfallId,
+  children,
+}: CardImageTooltipProps) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

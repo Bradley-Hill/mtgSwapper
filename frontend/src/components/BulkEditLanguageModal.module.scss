@@ -1,0 +1,120 @@
+@use "../styles/variables" as *;
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  padding: $space-4;
+}
+
+.panel {
+  background: $bg-card;
+  border: 1px solid $border-subtle;
+  border-radius: $radius-xl;
+  padding: $space-6;
+  width: 100%;
+  max-width: 22rem;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: $space-2;
+}
+
+.title {
+  font-size: $text-lg;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.closeBtn {
+  font-size: 1.5rem;
+  line-height: 1;
+  color: $text-muted;
+  transition: color 0.15s;
+
+  &:hover {
+    color: $text-primary;
+  }
+}
+
+.subtitle {
+  font-size: $text-sm;
+  color: $text-muted;
+  margin-bottom: $space-4;
+}
+
+.field {
+  margin-bottom: $space-4;
+}
+
+.label {
+  display: block;
+  font-size: $text-sm;
+  font-weight: 500;
+  color: $text-primary;
+  margin-bottom: $space-1;
+}
+
+.select {
+  width: 100%;
+  background: $bg-input;
+  border: 1px solid $border-subtle;
+  border-radius: $radius-md;
+  color: $text-primary;
+  font-size: $text-sm;
+  padding: $space-2 $space-3;
+
+  &:focus {
+    outline: none;
+    border-color: $accent;
+  }
+}
+
+.footer {
+  display: flex;
+  gap: $space-2;
+  justify-content: flex-end;
+}
+
+.cancelBtn {
+  font-size: $text-sm;
+  color: $text-muted;
+  padding: $space-2 $space-4;
+  border-radius: $radius-md;
+  transition: color 0.15s;
+
+  &:hover:not(:disabled) {
+    color: $text-primary;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.confirmBtn {
+  background: $accent;
+  color: $text-primary;
+  font-size: $text-sm;
+  font-weight: 500;
+  padding: $space-2 $space-4;
+  border-radius: $radius-md;
+  transition: background 0.15s;
+
+  &:hover:not(:disabled) {
+    background: $accent-hover;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

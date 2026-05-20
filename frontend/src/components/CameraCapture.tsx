@@ -1,13 +1,7 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import type { CameraCaptureProps } from "@/types";
 import styles from "./CameraCapture.module.scss";
-
-interface Props {
-  /** Called with the captured image File when the user takes or selects a photo. */
-  onCapture: (file: File) => void;
-  /** Whether an upload/scan is in progress — disables controls. */
-  disabled?: boolean;
-}
 
 /**
  * CameraCapture
@@ -47,7 +41,10 @@ interface Props {
 const GUIDE_TOP_PCT = 0.12;
 const GUIDE_BOTTOM_PCT = 0.28;
 
-export function CameraCapture({ onCapture, disabled = false }: Props) {
+export function CameraCapture({
+  onCapture,
+  disabled = false,
+}: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   // streamRef avoids stale-closure issues in useEffect cleanup functions —
   // a ref is always up-to-date even in closures that captured an old state.

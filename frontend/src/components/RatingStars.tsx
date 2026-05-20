@@ -1,13 +1,5 @@
+import type { RatingStarsProps } from "@/types";
 import styles from "./RatingStars.module.scss";
-
-interface RatingStarsProps {
-  /** Value between 0 and 5. Fractional values are rounded to nearest 0.5. */
-  stars: number;
-  /** Controls icon size. Default: "md" */
-  size?: "sm" | "md" | "lg";
-  /** Show numeric value beside the stars. Default: false */
-  showValue?: boolean;
-}
 
 /*
  * Why a pure display component instead of inline SVG everywhere?

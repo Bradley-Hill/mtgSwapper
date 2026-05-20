@@ -5,17 +5,15 @@ import { useTranslation } from "react-i18next";
 import { usePageTitle } from "@/hooks";
 import { getOffers } from "@/api/offers";
 import { useAuth } from "@/context";
-import type { OfferListItem, OfferStatus } from "@/types";
+import type { OfferListItem, OfferStatus, OffersDirection } from "@/types";
 import styles from "./OffersPage.module.scss";
-
-type Direction = "all" | "sent" | "received";
 
 export function OffersPage() {
   const { user } = useAuth();
-  const [direction, setDirection] = useState<Direction>("all");
+  const [direction, setDirection] = useState<OffersDirection>("all");
   const [statusFilter, setStatusFilter] = useState("");
   const { t } = useTranslation();
-  usePageTitle(t('offers.title'));
+  usePageTitle(t("offers.title"));
 
   const STATUS_LABELS: Record<OfferStatus, string> = {
     pending: t("offers.status.pending"),
@@ -114,7 +112,9 @@ export function OffersPage() {
                       </Link>
                     </td>
                     <td className={styles.mono}>
-                      {isSent ? t("offers.direction.sent") : t("offers.direction.received")}
+                      {isSent
+                        ? t("offers.direction.sent")
+                        : t("offers.direction.received")}
                     </td>
                     <td>{offer.offered_count}</td>
                     <td>{offer.requested_count}</td>

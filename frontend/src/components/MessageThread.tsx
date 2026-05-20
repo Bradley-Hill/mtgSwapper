@@ -2,13 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { getMessages, sendMessage } from "@/api/messages";
-import type { Message } from "@/types";
+import type { Message, MessageThreadProps } from "@/types";
 import styles from "./MessageThread.module.scss";
-
-interface MessageThreadProps {
-  offerId: string;
-  currentUsername: string;
-}
 
 export function MessageThread({
   offerId,
