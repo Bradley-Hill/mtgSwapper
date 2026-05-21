@@ -163,6 +163,7 @@
         "placeholder": "Rechercher une carte…",
         "loading": "Recherche…",
         "noResults": "Aucune carte trouvée.",
+        "availableOnly": "Disponibles seulement",
         "tabs": {
             "cards": "Cartes",
             "traders": "Échangeurs"

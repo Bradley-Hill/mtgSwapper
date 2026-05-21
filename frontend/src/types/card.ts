@@ -54,6 +54,7 @@ export interface GlobalSearchResult {
   is_foil: boolean;
   language: string;
   quantity: number;
+  is_available: boolean;
   owner_id: string;
   owner_username: string;
 }

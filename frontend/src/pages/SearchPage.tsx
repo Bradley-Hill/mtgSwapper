@@ -19,6 +19,7 @@ export function SearchPage() {
   const { user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<SearchPageTab>("cards");
   const [query, setQuery] = useState("");
+  const [availableOnly, setAvailableOnly] = useState(false);
   const [traderFilter, setTraderFilter] = useState("");
   const [offerTarget, setOfferTarget] = useState<OfferTarget | null>(null);
   const debouncedQuery = useDebounce(query, 350);
@@ -49,6 +50,9 @@ export function SearchPage() {
   });
 
   const results: GlobalSearchResult[] = data?.results ?? [];
+  const filteredResults = availableOnly
+    ? results.filter((c) => c.is_available)
+    : results;
   const hasSearched = debouncedQuery.length >= 2;
 
   const traders: UserListItem[] = tradersData ?? [];
@@ -103,18 +107,28 @@ export function SearchPage() {
               )}
             </div>
 
+            <div className={styles.filterRow}>
+              <button
+                className={`${styles.filterChip} ${availableOnly ? styles.filterChipActive : ""}`}
+                onClick={() => setAvailableOnly((v) => !v)}
+                aria-pressed={availableOnly}
+              >
+                {t("search.availableOnly")}
+              </button>
+            </div>
+
             {isError && <p className={styles.error}>{t("common.error")}</p>}
 
-            {hasSearched && !isLoading && !isError && results.length === 0 && (
+            {hasSearched && !isLoading && !isError && filteredResults.length === 0 && (
               <p className={styles.empty}>
                 {t("search.noResults")} &ldquo;{debouncedQuery}&rdquo;
               </p>
             )}
 
-            {results.length > 0 && (
+            {filteredResults.length > 0 && (
               <>
                 <p className={styles.count}>
-                  {t("search.resultCount", { count: data!.count })}
+                  {t("search.resultCount", { count: filteredResults.length })}
                 </p>
                 <div className={styles.tableWrapper}>
                   <table className={styles.table}>
@@ -131,7 +145,7 @@ export function SearchPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {results.map((card) => (
+                      {filteredResults.map((card) => (
                         <tr key={card.id}>
                           <td className={styles.cardName}>
                             <CardImageTooltip scryfallId={card.scryfall_id}>

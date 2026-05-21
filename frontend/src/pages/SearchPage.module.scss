@@ -108,6 +108,40 @@
   }
 }
 
+// ── Filter chips ──────────────────────────────────────────────────────────────
+
+.filterRow {
+  display: flex;
+  gap: $space-2;
+  margin-bottom: 1rem;
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: $text-xs;
+  font-weight: 500;
+  padding: 0.25rem 0.75rem;
+  border-radius: $radius-full;
+  border: 1px solid $border-default;
+  background: transparent;
+  color: $text-muted;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+
+  &:hover {
+    border-color: $accent;
+    color: $text-primary;
+  }
+}
+
+.filterChipActive {
+  background: rgba($accent-ring, 0.15);
+  border-color: $accent;
+  color: $accent;
+}
+
 // ── State messages ────────────────────────────────────────────────────────────
 .error {
   color: $error-text;

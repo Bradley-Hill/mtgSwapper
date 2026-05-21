@@ -163,6 +163,7 @@
     "placeholder": "Search for a card…",
     "loading": "Searching…",
     "noResults": "No cards found.",
+    "availableOnly": "Available only",
     "tabs": {
       "cards": "Cards",
       "traders": "Swappers"

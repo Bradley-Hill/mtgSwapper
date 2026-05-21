@@ -137,6 +137,7 @@ class CardGlobalSearchSerializer(serializers.ModelSerializer):
             'is_foil',
             'language',
             'quantity',
+            'is_available',
             'owner_id',
             'owner_username',
         ]
