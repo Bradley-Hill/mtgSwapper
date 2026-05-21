@@ -137,8 +137,8 @@ export function SearchPage() {
                 <p className={styles.count}>
                   {t("search.resultCount", { count: filteredResults.length })}
                 </p>
-                <div className={styles.tableWrapper}>
-                  <table className={styles.table}>
+                <div className={`${styles.tableWrapper} ${styles.cardsWrapper}`}>
+                  <table className={`${styles.table} ${styles.cardsTable}`}>
                     <thead>
                       <tr>
                         <th>{t("search.columns.card")}</th>

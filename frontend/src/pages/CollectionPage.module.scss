@@ -320,3 +320,142 @@
   cursor: pointer;
   accent-color: $accent;
 }
+
+// ── Mobile stacked card layout ────────────────────────────────────────────────
+// Below 640px each table row becomes a standalone card block matching the
+// Swappers tab pattern. The checkbox is absolutely positioned top-left; the
+// card name is the primary heading; condition · qty · language collapse into
+// an inline subtitle; "Available" text (green) replaces the dot; edit/delete
+// appear at the bottom as a flex row. Set name is omitted — too wide on mobile.
+@media (max-width: 640px) {
+  .tableWrapper {
+    border: none;
+    border-radius: 0;
+    overflow-x: visible;
+  }
+
+  .table {
+    display: block;
+
+    thead {
+      display: none;
+    }
+
+    tbody {
+      display: flex;
+      flex-direction: column;
+      gap: $space-2;
+    }
+
+    tr {
+      display: block;
+      position: relative;
+      // extra bottom padding reserves space for the absolute-positioned
+      // Available + action buttons that share the bottom row
+      padding: 0.875rem 1rem 2.75rem 3rem;
+      border: 1px solid $border-default;
+      border-radius: $radius-lg;
+      background: $bg-surface;
+    }
+
+    // Override the desktop :last-child border-bottom removal
+    tr:last-child {
+      border-bottom: 1px solid $border-default;
+    }
+
+    td {
+      display: none;
+      padding: 0;
+      border: none;
+    }
+
+    // 1 — Checkbox: absolutely positioned top-left
+    td:nth-child(1) {
+      display: block;
+      position: absolute;
+      left: 0.875rem;
+      top: 0.9375rem;
+      width: auto;
+    }
+
+    // 2 — Card name + foil badge (both handled by inner spans)
+    td:nth-child(2) {
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    // 3 — Set: omitted on mobile (too wide, low value)
+
+    // 4 Condition · 5 ×Qty · 6 Language — evenly distributed across card width
+    td:nth-child(4),
+    td:nth-child(5),
+    td:nth-child(6) {
+      display: inline-block;
+      width: 33%;
+      text-align: center;
+      font-size: 0.8125rem;
+      color: $text-muted;
+    }
+
+    // 7 — Available: pinned to bottom-left of the card, same level as the
+    // action buttons. :has() hides the td entirely when not available so no
+    // empty space is reserved.
+    td:nth-child(7) {
+      &:has(.available) {
+        position: absolute;
+        bottom: 0.875rem;
+        left: 3rem;
+        display: block;
+      }
+
+      .availDot {
+        width: 0;
+        height: 0;
+        background: transparent;
+        vertical-align: baseline;
+
+        &.available::after {
+          content: "Available";
+          font-size: 0.8125rem;
+          color: $avail-dot;
+        }
+      }
+    }
+
+    // 8 — Edit / Delete actions: pinned to bottom-right, same row as
+    // Available. Compact pill buttons — readable but not oversized.
+    td:nth-child(8) {
+      position: absolute;
+      bottom: 0.875rem;
+      right: 1rem;
+      display: flex;
+      gap: $space-2;
+
+      .actionEdit,
+      .actionCancel {
+        padding: 0.25rem 0.75rem;
+        font-size: $text-sm;
+        border: 1px solid $border-default;
+        border-radius: $radius-lg;
+        color: $text-primary;
+        background: transparent;
+      }
+
+      .actionDelete,
+      .actionConfirm {
+        padding: 0.25rem 0.75rem;
+        font-size: $text-sm;
+        border: 1px solid $error-text;
+        border-radius: $radius-lg;
+        color: $error-text;
+        background: transparent;
+      }
+
+      .actionConfirm {
+        font-weight: 600;
+        background: $error-text;
+        color: #fff;
+      }
+    }
+  }
+}

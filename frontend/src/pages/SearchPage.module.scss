@@ -275,6 +275,97 @@
   }
 }
 
+// ── Search results card layout (mobile) ──────────────────────────────────────
+// Below 640px the cards results table becomes stacked cards, matching the
+// Swappers tab pattern. Name is the heading; set · condition · language · qty
+// collapse into an inline subtitle; owner appears as a block row; Make Offer
+// becomes a full-width tap target. Foil column is hidden — visible in tooltip.
+@media (max-width: 640px) {
+  .cardsWrapper {
+    border: none;
+    border-radius: 0;
+    overflow-x: visible;
+    background: transparent;
+  }
+
+  .cardsTable {
+    display: block;
+
+    thead {
+      display: none;
+    }
+
+    tbody {
+      display: flex;
+      flex-direction: column;
+      gap: $space-2;
+    }
+
+    tr {
+      display: block;
+      padding: 0.875rem 1rem;
+      border: 1px solid $border-default;
+      border-radius: $radius-lg;
+      background: $bg-surface;
+    }
+
+    td {
+      display: none;
+      padding: 0;
+      border: none;
+    }
+
+    // 1 — Card name
+    td:nth-child(1) {
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    // 2 Set · 3 Condition · 4 Language — inline subtitle
+    td:nth-child(2),
+    td:nth-child(3),
+    td:nth-child(4) {
+      display: inline;
+      font-size: 0.8125rem;
+      color: $text-muted;
+    }
+
+    td:nth-child(3)::before { content: " · "; }
+    td:nth-child(4)::before { content: " · "; }
+
+    // 5 — Foil: hidden (visible via card image tooltip)
+    td:nth-child(5) { display: none; }
+
+    // 6 — Quantity: inline in subtitle
+    td:nth-child(6) {
+      display: inline;
+      font-size: 0.8125rem;
+      color: $text-muted;
+      &::before { content: " · ×"; }
+    }
+
+    // 7 — Owner link: block row
+    td:nth-child(7) {
+      display: block;
+      margin-top: 0.375rem;
+      font-size: $text-sm;
+    }
+
+    // 8 — Make Offer: full-width tap target
+    td:nth-child(8) {
+      display: block;
+      margin-top: $space-3;
+
+      button {
+        display: block;
+        width: 100%;
+        text-align: center;
+        padding: 0.4375rem 0;
+      }
+    }
+  }
+}
+
 // ── Swappers card layout (mobile) ─────────────────────────────────────────────
 // Below 640 px the table is replaced by stacked cards. Each <tr> becomes a
 // rounded card block; the header row is hidden; and the stats cells (cards,
