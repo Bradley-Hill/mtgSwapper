@@ -28,3 +28,6 @@ export type BulkImportModalState =
 export interface ErrorBoundaryState {
   error: Error | null;
 }
+
+/** Active sort column on the Swappers tab of SearchPage. */
+export type SwapperSort = "reputation" | "cards";

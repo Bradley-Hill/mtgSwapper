@@ -12,6 +12,7 @@ import type {
   UserListItem,
   SearchPageTab,
   OfferTarget,
+  SwapperSort,
 } from "@/types";
 import styles from "./SearchPage.module.scss";
 
@@ -21,6 +22,7 @@ export function SearchPage() {
   const [query, setQuery] = useState("");
   const [availableOnly, setAvailableOnly] = useState(false);
   const [traderFilter, setTraderFilter] = useState("");
+  const [swapperSort, setSwapperSort] = useState<SwapperSort>("reputation");
   const [offerTarget, setOfferTarget] = useState<OfferTarget | null>(null);
   const debouncedQuery = useDebounce(query, 350);
   const { t } = useTranslation();
@@ -61,6 +63,11 @@ export function SearchPage() {
         u.username.toLowerCase().includes(traderFilter.toLowerCase()),
       )
     : traders;
+  const sortedTraders = [...filteredTraders].sort((a, b) =>
+    swapperSort === "reputation"
+      ? parseFloat(b.reputation_avg) - parseFloat(a.reputation_avg)
+      : b.available_card_count - a.available_card_count,
+  );
 
   return (
     <>
@@ -237,14 +244,32 @@ export function SearchPage() {
                     <tr>
                       <th>{t("search.traders.columns.username")}</th>
                       <th>{t("search.traders.columns.location")}</th>
-                      <th>{t("search.traders.columns.cards")}</th>
-                      <th>{t("search.traders.columns.reputation")}</th>
+                      <th>
+                        <button
+                          className={`${styles.sortableHeader} ${swapperSort === "cards" ? styles.sortActive : ""}`}
+                          onClick={() => setSwapperSort("cards")}
+                          aria-pressed={swapperSort === "cards"}
+                        >
+                          {t("search.traders.columns.cards")}
+                          {swapperSort === "cards" && " ↓"}
+                        </button>
+                      </th>
+                      <th>
+                        <button
+                          className={`${styles.sortableHeader} ${swapperSort === "reputation" ? styles.sortActive : ""}`}
+                          onClick={() => setSwapperSort("reputation")}
+                          aria-pressed={swapperSort === "reputation"}
+                        >
+                          {t("search.traders.columns.reputation")}
+                          {swapperSort === "reputation" && " ↓"}
+                        </button>
+                      </th>
                       <th>{t("search.traders.columns.swaps")}</th>
                       <th></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredTraders.map((trader) => (
+                    {sortedTraders.map((trader) => (
                       <tr key={trader.id}>
                         <td className={styles.cardName}>{trader.username}</td>
                         <td className={styles.location}>

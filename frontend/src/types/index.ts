@@ -53,5 +53,6 @@ export type {
   OffersDirection,
   BulkImportModalState,
   ErrorBoundaryState,
+  SwapperSort,
 } from "./ui";
 export type { ScanResult, StagedCard } from "./scan";

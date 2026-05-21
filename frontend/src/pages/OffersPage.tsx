@@ -24,7 +24,7 @@ export function OffersPage() {
     completed: t("offers.status.completed"),
   };
 
-  const DIRECTION_LABELS: Record<Direction, string> = {
+  const DIRECTION_LABELS: Record<OffersDirection, string> = {
     all: t("offers.tabs.all"),
     sent: t("offers.tabs.sent"),
     received: t("offers.tabs.received"),
@@ -49,7 +49,7 @@ export function OffersPage() {
       {/* ── Filters ──────────────────────────────────────── */}
       <div className={styles.filters}>
         <div className={styles.tabs} role="tablist">
-          {(["all", "received", "sent"] as Direction[]).map((d) => (
+          {(["all", "received", "sent"] as OffersDirection[]).map((d) => (
             <button
               key={d}
               role="tab"
