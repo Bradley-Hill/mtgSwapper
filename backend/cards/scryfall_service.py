@@ -26,6 +26,20 @@ class ScryfallService:
     # Cache durations
     CARD_CACHE_TTL = 86400  # 24 hours (card data rarely changes)
     SEARCH_CACHE_TTL = 3600  # 1 hour (search results can vary)
+    LANG_CODE_TO_DISPLAY: Dict[str, str] = {
+        "en": "English",
+        "fr": "French",
+        "de": "German",
+        "es": "Spanish",
+        "it": "Italian",
+        "pt": "Portuguese",
+        "ja": "Japanese",
+        "ko": "Korean",
+        "ru": "Russian",
+        "zhs": "Chinese Simplified",
+        "zht": "Chinese Traditional",
+        "ph": "Phyrexian",
+    }
     
     @classmethod
     def autocomplete(cls, query: str) -> List[str]:
@@ -163,18 +177,80 @@ class ScryfallService:
             return None
     
     @classmethod
+    def search_multilingual(cls, printed_name: str) -> Optional[Dict[str, Any]]:
+        """
+        Search for a card by its printed (non-English) name using Scryfall's
+        full-text search endpoint.
+
+        Why a separate method?
+        The /cards/named endpoint only matches English canonical card names.
+        Searching for "Lotus Noir" via /cards/named returns 404. The
+        /cards/search endpoint with an exact-name query (! prefix) searches
+        across ALL printed names in ALL languages, so "Lotus Noir" correctly
+        resolves to Black Lotus with lang: "fr".
+
+        How the query works:
+          GET /cards/search?q=!"Lotus Noir"
+          The !"..." syntax means: exact match on the printed_name field
+          across all card printings in any language.
+
+        Args:
+            printed_name: The text as it appears on the card in any language.
+
+        Returns:
+            First matching card object (typically the most recent printing), or
+            None if no match is found or a network error occurs.
+        """
+        if not printed_name:
+            return None
+
+        cache_key = f"scryfall:multilingual:{printed_name.lower()}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            url = f"{cls.BASE_URL}/cards/search"
+            # !"name" = exact name match across all printings and languages.
+            params = {"q": f'!"{printed_name}"'}
+            response = requests.get(url, params=params, timeout=cls.TIMEOUT)
+
+            if response.status_code == 404:
+                return None
+
+            response.raise_for_status()
+            data = response.json()
+            results = data.get("data", [])
+            if not results:
+                return None
+
+            card_data = results[0]
+            cache.set(cache_key, card_data, cls.CARD_CACHE_TTL)
+            return card_data
+
+        except requests.RequestException as e:
+            print(f"Scryfall multilingual search error: {e}")
+            return None
+
+    @classmethod
     def extract_card_metadata(cls, scryfall_card: Dict[str, Any]) -> Dict[str, Any]:
         """
         Extract relevant metadata from Scryfall card object.
-        
-        Maps Scryfall fields to our Card model fields.
-        
+
+        Maps Scryfall fields to our Card model fields. Always uses the canonical
+        English card name (scryfall_card["name"]) regardless of the card's
+        printing language — this is the authoritative identifier for the card.
+        The printing language is captured separately in the "language" field.
+
         Args:
             scryfall_card: Full card object from Scryfall API
-        
+
         Returns:
-            Dict with cleaned card metadata
+            Dict with cleaned card metadata, including "language" (display name,
+            e.g. "French") derived from Scryfall's "lang" code (e.g. "fr").
         """
+        lang_code = scryfall_card.get("lang", "en")
+        language = cls.LANG_CODE_TO_DISPLAY.get(lang_code, "English")
         return {
             "scryfall_id": scryfall_card.get("id"),
             "card_name": scryfall_card.get("name"),
@@ -182,6 +258,7 @@ class ScryfallService:
             "set_name": scryfall_card.get("set_name"),
             "card_type": scryfall_card.get("type_line"),
             "mana_cost": scryfall_card.get("mana_cost"),
+            "language": language,
         }
 
     @classmethod

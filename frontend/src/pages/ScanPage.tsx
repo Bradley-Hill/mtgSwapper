@@ -43,7 +43,7 @@ export function ScanPage() {
     failed: number;
   } | null>(null);
   const { t } = useTranslation();
-  usePageTitle(t('scan.title'));
+  usePageTitle(t("scan.title"));
 
   // ── Scan mutation (OCR + Scryfall) ──────────────────────────────────────
   const scanMutation = useMutation({
@@ -89,7 +89,7 @@ export function ScanPage() {
             set_code: card.set_code,
             condition: "unused",
             is_foil: false,
-            language: "EN",
+            language: card.language,
             quantity: 1,
           });
           added++;

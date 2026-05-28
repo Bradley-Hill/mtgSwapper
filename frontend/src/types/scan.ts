@@ -7,6 +7,7 @@ export interface ScanResult {
   card_type: string;
   mana_cost: string;
   scryfall_id: string;
+  language: string;
   raw_ocr_text: string;
 }
 

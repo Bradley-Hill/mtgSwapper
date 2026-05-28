@@ -32,6 +32,18 @@ User = get_user_model()
 FAKE_SCRYFALL_CARD = {
     "id": "abc-123",
     "name": "Black Lotus",
+    "lang": "en",
+    "set": "vma",
+    "set_name": "Vintage Masters",
+    "type_line": "Artifact",
+    "mana_cost": "{0}",
+}
+
+FAKE_SCRYFALL_CARD_FR = {
+    "id": "def-456",
+    "name": "Black Lotus",       
+    "lang": "fr",
+    "printed_name": "Lotus Noir", 
     "set": "vma",
     "set_name": "Vintage Masters",
     "type_line": "Artifact",
@@ -95,9 +107,11 @@ class ScanEndpointOCRTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("No text detected", resp.data["error"])
 
+    @patch("cards.views.ScryfallService.autocomplete", return_value=[])
+    @patch("cards.views.ScryfallService.search_multilingual", return_value=None)
     @patch("cards.views.ScryfallService.search", return_value=None)
     @patch("cards.views._preprocess_and_extract_text", return_value="Blacc Lotuz")
-    def test_ocr_text_not_on_scryfall_returns_404(self, _mock_ocr, _mock_search):
+    def test_ocr_text_not_on_scryfall_returns_404(self, _mock_ocr, _mock_search, _mock_multi, _mock_auto):
         """OCR returns something but Scryfall fuzzy search finds nothing → 404."""
         f = io.BytesIO(self.jpeg)
         f.name = "card.jpg"
@@ -118,6 +132,7 @@ class ScanEndpointOCRTests(APITestCase):
             "set_name": "Vintage Masters",
             "card_type": "Artifact",
             "mana_cost": "{0}",
+            "language": "English",
         },
     )
     @patch("cards.views._preprocess_and_extract_text", return_value="Black Lotus")
@@ -133,11 +148,12 @@ class ScanEndpointOCRTests(APITestCase):
         resp = self.client.post(SCAN_URL, {"image": f}, format="multipart")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
-        # Shape check
-        for key in ("card_name", "set_name", "set_code", "scryfall_id", "raw_ocr_text"):
+        # Shape check — language must be present
+        for key in ("card_name", "set_name", "set_code", "scryfall_id", "language", "raw_ocr_text"):
             self.assertIn(key, resp.data)
 
         self.assertEqual(resp.data["card_name"], "Black Lotus")
+        self.assertEqual(resp.data["language"], "English")
         self.assertEqual(resp.data["raw_ocr_text"], "Black Lotus")
 
         # Confirm no Card was persisted
@@ -157,6 +173,7 @@ class ScanEndpointOCRTests(APITestCase):
             "set_name": "Vintage Masters",
             "card_type": "Artifact",
             "mana_cost": "{0}",
+            "language": "English",
         },
     )
     @patch("cards.views._preprocess_and_extract_text", return_value="  Black Lotus!  ")
@@ -172,3 +189,116 @@ class ScanEndpointOCRTests(APITestCase):
         self.client.post(SCAN_URL, {"image": f}, format="multipart")
         # The search call should receive the cleaned string
         mock_search.assert_called_once_with("Black Lotus")
+
+
+class ScanEndpointMultilingualTests(APITestCase):
+    """
+    Tests for the multilingual scan fallback path (Pass 2.5).
+
+    A French user scanning "Lotus Noir" will get a 404 from /cards/named
+    (which only matches English names). The multilingual pass retries via
+    /cards/search?q=!"Lotus Noir", which searches all printed names across
+    all languages and returns the card with lang:"fr".
+
+    These tests verify that:
+    - When /cards/named fails but search_multilingual succeeds, a 200 is returned
+    - The response contains language:"French" (not "English")
+    - card_name is the canonical English name (Scryfall always returns this)
+    - search_multilingual is NOT called when /cards/named already succeeds
+      (i.e. no wasted API call for English cards)
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="fr_scanner", email="fr@example.com", password="pass"
+        )
+        self.client.force_authenticate(user=self.user)
+        self.jpeg = _make_jpeg_bytes()
+
+    @patch(
+        "cards.views.ScryfallService.extract_card_metadata",
+        return_value={
+            "scryfall_id": "def-456",
+            "card_name": "Black Lotus",   # canonical English name from Scryfall
+            "set_code": "VMA",
+            "set_name": "Vintage Masters",
+            "card_type": "Artifact",
+            "mana_cost": "{0}",
+            "language": "French",
+        },
+    )
+    @patch(
+        "cards.views.ScryfallService.search_multilingual",
+        return_value=FAKE_SCRYFALL_CARD_FR,
+    )
+    @patch("cards.views.ScryfallService.search", return_value=None)
+    @patch("cards.views._preprocess_and_extract_text", return_value="Lotus Noir")
+    def test_french_card_name_falls_back_to_multilingual_search(
+        self, _mock_ocr, _mock_search, mock_multi, _mock_meta
+    ):
+        """
+        OCR reads "Lotus Noir". /cards/named returns None (English-only).
+        search_multilingual finds the French printing and returns lang:"fr".
+        Response must contain language:"French" and the English canonical name.
+        """
+        f = io.BytesIO(self.jpeg)
+        f.name = "card.jpg"
+        resp = self.client.post(SCAN_URL, {"image": f}, format="multipart")
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["language"], "French")
+        self.assertEqual(resp.data["card_name"], "Black Lotus")
+        # Confirm the multilingual search was called with the OCR text
+        mock_multi.assert_called_once_with("Lotus Noir")
+
+    @patch(
+        "cards.views.ScryfallService.extract_card_metadata",
+        return_value={
+            "scryfall_id": "abc-123",
+            "card_name": "Black Lotus",
+            "set_code": "VMA",
+            "set_name": "Vintage Masters",
+            "card_type": "Artifact",
+            "mana_cost": "{0}",
+            "language": "English",
+        },
+    )
+    @patch("cards.views.ScryfallService.search_multilingual")
+    @patch(
+        "cards.views.ScryfallService.search",
+        return_value=FAKE_SCRYFALL_CARD,
+    )
+    @patch("cards.views._preprocess_and_extract_text", return_value="Black Lotus")
+    def test_english_card_does_not_trigger_multilingual_search(
+        self, _mock_ocr, _mock_search, mock_multi, _mock_meta
+    ):
+        """
+        When /cards/named succeeds (English card), search_multilingual must
+        NOT be called — no wasted network request.
+        """
+        f = io.BytesIO(self.jpeg)
+        f.name = "card.jpg"
+        resp = self.client.post(SCAN_URL, {"image": f}, format="multipart")
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        mock_multi.assert_not_called()
+
+    @patch("cards.views.ScryfallService.autocomplete", return_value=[])
+    @patch("cards.views.ScryfallService.search_multilingual", return_value=None)
+    @patch("cards.views.ScryfallService.search", return_value=None)
+    @patch(
+        "cards.views._preprocess_and_extract_text",
+        return_value="Xzqrt Foobar",
+    )
+    def test_multilingual_miss_falls_through_to_404(
+        self, _mock_ocr, _mock_search, _mock_multi, _mock_auto
+    ):
+        """
+        If both /cards/named and search_multilingual return None, the endpoint
+        still returns 404 — the multilingual pass is a fallback, not a guarantee.
+        """
+        f = io.BytesIO(self.jpeg)
+        f.name = "card.jpg"
+        resp = self.client.post(SCAN_URL, {"image": f}, format="multipart")
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+

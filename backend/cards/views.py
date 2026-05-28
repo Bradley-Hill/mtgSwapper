@@ -224,14 +224,14 @@ def _preprocess_and_extract_text(image_bytes: bytes) -> str:
         # Same OCR computation, but filters to words with confidence >= 40,
         # discarding noise tokens (frame decorations, mana symbols) that
         # Tesseract itself is uncertain about.
-        raw_text = _extract_confident_words(img, "--psm 7 --oem 1")
+        raw_text = _extract_confident_words(img, "--psm 7 --oem 1 -l fra+eng")
         logger.info("[scan] PSM 7 confident words: %r", raw_text)
 
         if not raw_text:
             # PSM 11 (sparse text) finds text regardless of layout — useful
             # for cards with ornate name bars (e.g. Mystical Archive series)
             # where PSM 7's strict single-line assumption fails.
-            raw_text = _extract_confident_words(img, "--psm 11 --oem 1")
+            raw_text = _extract_confident_words(img, "--psm 11 --oem 1 -l fra+eng")
             logger.info("[scan] PSM 11 fallback confident words: %r", raw_text)
     except Exception as e:
         logger.error("[scan] Tesseract raised: %s", e, exc_info=True)
@@ -251,7 +251,7 @@ def _filter_ocr_tokens(text: str) -> str:
 
     Example: "Se ee Squawkroaster 3 e" → "Squawkroaster"
     """
-    tokens = [t for t in text.split() if re.match(r"^[A-Za-z''\-\.]{3,}$", t)]
+    tokens = [t for t in text.split() if re.match(r"^[A-Za-zÀ-ÖØ-öø-ÿ''\-\.]{3,}$", t)]
     return " ".join(tokens)
 
 
@@ -564,6 +564,7 @@ class CardViewSet(viewsets.ModelViewSet):
                 continue
 
             metadata = ScryfallService.extract_card_metadata(scryfall_card)
+            metadata.pop("language", None)
             Card.objects.create(
                 user=request.user,
                 quantity=quantity,
@@ -705,11 +706,30 @@ class CardViewSet(viewsets.ModelViewSet):
                 if card_data:
                     cleaned = filtered
 
+            if card_data is None:
+                card_data = ScryfallService.search_multilingual(cleaned)
+                if card_data:
+                    logger.info(
+                        "[scan] Multilingual search matched %r → %r (lang: %s)",
+                        cleaned,
+                        card_data.get("name"),
+                        card_data.get("lang"),
+                    )
+                elif filtered and filtered != cleaned:
+                    card_data = ScryfallService.search_multilingual(filtered)
+                    if card_data:
+                        logger.info(
+                            "[scan] Multilingual search (filtered) matched %r → %r (lang: %s)",
+                            filtered,
+                            card_data.get("name"),
+                            card_data.get("lang"),
+                        )
+
             # Pass 3 — autocomplete on the longest confident token.
             #
             # Handles partial OCR reads: if Tesseract read "Squawkroaste"
-            # (confident but clipped at the edge), passes 1 and 2 both miss
-            # because neither fuzzy nor token-filtered search can match a
+            # (confident but clipped at the edge), passes 1–2.5 all miss
+            # because neither fuzzy nor multilingual search can match a
             # non-existent truncated name. Autocomplete can match on a prefix.
             #
             # Why exactly-one guard?
@@ -753,6 +773,7 @@ class CardViewSet(viewsets.ModelViewSet):
                 "card_type": metadata.get("card_type", ""),
                 "mana_cost": metadata.get("mana_cost", ""),
                 "scryfall_id": metadata["scryfall_id"],
+                "language": metadata.get("language", "English"),
                 "raw_ocr_text": raw_text,
             },
             status=status.HTTP_200_OK,
