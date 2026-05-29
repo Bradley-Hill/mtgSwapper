@@ -1,0 +1,621 @@
+MTG Card Scanner — EasyOCR Migration Plan
+==========================================
+Date: 29 May 2026
+Scope: Replace Tesseract OCR with EasyOCR in backend/cards/views.py
+Status: PLAN ONLY — no code has been changed
+
+This document is the complete step-by-step plan for migrating the card scan
+feature from Tesseract to EasyOCR. Read every section before touching any code.
+
+
+================================================================================
+WHY EASYOCR OVER TESSERACT
+================================================================================
+
+Tesseract was chosen originally because it is a small C binary (~10MB) that
+runs in ~50MB RAM — critical for the Render free tier (512MB total). It has
+served as a functional starting point, but its limitations are now the primary
+source of scan failures:
+
+  - Tesseract's LSTM engine requires explicit layout hints (PSM modes). PSM 7
+    assumes exactly one line of text; PSM 11 uses sparse detection. Neither
+    handles the stylised, coloured MTG card name bars reliably. Getting the
+    wrong PSM returns confident garbage rather than empty strings, and the
+    entire Scryfall pipeline fails silently.
+
+  - Tesseract has weak multilingual handling. Even with -l fra+eng, French
+    accented characters (e, e with accent, etc.) are frequently misread or
+    dropped when the background is anything other than clean white on black.
+
+  - Every workaround added (PSM 11 fallback, trailing-token strip, adaptive
+    trim, confidence filtering) exists purely to compensate for Tesseract's
+    fragility. The code is becoming a patchwork of heuristics.
+
+EasyOCR addresses the root causes:
+
+  - Uses CRAFT (Character Region Awareness For Text detection), a deep learning
+    text detector that finds text regions in natural images without any layout
+    hints. No PSM modes, no two-pass strategy needed.
+
+  - Uses a CRNN (Convolutional Recurrent Neural Network) recogniser that reads
+    the detected regions. It handles stylised fonts and coloured backgrounds
+    significantly better than Tesseract's template-matching approach.
+
+  - Native multilingual support: the French and English recognition models share
+    a character set that covers all accented Latin characters used on French
+    MTG cards without any special flag configuration.
+
+  - Returns per-detection confidence scores (0.0-1.0) natively — no need for
+    the image_to_data workaround currently used to get Tesseract's conf scores.
+
+The trade-off is RAM. EasyOCR loads ~400-450MB of model weights at inference
+time. This is the only blocker, and it is resolved by upgrading the Render plan.
+
+
+================================================================================
+HARD BLOCKER — MUST RESOLVE FIRST
+================================================================================
+
+Do not write a single line of code until this is done.
+
+The Render free tier provides 512MB RAM total. The Django + gunicorn + Pillow +
+numpy baseline already consumes ~150MB. EasyOCR at inference time needs another
+~400-450MB for its CRAFT detection model (~45MB), English CRNN model (~14MB),
+and French CRNN model (~14MB), plus PyTorch CPU runtime overhead (~300MB).
+
+150MB baseline + 450MB EasyOCR = ~600MB required. This exceeds the free tier
+and the process will be OOM-killed on the first scan request.
+
+STEP 0: Upgrade Render plan before anything else.
+  - Log into render.com
+  - Navigate to: mtgswapper-backend -> Settings -> Instance Type
+  - Upgrade to Standard ($25/mo, 2GB RAM). Starter ($7/mo, 512MB) may work
+    but gives almost no headroom; Standard is strongly recommended.
+  - Confirm the new instance type shows as active in the Render dashboard
+  - Only proceed to Step 1 after this is confirmed
+
+
+================================================================================
+STEP 1 — LOCAL ENVIRONMENT VALIDATION
+================================================================================
+
+Before touching the production codebase, confirm EasyOCR works in the local
+Docker environment.
+
+1a. Do NOT install EasyOCR directly in requirements.txt yet. Instead, test it
+    manually in the running backend container first.
+
+1b. Start the local stack:
+      docker-compose up --build backend
+
+1c. Open a shell inside the running backend container:
+      docker-compose exec backend bash
+
+1d. Install EasyOCR manually inside the container (not permanently, just to test):
+      pip install easyocr==1.7.2
+
+    Watch what pip installs as dependencies. The key packages you will see:
+      - torch (CPU-only wheel, ~800MB on disk but ~300MB resident RAM)
+      - torchvision
+      - opencv-python-headless
+      - scipy, Pillow (already present), etc.
+
+    Note the exact versions pip resolves — you will pin these in requirements.txt
+    in Step 3.
+
+1e. Inside the container, run a quick smoke test:
+      python - <<'EOF'
+      import easyocr
+      import numpy as np
+      reader = easyocr.Reader(['en', 'fr'], gpu=False, verbose=False)
+      # Create a minimal white image with no text — just confirm it doesn't crash
+      arr = np.ones((200, 600, 3), dtype=np.uint8) * 255
+      result = reader.readtext(arr, detail=1)
+      print("EasyOCR smoke test passed. Result:", result)
+      EOF
+
+    Expected output: "EasyOCR smoke test passed. Result: []"
+    If this crashes with OOM or import errors, diagnose before proceeding.
+
+1f. Check RAM usage after the reader is loaded:
+      cat /proc/meminfo | grep MemAvailable
+
+    Record this number. You need to know how much headroom is left for Django
+    to handle requests alongside the loaded reader.
+
+1g. Exit the container shell. The manual install is discarded when the
+    container is stopped — that is intentional.
+
+
+================================================================================
+STEP 2 — DOCKERFILE CHANGES
+================================================================================
+
+EasyOCR depends on OpenCV, which requires two system libraries not present in
+python:3.12-slim:
+  - libgl1-mesa-glx  (OpenGL, required by OpenCV's cv2 import)
+  - libglib2.0-0     (GLib, required by OpenCV on Debian-based images)
+
+Without these, `import easyocr` will raise:
+  ImportError: libGL.so.1: cannot open shared object file
+
+2a. Open backend/Dockerfile.
+
+2b. In the existing RUN apt-get install layer, add the two libraries:
+
+    BEFORE (current):
+      RUN apt-get update && apt-get install -y --no-install-recommends \
+          libpq-dev \
+          gcc \
+          tesseract-ocr \
+          tesseract-ocr-eng \
+          tesseract-ocr-fra \
+          && rm -rf /var/lib/apt/lists/*
+
+    AFTER:
+      RUN apt-get update && apt-get install -y --no-install-recommends \
+          libpq-dev \
+          gcc \
+          libgl1-mesa-glx \
+          libglib2.0-0 \
+          tesseract-ocr \
+          tesseract-ocr-eng \
+          tesseract-ocr-fra \
+          && rm -rf /var/lib/apt/lists/*
+
+    NOTE: Keep tesseract-ocr and its language packs for now. They will be
+    removed in the final cleanup step (Step 9) only after EasyOCR is confirmed
+    stable in production. Having Tesseract available during the transition
+    period means you can roll back to it instantly by flipping a single flag
+    in views.py without a Dockerfile change.
+
+2c. Add a model pre-download RUN step AFTER the pip install line.
+
+    BEFORE (current):
+      RUN pip install --no-cache-dir -r requirements.txt
+
+    AFTER:
+      RUN pip install --no-cache-dir -r requirements.txt
+      RUN python -c "import easyocr; easyocr.Reader(['en', 'fr'], gpu=False, verbose=False)"
+
+    WHY THIS IS CRITICAL:
+    EasyOCR downloads model weights from GitHub on the first call to
+    easyocr.Reader(). On Render, this download happens at request time if the
+    models are not pre-cached. The first scan request after a deploy would take
+    30-90 seconds (download + load), which will appear to users as a hang or
+    timeout. Baking the weights into the image layer at build time eliminates
+    this entirely. The download happens once during `docker build`, and every
+    container instance that spins up from the image already has the models on
+    disk.
+
+    The models are stored at ~/.EasyOCR/model/ inside the container (~73MB
+    total for en + fr). This adds ~73MB to the image size, which is acceptable.
+
+2d. Increment the cache-buster comment:
+    Change: # force rebuild: 1
+    To:     # force rebuild: 2
+
+    This ensures the next `docker build` does not reuse a cached layer from
+    the old image that lacks the new apt packages.
+
+2e. Rebuild and confirm locally:
+      docker-compose build --no-cache backend
+      docker-compose up backend
+
+    Watch the build output. You should see pip installing torch, torchvision,
+    easyocr, and opencv. The build will take several minutes the first time
+    due to the torch wheel download.
+
+    Check the final image size:
+      docker images | grep mtgswapper
+
+    Expected: ~1.2-1.6GB (up from ~350MB). This is normal. Render pulls the
+    image from its registry, so the larger image means a slightly longer first
+    deploy but has no effect on runtime performance.
+
+
+================================================================================
+STEP 3 — REQUIREMENTS.TXT CHANGES
+================================================================================
+
+3a. Add easyocr to requirements.txt with a pinned version:
+      easyocr==1.7.2
+
+    Pin the version. EasyOCR has a history of introducing breaking changes in
+    minor releases (model format changes, API differences). Pinning ensures
+    your deployment is reproducible.
+
+3b. Do NOT manually add torch, torchvision, or opencv to requirements.txt.
+    EasyOCR lists them as dependencies and pip will resolve the correct versions.
+    Adding them manually risks version conflicts, especially with the CPU-only
+    vs GPU torch variants.
+
+3c. After docker-compose build succeeds in Step 2e, run this inside the
+    container to capture the exact resolved versions of every installed package:
+      docker-compose exec backend pip freeze > /tmp/resolved.txt
+      docker cp backend:/tmp/resolved.txt ./resolved_requirements.txt
+
+    Open resolved_requirements.txt and locate torch, torchvision, and
+    opencv-python-headless. Add those three to requirements.txt with the exact
+    versions pip resolved. This prevents pip from silently upgrading them on
+    a future rebuild.
+
+3d. Remove pytesseract from requirements.txt at this point.
+    It is no longer called in any code path once the migration is complete.
+    (If you chose to keep the feature flag approach described in Step 5, defer
+    this removal until Step 9 cleanup instead.)
+
+
+================================================================================
+STEP 4 — NEW OCR FUNCTION IN views.py
+================================================================================
+
+This is where the actual code change lives. Everything in this step goes into
+backend/cards/views.py.
+
+4a. Add the easyocr import at the top of views.py, alongside the existing
+    imports. Use an alias to avoid polluting the namespace:
+      import easyocr as _easyocr
+
+    Add it after the existing stdlib imports (base64, io, logging, re) and
+    before the third-party imports (numpy, pytesseract, PIL, etc.).
+
+4b. Add the lazy singleton reader below the imports, before any function
+    definitions:
+
+      _OCR_READER = None
+
+      def _get_ocr_reader():
+          global _OCR_READER
+          if _OCR_READER is None:
+              _OCR_READER = _easyocr.Reader(['en', 'fr'], gpu=False, verbose=False)
+          return _OCR_READER
+
+    WHY LAZY AND NOT MODULE-LEVEL:
+    A module-level call to easyocr.Reader() runs at Django import time, which
+    means it runs during `manage.py migrate`, `manage.py collectstatic`, and
+    any other management command. Those commands do not use OCR. Loading 450MB
+    of model weights for every migration is wasteful and slows down deploys.
+    The lazy pattern initialises the reader only when scan() is actually called
+    for the first time on a given worker process, then caches it for all
+    subsequent requests on that worker.
+
+    WHY verbose=False:
+    EasyOCR prints model-load progress bars to stdout by default. On Render,
+    stdout becomes the service log. Verbose model-load output floods the log
+    and buries real application log messages.
+
+    WHY gpu=False:
+    Render Standard instances do not have GPU. If gpu is not set to False,
+    EasyOCR probes for CUDA on every reader initialisation. It will fail to
+    find a GPU, log a warning, and fall back to CPU anyway — but the probe
+    adds unnecessary startup latency. Be explicit.
+
+4c. Add the new extraction function below the existing _extract_confident_words
+    function (do not delete _extract_confident_words yet):
+
+      def _extract_text_easyocr(img):
+          """
+          Run EasyOCR on the preprocessed image and return high-confidence words.
+
+          EasyOCR's readtext() returns a list of:
+            (bounding_box, text, confidence)
+          where bounding_box is [[x1,y1],[x2,y1],[x2,y2],[x1,y2]] and
+          confidence is a float 0.0-1.0.
+
+          We filter to confidence >= 0.4 (mirrors the Tesseract threshold of
+          40/100 used by _extract_confident_words). Detections are sorted by
+          their left bounding-box edge (x1) to ensure left-to-right word order
+          — readtext returns detections in scan order which is roughly correct
+          but not guaranteed.
+
+          Args:
+              img: PIL Image (RGB or greyscale) — the preprocessed name bar strip
+
+          Returns:
+              Space-joined string of high-confidence text detections
+          """
+          arr = np.array(img)
+          reader = _get_ocr_reader()
+          results = reader.readtext(arr, detail=1, paragraph=False)
+          logger.debug("[scan] EasyOCR raw results: %r", results)
+
+          # Filter by confidence threshold, then sort left-to-right by x1
+          confident = [
+              (bbox, text, conf)
+              for bbox, text, conf in results
+              if conf >= 0.4
+          ]
+          confident.sort(key=lambda r: r[0][0][0])  # r[0][0][0] = bbox[top-left][x]
+
+          words = [text for _, text, _ in confident]
+          return " ".join(words)
+
+    The sort key unpacks as: result[0] = bounding_box, [0] = top-left corner,
+    [0] = x coordinate. This gives the leftmost x of each detected word.
+
+
+================================================================================
+STEP 5 — INTEGRATE INTO _preprocess_and_extract_text
+================================================================================
+
+5a. The current function ends with a Tesseract block:
+      raw_text = _extract_confident_words(img, "--psm 7 --oem 1 -l fra+eng")
+      if not raw_text:
+          raw_text = _extract_confident_words(img, "--psm 11 --oem 1 -l fra+eng")
+
+    Replace this entire block with:
+      raw_text = _extract_text_easyocr(img)
+
+    The PSM 7 / PSM 11 two-pass strategy was a Tesseract-specific workaround.
+    EasyOCR's CRAFT detector finds text regions automatically without layout
+    hints, so there is no equivalent of PSM modes and no two-pass fallback is
+    needed.
+
+5b. The function currently returns a (text, img) tuple to support the PSM 11
+    Scryfall-fallback block in scan(). With EasyOCR, there is no PSM 11
+    fallback — the function can return a plain string again:
+      return raw_text
+
+    Update the return type annotation in the docstring accordingly.
+
+5c. In scan(), update the call site to unpack a plain string (not a tuple):
+      raw_text = _preprocess_and_extract_text(image_bytes)
+
+    The current line reads:
+      raw_text, preprocessed_img = _preprocess_and_extract_text(image_bytes)
+
+    And remove the PSM 11 Scryfall-fallback block in scan() that uses
+    preprocessed_img — it will no longer exist.
+
+5d. Do NOT touch the preprocessing steps before the OCR call. These remain:
+      - EXIF transpose
+      - Strip vs full-card detection
+      - Resize to 200px height
+      - Left 10% trim
+      - Adaptive right trim (Option B from the previous session)
+
+    What to CHANGE in preprocessing for EasyOCR:
+      - Remove the green channel extraction line: img = img.split()[1]
+        EasyOCR's CRAFT detector is trained on colour images. Stripping to a
+        single channel discards colour information CRAFT uses for text region
+        proposals. Pass the full RGB image directly to _extract_text_easyocr.
+      - Remove ImageEnhance.Contrast(img).enhance(1.5)
+        EasyOCR normalises contrast internally as part of the CRAFT pipeline.
+      - Remove img.filter(ImageFilter.SHARPEN)
+        Same reason — the CRNN recogniser handles moderate blur natively.
+
+    What to KEEP:
+      - The DEBUG-level base64 image logging block (still useful for tuning)
+      - All the size/crop/trim logic
+      - All logging statements
+
+    NOTE: This is the recommended starting point. After initial testing, you
+    may find that adding contrast or sharpening back improves results on
+    specific card types. Make that judgement based on real test data, not
+    assumption. Start minimal, add back only what testing proves helps.
+
+
+================================================================================
+STEP 6 — SCAN() METHOD CLEANUP
+================================================================================
+
+6a. Remove the PSM 11 Scryfall-fallback block entirely. It was added specifically
+    because PSM 7 returned confident garbage rather than empty strings, and
+    the inner `if not raw_text` guard never triggered. EasyOCR does not have
+    this problem — it either finds text or it doesn't, with no PSM-mode
+    ambiguity. The block is dead code with EasyOCR.
+
+6b. The 4-pass Scryfall pipeline (fuzzy -> filtered -> multilingual ->
+    autocomplete) stays completely unchanged. It is OCR-engine-agnostic and
+    is still needed regardless of what produced the raw text.
+
+6c. The Option A trailing-token strip block stays completely unchanged. EasyOCR
+    can still pick up noise tokens from the right edge of the name bar, and
+    the strip search handles that regardless of OCR engine.
+
+6d. The `if not raw_text` early-exit 400 response stays unchanged.
+
+6e. Consider adding a feature flag during the transition period. This is
+    optional but strongly recommended for your first week in production:
+
+    At the top of views.py (below imports, above _get_ocr_reader):
+      # Flip to False to revert instantly to Tesseract without a code deploy.
+      # Remove this flag and the Tesseract branch in the Step 9 cleanup.
+      _USE_EASYOCR = True
+
+    In _preprocess_and_extract_text, replace the OCR call with:
+      if _USE_EASYOCR:
+          raw_text = _extract_text_easyocr(img)
+      else:
+          raw_text = _extract_confident_words(img, "--psm 7 --oem 1 -l fra+eng")
+          if not raw_text:
+              raw_text = _extract_confident_words(img, "--psm 11 --oem 1 -l fra+eng")
+
+    This means if EasyOCR causes unexpected problems in production, you change
+    one line and redeploy — no architectural rollback needed.
+
+
+================================================================================
+STEP 7 — TESTING
+================================================================================
+
+Run all tests in this order. Do not skip any level.
+
+--- UNIT TESTS ---
+
+File: backend/tests/cards/test_scan.py
+
+Test 1 — _extract_text_easyocr confidence filtering:
+  - Mock _get_ocr_reader().readtext() to return:
+      [([[0,0],[100,0],[100,20],[0,20]], "Interceptrice", 0.95),
+       ([[110,0],[200,0],[200,20],[110,20]], "d'elite", 0.80),
+       ([[210,0],[270,0],[270,20],[210,20]], "PR", 0.15),   <- below threshold
+       ([[280,0],[310,0],[310,20],[280,20]], "Nos", 0.20)]  <- below threshold
+  - Assert the return value is "Interceptrice d'elite" (PR and Nos filtered out)
+
+Test 2 — _extract_text_easyocr left-to-right sort:
+  - Mock readtext() to return detections in reverse x-order (rightmost first)
+  - Assert the joined string is in correct left-to-right order
+
+Test 3 — scan() full flow with EasyOCR returning a clean French name:
+  - Mock _preprocess_and_extract_text to return "interceptrice d'elite"
+  - Mock ScryfallService.search to return None
+  - Mock ScryfallService.search_multilingual to return a valid card dict
+    when called with "interceptrice d'elite"
+  - POST to /api/cards/scan/ with a dummy image file
+  - Assert HTTP 200 and card_name in response matches the mocked card
+
+Test 4 — scan() trailing-token strip still works with EasyOCR output:
+  - Mock _preprocess_and_extract_text to return "Interceptrice elite PR Nos"
+  - Mock ScryfallService.search to always return None
+  - Mock ScryfallService.search_multilingual to return None EXCEPT when
+    called with exactly "Interceptrice elite" -> return valid card dict
+  - Assert HTTP 200 and confirm the log contains "Trailing-strip multilingual"
+
+--- INTEGRATION TESTS (local Docker) ---
+
+Use the three French cards that failed before (29 May 2026 logs):
+  Card 1: Page d'honneur
+  Card 2: Scientifique environnemental
+  Card 3: Interceptrice d'elite
+
+For each card:
+  - POST to http://localhost:8000/api/cards/scan/ with the card image
+  - Assert HTTP 200
+  - Assert card_name in response matches the correct English card name
+  - Assert language field is "French"
+  - Check the log to confirm which pass matched (EasyOCR direct, trailing strip, etc.)
+
+Run five English cards to confirm no regressions:
+  - Short name: "Opt"
+  - Medium name: "Lightning Bolt"
+  - Long name: "Emrakul, the Aeons Torn"
+  - Card with apostrophe: "Jace's Ingenuity"
+  - Card with comma: "Llanowar Elves"
+
+For each: assert HTTP 200, correct card_name, no garbled tokens in raw_ocr_text.
+
+Run the full automated test suite:
+  docker-compose exec backend python manage.py test tests/
+
+All tests must pass before deploying.
+
+--- PERFORMANCE BASELINE ---
+
+Measure scan() response time before and after:
+  - Use `time curl -F "image=@card.jpg" http://localhost:8000/api/cards/scan/`
+  - Run 5 times, record each
+  - Expected Tesseract p50: ~300-500ms
+  - Expected EasyOCR p50: ~600-1200ms (acceptable — accuracy improvement justifies it)
+  - If EasyOCR p50 exceeds 3000ms on Standard plan, investigate model loading
+    (check the lazy singleton is working — the reader should only load once)
+
+--- COLD START TEST ---
+
+  - Stop all containers: docker-compose down
+  - Start fresh: docker-compose up backend
+  - Immediately POST a scan request (simulates a fresh Render worker)
+  - Response time should be < 10 seconds (model loads from disk, not network)
+  - If it takes > 10 seconds, the pre-download RUN step in Step 2c failed —
+    the models are being downloaded at runtime. Debug the Dockerfile.
+
+
+================================================================================
+STEP 8 — DEPLOYMENT
+================================================================================
+
+8a. Confirm Step 0 (Render plan upgrade) is complete and active.
+
+8b. Push the changes to main. Render auto-deploys on push.
+
+8c. Monitor the Render build log in real time:
+    - Confirm the Docker build completes without errors
+    - Watch for the EasyOCR model download line during the build
+      (it should happen at build time, not at request time)
+    - Note the total build time — expect 5-10 minutes on the first build
+      due to the PyTorch wheel download
+
+8d. After deploy, immediately send a scan request from the live frontend.
+    Watch the Render service log. You should see:
+      [scan] EasyOCR raw results: [...]
+    If you see Tesseract log lines instead, the feature flag is still set to
+    False or the wrong image was deployed.
+
+8e. Scan all three French test cards from a real phone. Confirm all return
+    correct results. This is the definitive production validation.
+
+8f. Monitor the Render memory usage graph (Dashboard -> mtgswapper-backend ->
+    Metrics -> Memory). After a few scan requests, memory should stabilise at
+    ~600-700MB (baseline + loaded reader). If it climbs continuously, there is
+    a memory leak in the EasyOCR reader usage — investigate before leaving it
+    running.
+
+
+================================================================================
+STEP 9 — CLEANUP (1 WEEK AFTER PRODUCTION CONFIRMATION)
+================================================================================
+
+Wait one full week of normal beta usage before doing this step. You want
+confidence that EasyOCR is stable across a variety of user-submitted photos
+before permanently removing the fallback.
+
+9a. Remove pytesseract from requirements.txt.
+
+9b. Remove the _USE_EASYOCR feature flag and the entire Tesseract else-branch
+    from _preprocess_and_extract_text.
+
+9c. Delete the _extract_confident_words function entirely (it is now dead code).
+
+9d. Remove the `import pytesseract` line from views.py.
+
+9e. In the Dockerfile, remove tesseract-ocr, tesseract-ocr-eng, and
+    tesseract-ocr-fra from the apt-get install layer. These are ~30MB of
+    packages that serve no purpose once pytesseract is gone.
+
+9f. Update the docstring on _preprocess_and_extract_text:
+    - Remove all references to PSM 7, PSM 11, Tesseract, and LSTM
+    - Update the "Why not a deep-learning engine?" rationale to explain why
+      EasyOCR was chosen and what the RAM requirements are
+
+9g. Update the scan() docstring similarly — remove the Tesseract explanation
+    paragraph.
+
+9h. Increment the Dockerfile cache-buster to force a clean rebuild.
+
+9i. Run the full test suite, confirm all pass, deploy.
+
+
+================================================================================
+SUMMARY OF ALL FILE CHANGES
+================================================================================
+
+backend/Dockerfile:
+  - Add libgl1-mesa-glx and libglib2.0-0 to apt-get install
+  - Add RUN python -c "import easyocr; ..." after pip install
+  - Increment cache-buster comment
+  - (Step 9) Remove tesseract packages from apt-get install
+
+backend/requirements.txt:
+  - Add easyocr==1.7.2 (pinned)
+  - Add pinned torch, torchvision, opencv-python-headless versions (from Step 3c)
+  - Remove pytesseract (Step 9)
+
+backend/cards/views.py:
+  - Add: import easyocr as _easyocr
+  - Add: _OCR_READER singleton + _get_ocr_reader() function
+  - Add: _extract_text_easyocr(img) function
+  - Modify: _preprocess_and_extract_text — remove green channel, contrast,
+    sharpen; replace Tesseract call with _extract_text_easyocr
+  - Modify: scan() — remove PSM 11 Scryfall-fallback block, update tuple unpack
+  - (Step 9) Delete _extract_confident_words, remove feature flag,
+    remove pytesseract import
+
+backend/tests/cards/test_scan.py:
+  - Add 4 new unit tests described in Step 7
+
+No other files require changes. No database migrations. No frontend changes.
+
+================================================================================
+END OF PLAN
+================================================================================
