@@ -189,14 +189,34 @@ def _preprocess_and_extract_text(image_bytes: bytes) -> str:
     # frame arc as '|', corrupting every OCR attempt. The arc bleeds past
     # 4% in close-up pre-cropped strips, so 10% is needed to clear it.
     #
-    # Why 16% on the right (previously 16%)?
-    # The mana cost symbols on the rightmost strip can interfere with OCR.
-    # 16% ensures these symbols are excluded from the OCR input.
+    # Why adaptive right trim (previously fixed 84%)?
+    # A fixed boundary either cuts long card names (e.g. "Scientifique"
+    # truncated to "Scientifi" when the name runs to ~90% of bar width) or
+    # includes mana cost noise when the name is short. Instead, scan columns
+    # right-to-left on the green channel to find where the cream name bar
+    # background ends and the darker mana cost region begins. The same
+    # brightness threshold (>140) used by _find_card_top() is appropriate
+    # because both features share the same "card interior brightness" property.
     #
     # Doing this after the resize-to-200px step means the crop coordinates
     # are consistent regardless of the source photo resolution or aspect ratio.
     trim_l = int(new_w * 0.10)
-    trim_r = int(new_w * 0.84)
+
+    # Adaptive right trim: scan right-to-left for the last bright column.
+    # Read the green channel of the current (still-RGB) image before cropping.
+    green_arr = np.array(img.split()[1])   # shape: (200, new_w), values 0-255
+    col_means = green_arr.mean(axis=0)     # shape: (new_w,) — one mean per column
+    trim_r = int(new_w * 0.84)             # fallback if scan finds nothing
+    for x in range(new_w - 1, int(new_w * 0.50), -1):
+        if col_means[x] > 140:
+            trim_r = x
+            break
+    trim_r = min(trim_r, int(new_w * 0.95))  # hard cap: never include far-right edge artefacts
+    logger.info(
+        "[scan] Adaptive right trim: x=%s (%.0f%% of %s)",
+        trim_r, trim_r / new_w * 100, new_w,
+    )
+
     if trim_r > trim_l:
         img = img.crop((trim_l, 0, trim_r, 200))
         logger.info(
@@ -769,6 +789,37 @@ class CardViewSet(viewsets.ModelViewSet):
                         card_data = ScryfallService.search(suggestions[0])
                         if card_data:
                             cleaned = suggestions[0]
+
+        # Option A — Progressive trailing-token strip.
+        #
+        # If all passes above failed, the OCR string likely contains
+        # "correct card name + right-side noise". Noise tokens (mana cost
+        # glyphs, set abbreviations, artist credits) always appear AFTER the
+        # card name on the name bar, so progressively dropping tokens from the
+        # right is safe — we never accidentally remove part of the actual name.
+        #
+        # Example: "interceptrice d'elite PR Nos"
+        #   pop "Nos"  -> "interceptrice d'elite PR"  -> miss
+        #   pop "PR"   -> "interceptrice d'elite"     -> MATCH
+        #
+        # Guard: never reduce below 2 tokens. A single common word like
+        # "Fire" would match the wrong card. 2 tokens is the minimum for
+        # a meaningful unambiguous search.
+        if card_data is None:
+            tokens = cleaned.split()
+            while len(tokens) > 2:
+                tokens.pop()
+                candidate = " ".join(tokens)
+                card_data = ScryfallService.search(candidate)
+                if card_data:
+                    logger.info("[scan] Trailing-strip fuzzy match on %r", candidate)
+                    cleaned = candidate
+                    break
+                card_data = ScryfallService.search_multilingual(candidate)
+                if card_data:
+                    logger.info("[scan] Trailing-strip multilingual match on %r", candidate)
+                    cleaned = candidate
+                    break
 
         if not card_data:
             return Response(
