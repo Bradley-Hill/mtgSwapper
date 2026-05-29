@@ -176,7 +176,7 @@ def _preprocess_and_extract_text(image_bytes: bytes) -> str:
     img = img.resize((new_w, 200), Image.LANCZOS)
     logger.info("[scan] Resized: %sx200", new_w)
 
-    # Trim left border decoration (~4%) and right mana cost symbol (~16%).
+    # Trim left border decoration (~10%) and right mana cost symbol (~16%).
     #
     # On a standard MTG card the name text occupies the middle ~80% of the
     # name bar. The leftmost strip is the coloured frame corner arc; the
@@ -184,9 +184,18 @@ def _preprocess_and_extract_text(image_bytes: bytes) -> str:
     # coloured blobs in the green channel and are the two most common sources
     # of false-positive OCR tokens ('W', '{3}', decorative glyphs, etc.).
     #
+    # Why 10% on the left (previously 4%)?
+    # French card photos consistently showed Tesseract reading the coloured
+    # frame arc as '|', corrupting every OCR attempt. The arc bleeds past
+    # 4% in close-up pre-cropped strips, so 10% is needed to clear it.
+    #
+    # Why 16% on the right (previously 16%)?
+    # The mana cost symbols on the rightmost strip can interfere with OCR.
+    # 16% ensures these symbols are excluded from the OCR input.
+    #
     # Doing this after the resize-to-200px step means the crop coordinates
     # are consistent regardless of the source photo resolution or aspect ratio.
-    trim_l = int(new_w * 0.04)
+    trim_l = int(new_w * 0.10)
     trim_r = int(new_w * 0.84)
     if trim_r > trim_l:
         img = img.crop((trim_l, 0, trim_r, 200))
@@ -235,9 +244,13 @@ def _preprocess_and_extract_text(image_bytes: bytes) -> str:
             logger.info("[scan] PSM 11 fallback confident words: %r", raw_text)
     except Exception as e:
         logger.error("[scan] Tesseract raised: %s", e, exc_info=True)
-        return ""
+        return "", None
 
-    return raw_text
+    # Return both the extracted text and the preprocessed image.
+    # scan() uses the image to retry with PSM 11 if all Scryfall passes fail
+    # on the PSM 7 result — without needing to re-run the full preprocessing
+    # pipeline a second time.
+    return raw_text, img
 
 
 def _filter_ocr_tokens(text: str) -> str:
@@ -669,9 +682,11 @@ class CardViewSet(viewsets.ModelViewSet):
 
         image_bytes = image_file.read()
 
-        # Preprocess and OCR the image to extract the card name
+        # Preprocess and OCR the image to extract the card name.
+        # _preprocess_and_extract_text returns (text, img) so that scan() can
+        # retry with PSM 11 on the same preprocessed image if needed later.
         try:
-            raw_text = _preprocess_and_extract_text(image_bytes)
+            raw_text, preprocessed_img = _preprocess_and_extract_text(image_bytes)
         except Exception:
             return Response(
                 {"error": "Could not decode the uploaded image. Use JPEG or PNG."},
