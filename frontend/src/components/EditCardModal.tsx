@@ -5,7 +5,6 @@ import type { CardCondition, EditCardModalProps } from "@/types";
 import styles from "./EditCardModal.module.scss";
 
 export function EditCardModal({ card, onClose }: EditCardModalProps) {
-  // Pre-fill all form fields from the existing card data.
   // Using individual useState calls (not one big object) makes each field's
   // onChange handler trivially simple and avoids object-spread on every change.
   const [condition, setCondition] = useState<CardCondition>(card.condition);
@@ -18,7 +17,6 @@ export function EditCardModal({ card, onClose }: EditCardModalProps) {
   const updateCard = useUpdateCard();
   const { t } = useTranslation();
 
-  // Close on Escape
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();

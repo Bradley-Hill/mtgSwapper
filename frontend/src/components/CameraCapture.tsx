@@ -76,14 +76,12 @@ export function CameraCapture({
     }
   }, []);
 
-  // Attach stream to the video element once both are ready.
   useEffect(() => {
     if (isLive && videoRef.current && streamRef.current) {
       videoRef.current.srcObject = streamRef.current;
     }
   }, [isLive]);
 
-  // Start camera on mount; guarantee cleanup on unmount.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     startCamera();
@@ -99,7 +97,6 @@ export function CameraCapture({
     const vw = video.videoWidth;
     const vh = video.videoHeight;
 
-    // Crop to the guide band in native pixel coordinates.
     // Because the viewfinder uses height:auto (no object-fit crop/stretch),
     // CSS guide percentages and native pixel percentages are the same fraction.
     const cropTop = Math.round(vh * GUIDE_TOP_PCT);
@@ -111,7 +108,6 @@ export function CameraCapture({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Draw only the guide band region of the current video frame.
     ctx.drawImage(video, 0, cropTop, vw, cropHeight, 0, 0, vw, cropHeight);
 
     canvas.toBlob(
@@ -143,7 +139,6 @@ export function CameraCapture({
     [onCapture],
   );
 
-  // ── Fallback: getUserMedia unavailable ────────────────────────────────────
   if (useFallback) {
     return (
       <div className={styles.root}>
@@ -195,7 +190,6 @@ export function CameraCapture({
     );
   }
 
-  // ── Live viewfinder ────────────────────────────────────────────────────────
   return (
     <div className={styles.root}>
       {isLive && !preview && (

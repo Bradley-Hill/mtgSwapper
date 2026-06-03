@@ -1,0 +1,754 @@
+# MTG Card Swapper — Database & API Reference
+
+Last updated: June 2025
+Stack: Django 6 + DRF, SQLite (dev) / PostgreSQL-compatible (prod), JWT via SimpleJWT
+
+---
+
+===========================================================================
+SECTION 1: DATABASE SCHEMA
+===========================================================================
+
+All 8 confirmed tables. Table 9 (audit_log) deferred to Phase 1.5.
+
+---------------------------------------------------------------------------
+TABLE 1: users
+---------------------------------------------------------------------------
+Purpose: Identity, profile, and reputation for every account.
+
+Fields:
+  id                    UUID PRIMARY KEY
+  email                 VARCHAR(255) UNIQUE NOT NULL
+  password_hash         VARCHAR(255) NOT NULL        -- Django manages hashing
+  username              VARCHAR(50) UNIQUE NOT NULL  -- Editable by user
+  avatar_url            VARCHAR(500) NULL            -- External storage URL only
+  bio                   TEXT NULL
+  preferred_language    VARCHAR(5) DEFAULT 'en'      -- CONSTRAINT: 'en' or 'fr'
+  city                  VARCHAR(100) NULL            -- Hidden Phase 1
+  region_state          VARCHAR(100) NULL
+  country               VARCHAR(100) NULL
+  reputation_avg        DECIMAL(3,2) DEFAULT 0.00   -- Calculated from ratings
+  total_swaps_completed INTEGER DEFAULT 0
+  is_active             BOOLEAN DEFAULT TRUE
+  is_admin              BOOLEAN DEFAULT FALSE        -- Reserved for Phase 1.5+
+  created_at            TIMESTAMPTZ DEFAULT NOW()
+  updated_at            TIMESTAMPTZ DEFAULT NOW()
+  last_login_at         TIMESTAMPTZ NULL
+
+Constraints:
+  preferred_language IN ('en', 'fr')
+  reputation_avg BETWEEN 0.00 AND 5.00
+
+Indexes:
+  idx_users_email        ON users(email)
+  idx_users_username     ON users(username)
+  idx_users_created_at   ON users(created_at DESC)
+
+Design notes:
+- reputation_avg is denormalized: updated by a signal after every Rating save.
+  Slower to write but avoids an aggregate query on every profile load.
+- Location fields stored but hidden from public API in Phase 1. Used Phase 2+
+  for proximity search / in-person swap suggestions.
+
+---------------------------------------------------------------------------
+TABLE 2: invite_codes
+---------------------------------------------------------------------------
+Purpose: Historical invite tracking. Invite requirement was removed from signup
+         in June 2025 — new users no longer need a code. The table and model
+         are kept for existing invite records and potential future use.
+
+Fields:
+  id               UUID PRIMARY KEY
+  inviter_user_id  UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL
+  invitee_email    VARCHAR(255) UNIQUE NOT NULL
+  code             VARCHAR(50) UNIQUE NOT NULL    -- secrets.token_urlsafe(20)
+  status           VARCHAR(20) DEFAULT 'pending'  -- see constraint
+  accepted_user_id UUID NULL REFERENCES users(id) ON DELETE SET NULL
+  created_at       TIMESTAMPTZ DEFAULT NOW()
+  accepted_at      TIMESTAMPTZ NULL
+  expires_at       TIMESTAMPTZ DEFAULT NOW() + 30 days
+
+Constraints:
+  status IN ('pending', 'accepted', 'rejected', 'expired', 'cancelled')
+  expires_at > created_at
+
+Indexes:
+  idx_invite_codes_code    ON invite_codes(code)
+  idx_invite_codes_email   ON invite_codes(invitee_email)
+  idx_invite_codes_status  ON invite_codes(status)
+
+---------------------------------------------------------------------------
+TABLE 3: cards
+---------------------------------------------------------------------------
+Purpose: Master inventory of every card a user wants to trade.
+
+Fields:
+  id          UUID PRIMARY KEY
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE
+  scryfall_id VARCHAR(255) NOT NULL
+  card_name   VARCHAR(255) NOT NULL
+  set_code    VARCHAR(10) NOT NULL
+  set_name    VARCHAR(255) NULL
+  card_type   VARCHAR(255) NULL
+  mana_cost   VARCHAR(50) NULL
+  condition   VARCHAR(30) NOT NULL DEFAULT 'played'  -- see constraint
+  is_foil     BOOLEAN DEFAULT FALSE
+  language    VARCHAR(50) DEFAULT 'English'
+  quantity    INTEGER DEFAULT 1 CHECK (quantity > 0)
+  is_available BOOLEAN DEFAULT TRUE
+  notes       TEXT NULL
+  added_at    TIMESTAMPTZ DEFAULT NOW()
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+
+Constraints:
+  condition IN ('unused', 'played', 'damaged')
+  quantity > 0
+
+Indexes:
+  idx_cards_user_id          ON cards(user_id)
+  idx_cards_scryfall_id      ON cards(scryfall_id)
+  idx_cards_card_name        ON cards(card_name)
+  idx_cards_user_available   ON cards(user_id, is_available)
+
+Design notes:
+- Scryfall data (card_name, set_code, type, mana_cost) is denormalized here
+  rather than fetched at query time. This makes card search fast and keeps the
+  app functional even when Scryfall is unavailable.
+- Condition simplified to 3 values (unused/played/damaged) from the standard
+  PSA 9-point scale. Fewer options → faster decisions for users.
+- Each physical copy is its own row (quantity=1 per row). Simplifies offer
+  item logic: one offer_item per card row, no partial-quantity tracking.
+
+---------------------------------------------------------------------------
+TABLE 4: offers
+---------------------------------------------------------------------------
+Purpose: Manages the full negotiation lifecycle between two users.
+
+Fields:
+  id                  UUID PRIMARY KEY
+  initiator_user_id   UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE
+  target_user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE
+  status              VARCHAR(30) DEFAULT 'pending' NOT NULL  -- see constraint
+  counteroffer_count  INTEGER DEFAULT 0
+  max_counteroffers   INTEGER DEFAULT 4
+  created_at          TIMESTAMPTZ DEFAULT NOW()
+  expires_at          TIMESTAMPTZ DEFAULT NOW() + 7 days
+  accepted_at         TIMESTAMPTZ NULL
+  completed_at        TIMESTAMPTZ NULL
+  declined_at         TIMESTAMPTZ NULL
+  updated_at          TIMESTAMPTZ DEFAULT NOW()
+
+Constraints:
+  status IN ('pending', 'accepted', 'declined', 'expired', 'cancelled', 'completed')
+  initiator_user_id != target_user_id
+  counteroffer_count BETWEEN 0 AND max_counteroffers
+
+Indexes:
+  idx_offers_initiator        ON offers(initiator_user_id)
+  idx_offers_target           ON offers(target_user_id)
+  idx_offers_status           ON offers(status)
+  idx_offers_status_expires   ON offers(status, expires_at)
+
+Status machine:
+  pending → accepted (target accepts)
+  pending → declined (target declines)
+  pending → expired  (7 days elapsed, automated)
+  pending → cancelled (initiator withdraws)
+  accepted → completed (both users mark complete)
+
+Design notes:
+- A counteroffer updates the SAME offer row (status stays 'pending',
+  counteroffer_count increments). We chose this over creating new offer rows
+  per round to keep the offer history simple and avoid foreign key fan-out.
+- expires_at is EXTENDED by 7 days on each counteroffer (app logic in DRF
+  view, not a DB trigger) so neither party loses time to respond.
+- Max 4 counteroffers prevents endless negotiation without full agreement.
+
+---------------------------------------------------------------------------
+TABLE 5: offer_items
+---------------------------------------------------------------------------
+Purpose: Junction table specifying which cards are offered vs. requested
+         in each offer.
+
+Fields:
+  id         UUID PRIMARY KEY
+  offer_id   UUID NOT NULL REFERENCES offers(id) ON DELETE CASCADE
+  card_id    UUID NOT NULL REFERENCES cards(id) ON DELETE CASCADE
+  item_type  VARCHAR(20) NOT NULL  -- 'offered' or 'requested'
+  added_at   TIMESTAMPTZ DEFAULT NOW()
+
+Constraints:
+  item_type IN ('offered', 'requested')
+  UNIQUE (offer_id, card_id, item_type)  -- no duplicate cards in same role
+
+Indexes:
+  idx_offer_items_offer_id  ON offer_items(offer_id)
+  idx_offer_items_card_id   ON offer_items(card_id)
+
+Design notes:
+- Separating offers (user-to-user negotiation) from offer_items (card
+  selection) makes counteroffer logic clean: replace the item rows, keep
+  the offer row. No need to version offer state.
+- The UNIQUE constraint prevents adding the same card twice in the same role
+  within a single offer, catching accidental duplicates at the DB level.
+
+---------------------------------------------------------------------------
+TABLE 6: swap_details
+---------------------------------------------------------------------------
+Purpose: Post-acceptance logistics. Created when an offer is accepted.
+         Holds swap mode, in-person coordination, shipping info, and enforces
+         address privacy.
+
+Fields:
+  id                            UUID PRIMARY KEY
+  offer_id                      UUID UNIQUE NOT NULL REFERENCES offers(id) ON DELETE CASCADE
+  swap_mode                     VARCHAR(20) NULL         -- 'in_person' or 'mail'
+  mode_decided_at               TIMESTAMPTZ NULL
+  proposed_location             TEXT NULL
+  proposed_datetime             TIMESTAMPTZ NULL
+  in_person_confirmed_initiator BOOLEAN DEFAULT FALSE
+  in_person_confirmed_target    BOOLEAN DEFAULT FALSE
+  in_person_confirmed_at        TIMESTAMPTZ NULL
+  shipping_from_address         TEXT NULL
+  shipping_to_address           TEXT NULL
+  carrier                       VARCHAR(50) NULL         -- 'USPS','UPS','FedEx','DHL'
+  outbound_tracking_number      VARCHAR(255) NULL
+  swap_completed_at             TIMESTAMPTZ NULL
+  addresses_deleted_at          TIMESTAMPTZ NULL
+  created_at                    TIMESTAMPTZ DEFAULT NOW()
+  updated_at                    TIMESTAMPTZ DEFAULT NOW()
+
+Constraints:
+  swap_mode IN ('in_person', 'mail') OR swap_mode IS NULL
+  carrier IN ('USPS', 'UPS', 'FedEx', 'DHL') OR carrier IS NULL
+  UNIQUE on offer_id  (1:1 with offers)
+
+Indexes:
+  idx_swap_details_offer_id   ON swap_details(offer_id)
+  idx_swap_details_swap_mode  ON swap_details(swap_mode)
+
+Design notes:
+- The UNIQUE offer_id constraint enforces the 1:1 relationship at the DB level,
+  making it impossible to accidentally create two swap_details for one offer.
+- Addresses are stored ONLY in this table (never on user profiles). They are
+  NULLed immediately when swap_completed_at is set — not deferred — so there is
+  no window where they can be queried post-swap. This is the primary privacy
+  enforcement mechanism.
+- In-person swaps use a two-step confirmation: both parties must set their flag
+  before in_person_confirmed_at is recorded, preventing one-sided confirmations.
+
+---------------------------------------------------------------------------
+TABLE 7: messages
+---------------------------------------------------------------------------
+Purpose: Per-offer chat thread available after acceptance.
+
+Fields:
+  id               UUID PRIMARY KEY
+  offer_id         UUID NOT NULL REFERENCES offers(id) ON DELETE CASCADE
+  sender_user_id   UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL
+  content          TEXT NOT NULL
+  is_system_message BOOLEAN DEFAULT FALSE
+  created_at       TIMESTAMPTZ DEFAULT NOW()
+
+Constraints:
+  LENGTH(TRIM(content)) > 0
+
+Indexes:
+  idx_messages_offer_id       ON messages(offer_id)
+  idx_messages_created_at     ON messages(created_at DESC)
+  idx_messages_offer_created  ON messages(offer_id, created_at DESC)
+
+Design notes:
+- Messaging is only available after an offer is accepted (enforced in DRF
+  view permissions), so chat is scoped to confirmed swap pairs.
+- No read receipts in Phase 1. Frontend polls GET /api/offers/{id}/messages?since=
+  every few seconds rather than using WebSockets, keeping infra simple on the
+  Render free tier.
+- The compound index (offer_id, created_at DESC) is the hot path: nearly every
+  message query is "latest N messages for this offer."
+
+---------------------------------------------------------------------------
+TABLE 8: ratings
+---------------------------------------------------------------------------
+Purpose: Post-swap reputation ratings. Each completed swap produces up to 2
+         ratings (one per participant).
+
+Fields:
+  id             UUID PRIMARY KEY
+  rater_user_id  UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE
+  rated_user_id  UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE
+  offer_id       UUID NOT NULL REFERENCES offers(id) ON DELETE CASCADE
+  rating_stars   INTEGER NOT NULL CHECK (rating_stars BETWEEN 1 AND 5)
+  comment        TEXT NULL
+  created_at     TIMESTAMPTZ DEFAULT NOW()
+  updated_at     TIMESTAMPTZ DEFAULT NOW()
+
+Constraints:
+  rater_user_id != rated_user_id
+  LENGTH(TRIM(comment)) <= 500 OR comment IS NULL
+  UNIQUE (rater_user_id, offer_id)  -- one rating per swap per user
+
+Indexes:
+  idx_ratings_rated_user         ON ratings(rated_user_id)
+  idx_ratings_by_user_created    ON ratings(rated_user_id, created_at DESC)
+
+Design notes:
+- offer_id link provides context ("I rated Bob for the Black Lotus swap"),
+  enabling future swap-history views without needing to cross-reference.
+- The UNIQUE (rater_user_id, offer_id) constraint prevents duplicate ratings
+  at the DB level — no application-layer guard needed.
+- users.reputation_avg is updated via a Django signal after every Rating save
+  and delete, keeping it in sync without requiring an aggregate on read.
+
+
+===========================================================================
+SECTION 2: DATA FLOW & TABLE RELATIONSHIPS
+===========================================================================
+
+This walks through the full user journey and shows which tables are touched
+at each step. Use this to understand how the 8 tables connect in practice.
+
+---------------------------------------------------------------------------
+Step 1 — User Signs Up
+---------------------------------------------------------------------------
+Tables: users
+
+Alice creates an account with username, email, and password. An invite code
+is no longer required (removed June 2025). invite_codes table is still
+present and used for historical invite records / admin tooling.
+
+users row created:
+  reputation_avg = 0.00
+  total_swaps_completed = 0
+  is_available cards = none yet
+
+---------------------------------------------------------------------------
+Step 2 — Users Add Cards to Their Collections
+---------------------------------------------------------------------------
+Tables: cards
+
+Alice scans or manually adds her MTG cards. Each physical copy gets its own
+row (quantity=1 per row). She sets condition, foil status, language, and
+whether it's available to swap (is_available=true).
+
+cards row per card:
+  user_id → Alice
+  scryfall_id, card_name, set_code from Scryfall API
+  condition = 'unused' | 'played' | 'damaged'
+  is_available = true (means "I want to swap this")
+
+---------------------------------------------------------------------------
+Step 3 — Discover Other Users' Cards
+---------------------------------------------------------------------------
+Tables: cards, users (read-only)
+
+Alice searches for a card name. The query joins cards with users:
+  SELECT cards WHERE card_name ILIKE '%Black Lotus%' AND is_available=true
+Results are grouped by user so Alice sees "Bob has 1 (unused), Carol has 3."
+No new rows created. Clicking a user shows their full collection.
+
+---------------------------------------------------------------------------
+Step 4 — Create an Offer
+---------------------------------------------------------------------------
+Tables: offers, offer_items
+
+Alice initiates a swap: "I'll give my 2x Elves + Forest for Bob's Black Lotus."
+
+offers row:
+  initiator_user_id = Alice
+  target_user_id = Bob
+  status = 'pending'
+  expires_at = NOW() + 7 days
+  counteroffer_count = 0
+
+offer_items rows (one per card):
+  Alice's Elf #1 → item_type = 'offered'
+  Alice's Elf #2 → item_type = 'offered'
+  Alice's Forest  → item_type = 'offered'
+  Bob's Black Lotus → item_type = 'requested'
+
+---------------------------------------------------------------------------
+Step 5 — Negotiate (Counteroffer)
+---------------------------------------------------------------------------
+Tables: offers, offer_items
+
+Bob wants 3x Elves instead of 2x Elves + Forest.
+
+offers row UPDATED (same row, not a new one):
+  counteroffer_count = 1
+  expires_at = NOW() + 7 days (reset)
+  status stays 'pending'
+  last_counteroffered_by tracked in app logic
+
+offer_items: old rows DELETED, new rows INSERTED with updated card selections.
+
+This can repeat up to 4 times (max_counteroffers). After 4 rounds, the offer
+auto-expires if no acceptance.
+
+---------------------------------------------------------------------------
+Step 6 — Accept the Offer
+---------------------------------------------------------------------------
+Tables: offers, swap_details
+
+Alice accepts Bob's final counteroffer.
+
+offers row UPDATED:
+  status = 'accepted'
+  accepted_at = NOW()
+
+swap_details row CREATED:
+  offer_id → this offer
+  swap_mode = NULL (not yet decided)
+  All address/location fields = NULL
+
+Messaging is now unlocked for this offer.
+
+---------------------------------------------------------------------------
+Step 7 — Coordinate Swap Method
+---------------------------------------------------------------------------
+Tables: messages, swap_details
+
+Alice and Bob message each other to decide how to swap.
+
+messages rows (one per message):
+  offer_id → this offer
+  sender_user_id = Alice or Bob
+  content = message text
+
+swap_details UPDATED as decisions are made:
+  swap_mode = 'mail' or 'in_person'
+  mode_decided_at = NOW()
+  For mail: shipping_from_address, shipping_to_address, carrier, tracking_number
+  For in-person: proposed_location, proposed_datetime, confirmation flags
+
+---------------------------------------------------------------------------
+Step 8 — Complete Swap & Rate
+---------------------------------------------------------------------------
+Tables: swap_details, ratings, users
+
+Bob marks the swap complete.
+
+swap_details UPDATED:
+  swap_completed_at = NOW()
+  shipping_from_address = NULL  ← addresses deleted IMMEDIATELY
+  shipping_to_address = NULL
+  addresses_deleted_at = NOW()
+
+offers UPDATED:
+  status = 'completed'
+  completed_at = NOW()
+
+Both users can now leave a rating:
+
+ratings row per user:
+  rater_user_id = Alice, rated_user_id = Bob (and vice versa)
+  offer_id → this offer (provides context)
+  rating_stars = 1-5
+  comment = optional (max 500 chars)
+
+users UPDATED via Django signal after each rating save:
+  rated user's reputation_avg recalculated
+  total_swaps_completed incremented for both
+
+---------------------------------------------------------------------------
+Table Relationship Summary
+---------------------------------------------------------------------------
+
+  users ──< cards
+  users ──< offers (as initiator)
+  users ──< offers (as target)
+  offers ──< offer_items >── cards   (offer_items is the junction)
+  offers ──1 swap_details
+  offers ──< messages
+  offers ──< ratings
+  users ──< ratings (as rater)
+  users ──< ratings (as rated)
+
+  invite_codes: inviter_user → users, accepted_user → users (optional, historical)
+
+
+===========================================================================
+SECTION 3: API ROUTES
+===========================================================================
+
+Base URL: https://<your-domain>/api/
+Local:    http://localhost:8000/api/
+
+Authentication: httpOnly cookies (access_token + refresh_token). The browser
+sends these automatically. No Authorization: Bearer header needed for
+browser clients. Access token lifetime: 60 min. Refresh: 7 days.
+
+All responses are JSON. Errors use DRF's default format:
+  { "detail": "message" } or { "field_name": ["error message"] }
+
+---------------------------------------------------------------------------
+AUTH ROUTES  —  /api/auth/
+---------------------------------------------------------------------------
+
+POST /api/auth/signup/
+  Create a new account. No invite code required.
+  Body: { username, email, password }
+  Response 201: { user: {...} }
+  Cookies set: access_token, refresh_token (httpOnly)
+  Errors: 400 (validation), 409 (email/username taken)
+
+POST /api/auth/login/
+  Authenticate with email + password.
+  Body: { email, password }
+  Response 200: { user: {...} }
+  Cookies set: access_token, refresh_token (httpOnly)
+  Errors: 401 (wrong credentials)
+
+POST /api/auth/logout/
+  Clear auth cookies. Always succeeds (even with invalid/expired token).
+  Body: empty
+  Response 200: { message: "Logged out successfully!" }
+  Cookies cleared: access_token, refresh_token
+
+POST /api/auth/refresh/
+  Get a new access token using the refresh_token cookie.
+  Body: empty (cookie sent automatically)
+  Response 200: new access_token cookie set
+  Errors: 400 (no refresh cookie), 401 (invalid/expired refresh token)
+
+GET /api/auth/me/
+  Get the authenticated user's profile.
+  Auth required: Yes
+  Response 200: { id, username, email, created_at }
+  Errors: 401
+
+---------------------------------------------------------------------------
+USER ROUTES  —  /api/users/
+---------------------------------------------------------------------------
+
+GET /api/users/
+  List all users (paginated). Includes available_card_count annotation.
+  Auth required: No
+  Response 200: { count, next, previous, results: [{ id, username, city,
+                  country, reputation_avg, total_swaps_completed,
+                  available_card_count }] }
+
+GET /api/users/:id/
+  Public profile for a specific user.
+  Auth required: No
+  Response 200: { id, username, city, country, reputation_avg,
+                  total_swaps_completed, created_at }
+  Errors: 404
+
+PUT /api/users/:id/
+  Update own profile. Can only edit your own.
+  Auth required: Yes
+  Body: { username?, bio?, preferred_language?, city?, country? }
+  Response 200: updated profile fields
+  Errors: 400 (validation), 403 (not your profile), 409 (username taken)
+
+GET /api/users/:id/ratings/
+  All ratings received by a user, newest first.
+  Auth required: No
+  Response 200: paginated list of { id, rater_user, rating_stars, comment,
+                offer_id, created_at }
+  Errors: 404
+
+---------------------------------------------------------------------------
+CARD ROUTES  —  /api/cards/
+---------------------------------------------------------------------------
+
+POST /api/cards/
+  Add a card to your collection.
+  Auth required: Yes
+  Body: { scryfall_id, card_name, set_code, set_name?, card_type?,
+          mana_cost?, condition, is_foil?, language?, quantity?, notes? }
+  Response 201: card object
+  Errors: 400, 401
+
+GET /api/cards/search/?name=&set=&condition=&foil=&language=
+  Search available cards across all users.
+  name (required), others optional filters.
+  Auth required: No
+  Response 200: { count, results: [{ card, owner: { username, reputation_avg } }] }
+  Errors: 400 (missing name)
+
+GET /api/users/:id/cards/
+  All cards in a user's collection. Filter by is_available, condition.
+  Auth required: No
+  Response 200: paginated card list
+  Errors: 404
+
+GET /api/cards/:id/
+  Single card detail with owner info.
+  Auth required: No
+  Response 200: card + owner object
+  Errors: 404
+
+PUT /api/cards/:id/
+  Update card (condition, availability, notes). Own cards only.
+  Auth required: Yes
+  Response 200: updated card
+  Errors: 403, 404
+
+DELETE /api/cards/:id/
+  Remove card from collection. Own cards only.
+  Cannot delete if card is in an active (pending/accepted) offer.
+  Auth required: Yes
+  Response 204
+  Errors: 403, 404, 409 (in active offer)
+
+POST /api/cards/scan/
+  OCR scan a card image (Tesseract, PSM 7 + PSM 11 fallback).
+  Searches Scryfall (fuzzy → multilingual → autocomplete → trailing-token strip).
+  Auth required: Yes
+  Body: multipart/form-data with image file
+  Response 200: matched card data from Scryfall
+  Errors: 400 (no image), 404 (card not identified)
+
+---------------------------------------------------------------------------
+OFFER ROUTES  —  /api/offers/
+---------------------------------------------------------------------------
+
+POST /api/offers/
+  Initiate a swap with another user.
+  Auth required: Yes
+  Body: { target_user_id, offered_card_ids: [...], requested_card_ids: [...] }
+  Response 201: offer + offer_items
+  Errors: 400 (invalid cards), 403 (don't own offered cards), 404
+
+GET /api/offers/
+  List your offers (sent + received). Filter by status, direction.
+  Auth required: Yes
+  Query params: status?, direction? (sent|received), limit, offset
+  Response 200: paginated offer list
+
+GET /api/offers/:id/
+  Full offer detail including all offer_items and swap_details (if accepted).
+  Auth required: Yes (offer participants only)
+  Response 200: offer object
+  Errors: 403, 404
+
+PUT /api/offers/:id/
+  Modify a pending offer's card selections (initiator only).
+  Auth required: Yes
+  Response 200: updated offer
+  Errors: 400, 403, 404
+
+POST /api/offers/:id/accept/
+  Target accepts the offer. Creates swap_details row. Unlocks messaging.
+  Auth required: Yes (target only)
+  Response 200: offer with swap_details
+  Errors: 400 (not pending), 403, 409 (expired)
+
+POST /api/offers/:id/decline/
+  Target declines the offer.
+  Auth required: Yes (target only)
+  Response 200: { status: 'declined', declined_at }
+  Errors: 400, 403
+
+POST /api/offers/:id/counteroffer/
+  Propose different cards. Replaces offer_items. Extends expires_at by 7 days.
+  Increments counteroffer_count. Max 4 rounds.
+  Auth required: Yes (either participant, but not the last counterofferer)
+  Body: { offered_card_ids: [...], requested_card_ids: [...] }
+  Response 200: updated offer + items
+  Errors: 400, 403, 409 (max counteroffers reached)
+
+POST /api/offers/:id/cancel/
+  Initiator withdraws a pending offer.
+  Auth required: Yes (initiator only)
+  Response 200: { status: 'cancelled' }
+  Errors: 400 (not pending), 403
+
+---------------------------------------------------------------------------
+SWAP DETAILS ROUTES  —  /api/offers/:id/swap-details/
+---------------------------------------------------------------------------
+(Available only after offer is accepted)
+
+GET /api/offers/:id/swap-details/
+  View full swap coordination data.
+  Auth required: Yes (offer participants only)
+  Response 200: swap_details object (all fields)
+  Errors: 403, 404
+
+PUT /api/offers/:id/swap-details/mode/
+  Choose in_person or mail swap mode.
+  Auth required: Yes
+  Body: { swap_mode: 'in_person' | 'mail' }
+  Response 200: updated swap_details
+  Errors: 400, 403
+
+PUT /api/offers/:id/swap-details/location/
+  Propose in-person meetup location and time (in_person mode only).
+  Auth required: Yes
+  Body: { proposed_location, proposed_datetime }
+  Response 200: updated swap_details
+  Errors: 400, 403
+
+POST /api/offers/:id/swap-details/confirm/
+  Confirm the proposed meetup. Sets your confirmation flag.
+  Both parties must confirm before in_person_confirmed_at is set.
+  Auth required: Yes
+  Response 200: updated swap_details with confirmation flags
+  Errors: 403
+
+PUT /api/offers/:id/swap-details/address/
+  Share shipping address (mail mode). Address is stored, NOT returned in API.
+  Auth required: Yes
+  Body: { shipping_address, carrier }
+  Response 200: { id, carrier } (address not echoed back)
+  Errors: 400, 403
+
+PUT /api/offers/:id/swap-details/tracking/
+  Add outbound tracking number.
+  Auth required: Yes
+  Body: { outbound_tracking_number }
+  Response 200: updated swap_details
+  Errors: 403
+
+POST /api/offers/:id/swap-details/complete/
+  Mark swap complete. Immediately nulls shipping addresses.
+  Unlocks rating endpoint for both parties.
+  Auth required: Yes
+  Response 200: { swap_completed_at, addresses_deleted_at }
+  Errors: 403
+
+---------------------------------------------------------------------------
+MESSAGE ROUTES  —  /api/offers/:id/messages/
+---------------------------------------------------------------------------
+(Available only after offer is accepted)
+
+POST /api/offers/:id/messages/
+  Send a message. Max 2000 chars. No empty content.
+  Auth required: Yes (offer participants only)
+  Body: { content }
+  Response 201: message object
+  Errors: 400, 403, 404
+
+GET /api/offers/:id/messages/
+  Get all messages, oldest first.
+  Auth required: Yes (offer participants only)
+  Query params: limit (default 20), offset, since (ISO 8601 timestamp for polling)
+  Response 200: paginated message list
+  Errors: 403, 404
+
+Polling pattern: On page load, GET all messages. Store the latest created_at.
+  Every 2–5 seconds: GET ?since={last_timestamp}. Append new messages to UI.
+
+---------------------------------------------------------------------------
+RATINGS ROUTES  —  /api/ratings/  and  /api/offers/:id/ratings/
+---------------------------------------------------------------------------
+
+POST /api/ratings/
+  Rate the other party after swap is completed.
+  Auth required: Yes
+  Body: { rated_user_id, offer_id, rating_stars (1-5), comment? (max 500 chars) }
+  Response 201: rating object
+  Side effects: updates rated user's reputation_avg; increments total_swaps_completed
+  Errors: 400, 403 (swap not complete / not participant), 409 (already rated)
+
+GET /api/users/:id/ratings/
+  All ratings received by a user, newest first. (See User Routes above.)
+  Auth required: No
+
+GET /api/offers/:id/ratings/
+  Both ratings on a specific completed swap.
+  Auth required: Yes (offer participants only)
+  Response 200: list of up to 2 rating objects
+  Errors: 403, 404

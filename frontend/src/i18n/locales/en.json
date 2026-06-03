@@ -17,11 +17,10 @@
       "submit": "Sign in",
       "submitting": "Signing in…",
       "noAccount": "Don't have an account?",
-      "register": "Register with an invite code"
+      "register": "Register"
     },
     "register": {
       "title": "Create account",
-      "inviteCode": "Invite code",
       "username": "Username",
       "email": "Email",
       "password": "Password",
@@ -30,8 +29,7 @@
       "haveAccount": "Already have an account?",
       "signIn": "Sign in",
       "errorMinUsername": "Username must be at least 3 characters.",
-      "errorMinPassword": "Password must be at least 8 characters.",
-      "errorNoInvite": "An invite code is required to register."
+      "errorMinPassword": "Password must be at least 8 characters."
     }
   },
   "collection": {

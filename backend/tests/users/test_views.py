@@ -3,7 +3,6 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 from rest_framework import status
 
-from users.models import InviteCode
 from cards.models import Card
 
 User = get_user_model()
@@ -13,15 +12,6 @@ class AuthEndpointTests(APITestCase):
     """Basic tests for auth endpoints."""
     
     def setUp(self):
-        self.inviter = User.objects.create_user(
-            username='inviter',
-            email='inviter@example.com',
-            password='testpass123'
-        )
-        self.invite = InviteCode.objects.create(
-            inviter_user=self.inviter,
-            invitee_email='newuser@example.com'
-        )
         self.user = User.objects.create_user(
             username='existing',
             email='existing@example.com',
@@ -34,27 +24,14 @@ class AuthEndpointTests(APITestCase):
             'username': 'newuser',
             'email': 'newuser@example.com',
             'password': 'securepass123',
-            'invite_code': self.invite.code
         }
         response = self.client.post('/api/auth/signup/', data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn('user', response.data)
-        # Tokens are set as httpOnly cookies, not in response body
         self.assertIn('access_token', self.client.cookies)
         self.assertIn('refresh_token', self.client.cookies)
         self.assertTrue(User.objects.filter(email='newuser@example.com').exists())
-    
-    def test_signup_invalid_invite(self):
-        """POST /api/auth/signup/ rejects invalid invite code."""
-        data = {
-            'username': 'newuser',
-            'email': 'newuser@example.com',
-            'password': 'securepass123',
-            'invite_code': 'invalid'
-        }
-        response = self.client.post('/api/auth/signup/', data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
     
     def test_login_success(self):
         """POST /api/auth/login/ authenticates user and returns tokens in cookies."""

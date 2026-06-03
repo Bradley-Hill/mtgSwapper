@@ -26,7 +26,6 @@ class Rating(models.Model):
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
-    # Rater → Rated
     rater_user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -39,11 +38,9 @@ class Rating(models.Model):
     )
     offer = models.ForeignKey(Offer, on_delete=models.CASCADE, related_name='ratings')
     
-    # Rating
     rating_stars = models.IntegerField(choices=[(i, str(i)) for i in range(1, 6)])
     comment = models.TextField(null=True, blank=True)
     
-    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

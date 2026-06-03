@@ -237,8 +237,6 @@ export function CollectionPage() {
   );
 }
 
-// ── Private sub-component ────────────────────────────────────────────────────
-
 function CardRow({
   card,
   isSelected,

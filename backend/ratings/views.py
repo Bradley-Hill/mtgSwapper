@@ -45,7 +45,6 @@ class RatingViewSet(viewsets.GenericViewSet):
         stars = serializer.validated_data["rating_stars"]
         comment = serializer.validated_data.get("comment", "")
 
-        # Fetch offer — 404 if not found at all
         try:
             offer = Offer.objects.select_related(
                 "initiator_user", "target_user"
@@ -57,21 +56,18 @@ class RatingViewSet(viewsets.GenericViewSet):
 
         rater = request.user
 
-        # Must be a participant
         if rater not in (offer.initiator_user, offer.target_user):
             return Response(
                 {"error": "You are not a participant in this offer."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # Offer must be completed
         if offer.status != "completed":
             return Response(
                 {"error": "You can only rate completed swaps."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Derive rated_user — the other participant
         rated_user = (
             offer.target_user
             if rater == offer.initiator_user

@@ -87,32 +87,24 @@ class AuthViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'], permission_classes=[AllowAny()])
     def signup(self, request):
         """
-        Sign up a new user with an invite code.
+        Sign up a new user.
         
         POST /api/auth/signup/
         {
             "username": "alice",
             "email": "alice@example.com",
-            "password": "securepassword123",
-            "invite_code": "abc123xyz"
+            "password": "securepassword123"
         }
         """
         serializer = SignupSerializer(data=request.data)
         
         if serializer.is_valid():
-            # Create user
             user = serializer.save()
-            
-            # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
-            
-            # Build response with tokens as httpOnly cookies
             response = Response({
                 'user': UserSerializer(user).data,
                 'message': 'Account created successfully!'
             }, status=status.HTTP_201_CREATED)
-            
-            # Set tokens as httpOnly cookies
             response.set_cookie(**_get_cookie_kwargs('access_token', str(refresh.access_token)))
             response.set_cookie(**_get_cookie_kwargs('refresh_token', str(refresh)))
             
@@ -135,21 +127,13 @@ class AuthViewSet(viewsets.ViewSet):
         
         if serializer.is_valid():
             user = serializer.validated_data['user']
-            
-            # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
-            
-            # Update last login
             user.last_login_at = timezone.now()
             user.save(update_fields=['last_login_at'])
-            
-            # Build response
             response = Response({
                 'user': UserSerializer(user).data,
                 'message': 'Logged in successfully!'
             }, status=status.HTTP_200_OK)
-            
-            # Set tokens as httpOnly cookies
             response.set_cookie(**_get_cookie_kwargs('access_token', str(refresh.access_token)))
             response.set_cookie(**_get_cookie_kwargs('refresh_token', str(refresh)))
             
@@ -172,8 +156,6 @@ class AuthViewSet(viewsets.ViewSet):
             {'message': 'Logged out successfully!'},
             status=status.HTTP_200_OK
         )
-        
-        # Clear cookies
         response.delete_cookie('access_token')
         response.delete_cookie('refresh_token')
         
@@ -187,7 +169,6 @@ class AuthViewSet(viewsets.ViewSet):
         POST /api/auth/refresh/
         (The refresh_token cookie is sent automatically by the browser)
         """
-        # Get refresh token from cookie
         refresh_token = request.COOKIES.get('refresh_token')
         
         if not refresh_token:
@@ -204,7 +185,6 @@ class AuthViewSet(viewsets.ViewSet):
                 'message': 'Token refreshed successfully!'
             }, status=status.HTTP_200_OK)
             
-            # Set new access token cookie
             response.set_cookie(**_get_cookie_kwargs('access_token', str(new_access)))
             
             return response

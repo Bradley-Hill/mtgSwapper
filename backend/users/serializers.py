@@ -40,10 +40,7 @@ class CreateInviteCodeSerializer(serializers.Serializer):
         user = self.context['request'].user
         invitee_email = validated_data['invitee_email']
         
-        # Generate a random code (URL-safe)
         code = secrets.token_urlsafe(20)
-        
-        # Set expiry to 30 days from now
         expires_at = timezone.now() + timedelta(days=30)
         
         invite = InviteCode.objects.create(
@@ -120,7 +117,7 @@ class UserListSerializer(serializers.ModelSerializer):
 
 
 class SignupSerializer(serializers.Serializer):
-    """Serializer for user registration with invite code."""
+    """Serializer for user registration."""
     
     username = serializers.CharField(max_length=150, min_length=3)
     email = serializers.EmailField()
@@ -130,7 +127,7 @@ class SignupSerializer(serializers.Serializer):
         write_only=True,
         help_text="At least 8 characters"
     )
-    invite_code = serializers.CharField(max_length=50)
+    invite_code = serializers.CharField(max_length=50, required=False, allow_blank=True)
     
     def validate_username(self, value):
         """Check if username is unique."""
@@ -145,19 +142,20 @@ class SignupSerializer(serializers.Serializer):
         return value
     
     def validate_invite_code(self, value):
-        """Check if invite code is valid and not expired."""
+        """If a code is provided, verify it's valid and not expired."""
+        if not value:
+            return value
+
         try:
             invite = InviteCode.objects.get(code=value)
         except InviteCode.DoesNotExist:
             raise serializers.ValidationError("Invalid invite code.")
         
-        # Check if already used
         if invite.status != 'pending':
             raise serializers.ValidationError(
                 f"This invite has already been {invite.status}."
             )
         
-        # Check if expired
         if timezone.now() > invite.expires_at:
             invite.status = 'expired'
             invite.save()
@@ -167,13 +165,12 @@ class SignupSerializer(serializers.Serializer):
     
     def validate(self, data):
         """Cross-field validation."""
-        # Find the invite code again for marking as used
-        try:
-            invite = InviteCode.objects.get(code=data['invite_code'])
-            data['invite'] = invite
-        except InviteCode.DoesNotExist:
-            pass  # Already validated above
-        
+        invite_code = data.get('invite_code')
+        if invite_code:
+            try:
+                data['invite'] = InviteCode.objects.get(code=invite_code)
+            except InviteCode.DoesNotExist:
+                pass  # Already caught in validate_invite_code
         return data
     
     def create(self, validated_data):

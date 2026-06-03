@@ -45,7 +45,6 @@ export function ScanPage() {
   const { t } = useTranslation();
   usePageTitle(t("scan.title"));
 
-  // ── Scan mutation (OCR + Scryfall) ──────────────────────────────────────
   const scanMutation = useMutation({
     mutationFn: scanCard,
     onSuccess: (result) => {
@@ -60,7 +59,6 @@ export function ScanPage() {
     },
   });
 
-  // ── Staging list handlers ────────────────────────────────────────────────
   const handleRemove = useCallback((stageId: string) => {
     setStagedCards((prev) => prev.filter((c) => c.stageId !== stageId));
   }, []);
@@ -73,7 +71,6 @@ export function ScanPage() {
     );
   }, []);
 
-  // ── Commit: add all staged cards to collection ───────────────────────────
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = useCallback(

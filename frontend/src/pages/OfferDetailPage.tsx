@@ -79,7 +79,6 @@ export function OfferDetailPage() {
   const isInitiator = offer.initiator.id === user?.id;
   const isTarget = offer.target.id === user?.id;
   const isPending = offer.status === "pending";
-  // The user rates the other participant; derive their username for the button label
   const otherParticipant = isInitiator ? offer.target : offer.initiator;
 
   const offeredItems = offer.items.filter(
@@ -246,8 +245,6 @@ export function OfferDetailPage() {
     </main>
   );
 }
-
-// ── Sub-component ─────────────────────────────────────────────────────────────
 
 function CardList({ items }: { items: OfferItem[] }) {
   const { t } = useTranslation();

@@ -27,7 +27,6 @@ export function BulkEditLanguageModal({
   const [language, setLanguage] = useState("English");
   const { t } = useTranslation();
 
-  // Close on Escape
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();

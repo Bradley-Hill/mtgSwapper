@@ -23,7 +23,6 @@ class Offer(models.Model):
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
-    # Participants
     initiator_user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -35,7 +34,6 @@ class Offer(models.Model):
         related_name='offers_received'
     )
     
-    # Status & Negotiation
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('accepted', 'Accepted'),
@@ -51,7 +49,6 @@ class Offer(models.Model):
         db_index=True
     )
     
-    # Counteroffer tracking
     counteroffer_count = models.IntegerField(default=0)
     max_counteroffers = models.IntegerField(default=4)
     last_counteroffer_by = models.ForeignKey(
@@ -62,7 +59,6 @@ class Offer(models.Model):
         related_name='last_countered_offers',
     )
     
-    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     accepted_at = models.DateTimeField(null=True, blank=True)
@@ -83,7 +79,6 @@ class Offer(models.Model):
         return f"Offer: {self.initiator_user.username} → {self.target_user.username} ({self.status})"
     
     def save(self, *args, **kwargs):
-        # Set default expiry on creation.
         # Must use self._state.adding rather than `not self.pk` because
         # UUIDField(default=uuid.uuid4) pre-populates pk before save() runs,
         # making `not self.pk` always False for new objects.
@@ -158,7 +153,6 @@ class SwapDetails(models.Model):
         related_name='swap_details'
     )
     
-    # Swap Mode Decision (Post-Acceptance)
     SWAP_MODE_CHOICES = [
         ('in_person', 'In-Person Meetup'),
         ('mail', 'Mail Swap'),
@@ -171,7 +165,6 @@ class SwapDetails(models.Model):
     )
     mode_decided_at = models.DateTimeField(null=True, blank=True)
     
-    # IN-PERSON MODE
     proposed_location = models.TextField(null=True, blank=True)
     proposed_datetime = models.DateTimeField(null=True, blank=True)
     in_person_confirmed_initiator = models.BooleanField(default=False)
@@ -195,13 +188,12 @@ class SwapDetails(models.Model):
     )
     outbound_tracking_number = models.CharField(max_length=255, null=True, blank=True)
     
-    # Completion (two-step — both parties must confirm)
+    # Two-step: both parties must confirm before swap_completed_at is set.
     completed_by_initiator = models.BooleanField(default=False)
     completed_by_target = models.BooleanField(default=False)
     swap_completed_at = models.DateTimeField(null=True, blank=True)
     addresses_deleted_at = models.DateTimeField(null=True, blank=True)
 
-    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

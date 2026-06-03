@@ -76,9 +76,7 @@ export function NavBar() {
               onClick={toggleLanguage}
               className={styles.langToggle}
               aria-label={
-                currentLang === "en"
-                  ? "Switch to French"
-                  : "Passer en anglais"
+                currentLang === "en" ? "Switch to French" : "Passer en anglais"
               }
             >
               {currentLang === "en" ? "FR" : "EN"}
@@ -146,7 +144,6 @@ export function NavBar() {
             {t("nav.logOut")}
           </button>
         </div>
-        // </div>
       )}
     </header>
   );

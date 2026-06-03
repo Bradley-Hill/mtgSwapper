@@ -1,6 +1,3 @@
-// Component prop interfaces.
-// One interface per component that accepts props.
-
 export interface AddCardModalProps {
   onClose: () => void;
 }

@@ -15,12 +15,9 @@ class User(AbstractUser):
     - Can add new fields without migrations later
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
-    # Profile
     avatar_url = models.URLField(max_length=500, null=True, blank=True)
     bio = models.TextField(null=True, blank=True)
     
-    # Language Preference
     LANGUAGE_CHOICES = [
         ('en', 'English'),
         ('fr', 'French'),
@@ -45,11 +42,9 @@ class User(AbstractUser):
     )
     total_swaps_completed = models.IntegerField(default=0)
     
-    # Admin Status
     is_admin = models.BooleanField(default=False)
     last_login_at = models.DateTimeField(null=True, blank=True)
     
-    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -84,7 +79,6 @@ class InviteCode(models.Model):
     )
     invitee_email = models.EmailField(unique=True)
     
-    # Invite Code (random token)
     code = models.CharField(max_length=50, unique=True)
     
     STATUS_CHOICES = [
@@ -100,7 +94,6 @@ class InviteCode(models.Model):
         default='pending'
     )
     
-    # Accept tracking
     accepted_user = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -109,7 +102,6 @@ class InviteCode(models.Model):
         related_name='used_invite_code'
     )
     
-    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     accepted_at = models.DateTimeField(null=True, blank=True)
     expires_at = models.DateTimeField()  # Set to 30 days from created_at in view

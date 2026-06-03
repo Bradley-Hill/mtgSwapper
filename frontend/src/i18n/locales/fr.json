@@ -17,11 +17,10 @@
             "submit": "Se connecter",
             "submitting": "Connexion…",
             "noAccount": "Pas encore de compte ?",
-            "register": "Créer un compte avec un code d'invitation"
+            "register": "Créer un compte"
         },
         "register": {
             "title": "Créer un compte",
-            "inviteCode": "Code d'invitation",
             "username": "Nom d'utilisateur",
             "email": "Courriel",
             "password": "Mot de passe",
@@ -30,8 +29,7 @@
             "haveAccount": "Vous avez déjà un compte ?",
             "signIn": "Se connecter",
             "errorMinUsername": "Le nom d'utilisateur doit comporter au moins 3 caractères.",
-            "errorMinPassword": "Le mot de passe doit comporter au moins 8 caractères.",
-            "errorNoInvite": "Un code d'invitation est requis pour s'inscrire."
+            "errorMinPassword": "Le mot de passe doit comporter au moins 8 caractères."
         }
     },
     "collection": {

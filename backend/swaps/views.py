@@ -247,7 +247,6 @@ class OfferViewSet(viewsets.GenericViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Replace all existing items with the new selections
         offer.items.all().delete()
         for card in offered_cards:
             OfferItem.objects.create(offer=offer, card=card, item_type='offered')

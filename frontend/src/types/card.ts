@@ -42,8 +42,6 @@ export interface BulkImportPayload {
   is_foil: boolean;
 }
 
-// Returned by GET /api/cards/global_search/?q=
-// Subset of Card fields + owner info for linking to their profile page.
 export interface GlobalSearchResult {
   id: string;
   scryfall_id: string;

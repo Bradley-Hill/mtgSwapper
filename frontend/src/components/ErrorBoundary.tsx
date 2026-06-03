@@ -39,13 +39,10 @@ export class ErrorBoundary extends Component<
   state: ErrorBoundaryState = { error: null };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    // Called synchronously when a child throws. Return value merges into state.
     return { error };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // Good place to send to an error-tracking service (Sentry, etc.).
-    // For now we just log to console so developers can see stack traces.
     console.error("[ErrorBoundary]", error, info.componentStack);
   }
 

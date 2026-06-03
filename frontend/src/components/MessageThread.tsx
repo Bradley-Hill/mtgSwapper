@@ -35,7 +35,6 @@ export function MessageThread({
     staleTime: 0,
   });
 
-  // Auto-scroll to the bottom whenever new messages arrive
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);

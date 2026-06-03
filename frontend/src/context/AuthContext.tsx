@@ -60,16 +60,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     username: string,
     email: string,
     password: string,
-    inviteCode: string,
   ): Promise<void> {
     const res = await apiFetch("/api/auth/signup/", {
       method: "POST",
-      body: JSON.stringify({
-        username,
-        email,
-        password,
-        invite_code: inviteCode,
-      }),
+      body: JSON.stringify({ username, email, password }),
     });
     const data = (await res.json()) as { user: User; message: string };
     setUser(data.user);

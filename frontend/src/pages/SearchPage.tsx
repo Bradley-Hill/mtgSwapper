@@ -28,7 +28,6 @@ export function SearchPage() {
   const { t } = useTranslation();
   usePageTitle(t("search.title"));
 
-  // ── Cards tab query ────────────────────────────────────────────────────────
   const { data, isLoading, isFetching, isError } = useQuery({
     queryKey: ["globalSearch", debouncedQuery],
     queryFn: () => globalSearch(debouncedQuery),
@@ -36,7 +35,6 @@ export function SearchPage() {
     staleTime: 30_000,
   });
 
-  // ── Traders tab query ──────────────────────────────────────────────────────
   // Fetches once when the tab is first opened, then stays cached for 60 s.
   // We fetch all traders up-front and filter client-side — the list is small
   // enough that a server-side filter endpoint would be over-engineering.
@@ -126,18 +124,23 @@ export function SearchPage() {
 
             {isError && <p className={styles.error}>{t("common.error")}</p>}
 
-            {hasSearched && !isLoading && !isError && filteredResults.length === 0 && (
-              <p className={styles.empty}>
-                {t("search.noResults")} &ldquo;{debouncedQuery}&rdquo;
-              </p>
-            )}
+            {hasSearched &&
+              !isLoading &&
+              !isError &&
+              filteredResults.length === 0 && (
+                <p className={styles.empty}>
+                  {t("search.noResults")} &ldquo;{debouncedQuery}&rdquo;
+                </p>
+              )}
 
             {filteredResults.length > 0 && (
               <>
                 <p className={styles.count}>
                   {t("search.resultCount", { count: filteredResults.length })}
                 </p>
-                <div className={`${styles.tableWrapper} ${styles.cardsWrapper}`}>
+                <div
+                  className={`${styles.tableWrapper} ${styles.cardsWrapper}`}
+                >
                   <table className={`${styles.table} ${styles.cardsTable}`}>
                     <thead>
                       <tr>
